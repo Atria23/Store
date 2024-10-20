@@ -92,7 +92,7 @@ export default function Dashboard({ auth }) {
                     subtitle={'Total Pendapatan Hari Ini'}
                     color={'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'}
                     icon={<IconWallet size={'20'} strokeWidth={'1.5'}/>}
-                    total={<><sup>Rp</sup> 1.000K</>}
+                    total={<><sup>Rp</sup> 00K</>}
                 />
                 <Widget
                     title={'Pelanggan'}
