@@ -7,8 +7,6 @@ use App\Http\Controllers\Apps\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\WelcomeMail;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -18,11 +16,6 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
-
-Route::get('/email', function () {
-    Mail::to('muvausastore1@gmail.com')->send(new WelcomeMail());
-    return new WelcomeMail();
 });
 
 Route::middleware('auth')->group(function () {
