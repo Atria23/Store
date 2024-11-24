@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -23,6 +25,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'avatar',
+        'username',
+        'phone_number',
+        'profile_image',
+        'pin',
+        'saldo',
+        'membership_status',
+        'points',
+        'referral_code',
     ];
 
     /**
@@ -32,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $hidden = [
         'password',
+        'pin',
         'remember_token',
     ];
 
@@ -48,8 +59,8 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-     /**
-     * accessor avatar user
+    /**
+     * Accessor for the avatar.
      */
     protected function avatar(): Attribute
     {
@@ -59,19 +70,29 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     *  get all permissions users
+     * Accessor for the profile_image.
+     */
+    protected function profileImage(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value != null ? asset('/storage/profile_images/' . $value) : asset('default-profile.png'),
+        );
+    }
+
+    /**
+     * Get all permissions for the user.
      */
     public function getPermissions()
     {
-        return $this->getAllPermissions()->mapWithKeys(function($permission){
+        return $this->getAllPermissions()->mapWithKeys(function ($permission) {
             return [
-                $permission['name'] => true
+                $permission['name'] => true,
             ];
         });
     }
 
     /**
-     * check role isSuperAdmin
+     * Check if the user is a super admin.
      */
     public function isSuperAdmin()
     {

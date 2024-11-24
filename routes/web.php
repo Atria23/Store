@@ -11,6 +11,17 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\DepositController;
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/deposit', [DepositController::class, 'index'])->name('deposit-history');
+    Route::get('/deposit/create', [DepositController::class, 'create'])->name('deposit-create');
+    Route::post('/deposit', [DepositController::class, 'store'])->name('deposit-store');
+    Route::post('/deposit/confirm/{id}', [DepositController::class, 'confirm'])->name('deposit-confirm');
+    Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
+
+});
 
 Route::get('/', function () {
     // Cek apakah pengguna sudah login
