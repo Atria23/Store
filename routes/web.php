@@ -13,23 +13,15 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DepositController;
 
-
 Route::middleware(['auth'])->group(function () {
     Route::get('/deposit', [DepositController::class, 'index'])->name('deposit-history');
     Route::get('/deposit/create', [DepositController::class, 'create'])->name('deposit-create');
     Route::post('/deposit', [DepositController::class, 'store'])->name('deposit-store');
     Route::post('/deposit/confirm/{id}', [DepositController::class, 'confirm'])->name('deposit-confirm');
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
-    Route::get('secret/proof_of_payment/{filename}', function ($filename) {
-        $path = storage_path('app/secret/proof_of_payment/' . $filename);
-    
-        if (!file_exists($path)) {
-            abort(404);
-        }
-    
-        return response()->file($path);
-    })->name('proof.view');
-    
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
+    });    
 });
 
 Route::get('/', function () {

@@ -87,10 +87,7 @@ const DepositHistory = ({ deposits }) => {
     .then((data) => {
       if (data.success) {
         alert("Proof of payment uploaded successfully!");
-        // Update daftar deposit setelah berhasil upload
-        setUpdatedDeposits(prevDeposits => prevDeposits.map(deposit =>
-          deposit.id === id ? { ...deposit, proof_of_payment: data.proof_of_payment } : deposit
-        ));
+        window.location.href = `/deposit`; // Arahkan ke halaman detail deposit
       } else {
         alert("Failed to upload proof of payment.");
       }
@@ -148,28 +145,59 @@ const DepositHistory = ({ deposits }) => {
                     ? formatTimeLeft(deposit.expires_at)
                     : "Expired"}
                 </td>
+                
                 <td className="border px-4 py-2">
-    {deposit.proof_of_payment ? (
-        <img
-            src={deposit.proof_of_payment}
-            alt="Proof of Payment"
-            className="w-20 h-20 object-cover"
-        />
-    ) : (
-        <div>
-            <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                    handleUploadProof(deposit.id, e.target.files[0])
-                }
-                disabled={uploadingId === deposit.id}
-                className="text-sm"
-            />
-            {uploadingId === deposit.id && <p>Uploading...</p>}
-        </div>
-    )}
-</td>
+                  {deposit.proof_of_payment ? (
+                    <div className="flex flex-col items-center">
+                      {/* Display Uploaded Proof */}
+                      <img
+                        src={`/proof-of-payment/${deposit.id}`}
+                        alt="Proof of Payment"
+                        className="w-20 h-20 object-cover mb-2"
+                      />
+                      {deposit.status === "pending" && (
+                        <>
+                          <label
+                            htmlFor={`upload-proof-${deposit.id}`}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
+                          >
+                            Change Proof
+                          </label>
+                          <input
+                            id={`upload-proof-${deposit.id}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleUploadProof(deposit.id, e.target.files[0])}
+                            disabled={uploadingId === deposit.id}
+                            className="hidden"
+                          />
+                        </>
+                      )}
+                    </div>
+                  ) : deposit.status === "confirmed" || new Date(deposit.expires_at) <= new Date() ? (
+                    <p className="text-grey-400">N/A</p>
+                  ) : deposit.payment_method === "QRIS" ? (
+                    <button
+                      onClick={() => handleConfirm(deposit.id)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                      disabled={loading && loadingId !== deposit.id}
+                    >
+                      {loading && loadingId === deposit.id ? "Loading..." : "Confirm"}
+                    </button>
+                  ) : (
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadProof(deposit.id, e.target.files[0])}
+                        disabled={uploadingId === deposit.id}
+                        className="text-sm"
+                      />
+                      {uploadingId === deposit.id && <p>Uploading...</p>}
+                    </div>
+                  )}
+                </td>
+
 
                 <td className="border px-4 py-2 space-y-2">
                   <button
@@ -178,17 +206,6 @@ const DepositHistory = ({ deposits }) => {
                   >
                     View Details
                   </button>
-                  {deposit.status === "pending" && (
-                    <button
-                      onClick={() => handleConfirm(deposit.id)}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
-                      disabled={loading && loadingId !== deposit.id}
-                    >
-                      {loading && loadingId === deposit.id
-                        ? "Loading..."
-                        : "Confirm"}
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -245,7 +262,7 @@ const DepositHistory = ({ deposits }) => {
               <p>
                 <strong>Proof of Payment:</strong>{" "}
                 <a
-                  href={deposit.proof_of_payment}
+                  href={`/proof-of-payment/${selectedDeposit.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"

@@ -27,17 +27,17 @@ class DepositController extends Controller
             'payment_method' => 'required|string', // Validasi payment method
         ]);
 
-        // Hitung admin fee
-        $adminFeePercentage = 0.007; // 0.7%
-        $hasAdminFee = $validated['payment_method'] === 'QRIS'; // Admin fee hanya berlaku untuk QRIS
-        $adminFee = $hasAdminFee ? ceil(($validated['amount'] + $uniqueCode ) * $adminFeePercentage) : 0;
-
         // Hitung jumlah deposit yang ada pada hari ini
         $today = now()->toDateString();
         $depositsTodayCount = Deposit::whereDate('created_at', $today)->count();
 
         // Buat kode unik
         $uniqueCode = ($depositsTodayCount % 999) + 1;
+
+        // Hitung admin fee
+        $adminFeePercentage = 0.007; // 0.7%
+        $hasAdminFee = $validated['payment_method'] === 'QRIS'; // Admin fee hanya berlaku untuk QRIS
+        $adminFee = $hasAdminFee ? ceil(($validated['amount'] + $uniqueCode ) * $adminFeePercentage) : 0;
 
         // Total yang harus dibayar (amount + unique_code + admin_fee)
         $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
@@ -92,6 +92,7 @@ class DepositController extends Controller
                     'created_at' => $deposit->created_at,
                     'get_saldo' => $deposit->get_saldo,
                     'proof_of_payment' => $deposit->proof_of_payment,
+                    'payment_method' => $deposit->payment_method,
                 ];
             }),
         ]);
@@ -143,8 +144,11 @@ class DepositController extends Controller
     if ($request->hasFile('proof_of_payment')) {
         $file = $request->file('proof_of_payment');
         
-        // Menyimpan file ke storage/app/secret/proof_of_payment (tidak publik)
-        $path = $file->store('secret/proof_of_payment'); 
+        // Generate nama file unik dengan ekstensi asli
+        $uniqueFileName = uniqid() . '.' . $file->getClientOriginalExtension();
+
+        // Menyimpan file ke storage/app/secret/proof_of_payment dengan nama unik
+        $path = $file->storeAs('secret/proof_of_payment', $uniqueFileName);
 
         // Simpan path file di database
         $deposit->proof_of_payment = $path;
@@ -161,6 +165,30 @@ class DepositController extends Controller
         'message' => 'No file uploaded.',
     ]);
 }
+
+
+
+public function getProofOfPayment($id)
+{
+    // Cari deposit berdasarkan ID
+    $deposit = Deposit::findOrFail($id);
+
+    // Pastikan hanya pengunggah atau admin yang dapat mengakses file
+    $user = auth()->user();
+    if ($user->id !== $deposit->user_id && !$user->hasRole('super-admin')) {
+        abort(403, 'You are not authorized to view this file.');
+    }
+
+    // Pastikan file ada
+    $filePath = storage_path('app/' . $deposit->proof_of_payment);
+    if (!file_exists($filePath)) {
+        abort(404, 'File not found.');
+    }
+
+    // Kembalikan file
+    return response()->file($filePath);
+}
+
 
 
 }
