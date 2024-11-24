@@ -149,30 +149,28 @@ const DepositHistory = ({ deposits }) => {
                     : "Expired"}
                 </td>
                 <td className="border px-4 py-2">
-                  {deposit.proof_of_payment ? (
-                    <a
-                      href={deposit.proof_of_payment}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      View Proof
-                    </a>
-                  ) : (
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleUploadProof(deposit.id, e.target.files[0])
-                        }
-                        disabled={uploadingId === deposit.id}
-                        className="text-sm"
-                      />
-                      {uploadingId === deposit.id && <p>Uploading...</p>}
-                    </div>
-                  )}
-                </td>
+    {deposit.proof_of_payment ? (
+        <img
+            src={deposit.proof_of_payment}
+            alt="Proof of Payment"
+            className="w-20 h-20 object-cover"
+        />
+    ) : (
+        <div>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                    handleUploadProof(deposit.id, e.target.files[0])
+                }
+                disabled={uploadingId === deposit.id}
+                className="text-sm"
+            />
+            {uploadingId === deposit.id && <p>Uploading...</p>}
+        </div>
+    )}
+</td>
+
                 <td className="border px-4 py-2 space-y-2">
                   <button
                     onClick={() => handleViewDetails(deposit)}
