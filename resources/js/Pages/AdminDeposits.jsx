@@ -14,10 +14,24 @@ const AdminDeposits = ({ deposits }) => {
     post(`/admin/deposit/confirm/${id}`, {
       onSuccess: () => {
         alert("Deposit berhasil dikonfirmasi.");
-        
       },
       onError: () => {
         alert("Gagal mengonfirmasi deposit.");
+      },
+    });
+  };
+
+  const handleCancelConfirm = (id) => {
+    if (!confirm("Apakah Anda yakin ingin membatalkan konfirmasi deposit ini?")) return;
+
+    setData("depositId", id);
+
+    post(`/admin/deposit/cancel-confirm/${id}`, {
+      onSuccess: () => {
+        alert("Konfirmasi deposit berhasil dibatalkan.");
+      },
+      onError: () => {
+        alert("Gagal membatalkan konfirmasi deposit.");
       },
     });
   };
@@ -31,21 +45,25 @@ const AdminDeposits = ({ deposits }) => {
           <thead>
             <tr className="bg-gray-100">
               <th className="border px-4 py-2">#</th>
+              <th className="border px-4 py-2">User ID</th>
               <th className="border px-4 py-2">Nama Pengguna</th>
               <th className="border px-4 py-2">Saldo Masuk</th>
               <th className="border px-4 py-2">Total Bayar</th>
+              <th className="border px-4 py-2">Metode Pembayaran</th>
               <th className="border px-4 py-2">Status</th>
               <th className="border px-4 py-2">Bukti Pembayaran</th>
               <th className="border px-4 py-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {deposits.map((deposit, index) => (
+            {deposits.map((deposit) => (
               <tr key={deposit.id} className="text-center">
-                <td className="border px-4 py-2">{index + 1}</td>
+                <td className="border px-4 py-2">{deposit.id}</td>
+                <td className="border px-4 py-2">{deposit.user?.id || "N/A"}</td>
                 <td className="border px-4 py-2">{deposit.user?.name || "N/A"}</td>
                 <td className="border px-4 py-2">{deposit.get_saldo}</td>
                 <td className="border px-4 py-2">{deposit.total_pay}</td>
+                <td className="border px-4 py-2">{deposit.payment_method || "Tidak Ada"}</td>
                 <td
                   className={`border px-4 py-2 font-semibold ${
                     deposit.status === "pending"
@@ -81,7 +99,15 @@ const AdminDeposits = ({ deposits }) => {
                         : "Konfirmasi"}
                     </button>
                   ) : (
-                    <span className="text-gray-500">Selesai</span>
+                    <button
+                      onClick={() => handleCancelConfirm(deposit.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                      disabled={processing && data.depositId === deposit.id}
+                    >
+                      {processing && data.depositId === deposit.id
+                        ? "Memproses..."
+                        : "Batalkan Konfirmasi"}
+                    </button>
                   )}
                 </td>
               </tr>
