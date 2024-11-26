@@ -28,9 +28,6 @@ return new class extends Migration
 
             // Relasi ke tabel users
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-
-            // Constraint unik untuk total_pay
-            $table->unique('total_pay', 'unique_total_pay');
         });
     }
 

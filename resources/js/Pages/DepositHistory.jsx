@@ -115,6 +115,7 @@ const DepositHistory = ({ deposits }) => {
               <th className="border px-4 py-2">#</th>
               <th className="border px-4 py-2">Get Saldo</th>
               <th className="border px-4 py-2">Total Pay</th>
+              <th className="border px-4 py-2">Payment Method</th>
               <th className="border px-4 py-2">Status</th>
               <th className="border px-4 py-2">Expires In</th>
               <th className="border px-4 py-2">Proof of Payment</th>
@@ -127,6 +128,7 @@ const DepositHistory = ({ deposits }) => {
                 <td className="border px-4 py-2">{deposit.id}</td>
                 <td className="border px-4 py-2">{deposit.get_saldo}</td>
                 <td className="border px-4 py-2">{deposit.total_pay}</td>
+                <td className="border px-4 py-2">{deposit.payment_method}</td>
                 <td className="border px-4 py-2">
                   <span
                     className={`px-2 py-1 rounded ${
@@ -229,6 +231,9 @@ const DepositHistory = ({ deposits }) => {
             </p>
             <p>
               <strong>Total Pay:</strong> {selectedDeposit.total_pay}
+            </p>
+            <p>
+              <strong>Payment Method:</strong> {selectedDeposit.payment_method}
             </p>
             <p>
               <strong>Admin Fee:</strong> {selectedDeposit.admin_fee}
