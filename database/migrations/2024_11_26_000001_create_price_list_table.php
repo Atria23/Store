@@ -31,12 +31,19 @@
 //             $table->string('end_cut_off');   // Format hh:mm
 //             $table->string('desc')->nullable(); // Deskripsi disimpan sebagai string
 //             $table->timestamps();
+
+//             // Kolom custom
 //             $table->string('product_name_custom')->nullable();
 //             $table->string('category_custom')->nullable();
 //             $table->string('brand_custom')->nullable();
 //             $table->string('type_custom')->nullable();
 //             $table->string('price_custom')->nullable();
 //             $table->string('desc_custom')->nullable(); // Deskripsi custom disimpan sebagai string
+
+//             // Kolom tambahan untuk perhitungan profit
+//             $table->decimal('profit', 10, 2)->nullable(); // Profit dalam nominal
+//             $table->decimal('profit_persen', 5, 2)->nullable(); // Profit dalam persentase
+//             $table->string('tipe_inputan')->default('angka'); // Tipe inputan (angka/angka+huruf/)
 //         });
 //     }
 
@@ -50,6 +57,13 @@
 //         Schema::dropIfExists('price_list');
 //     }
 // }
+
+
+
+
+
+
+
 
 
 
@@ -111,7 +125,7 @@ class CreatePriceListTable extends Migration
 
             // Kolom tambahan untuk perhitungan profit
             $table->decimal('profit', 10, 2)->nullable(); // Profit dalam nominal
-            $table->decimal('profit_persen', 5, 2)->nullable(); // Profit dalam persentase
+            $table->decimal('profit_persen', 5, 2)->nullable()->default(1); // Profit dalam persentase dengan default 1
             $table->string('tipe_inputan')->default('angka'); // Tipe inputan (angka/angka+huruf/)
         });
     }

@@ -29,7 +29,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone_number',
         'profile_image',
         'pin',
-        'saldo',
+        'balance',
         'membership_status',
         'points',
         'referral_code',
