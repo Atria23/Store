@@ -1,40 +1,58 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 
-const AdminDeposits = ({ deposits }) => {
+const AdminDeposits = ({ deposits: initialDeposits }) => {
+const [deposits, setDeposits] = useState(initialDeposits); // initialDeposits adalah data awal
   const { data, setData, post, processing } = useForm({
     depositId: null,
   });
 
+  // Fungsi untuk memperbarui status deposit di state
+  const updateDepositStatus = (id, newStatus) => {
+    setDeposits((prevDeposits) =>
+      prevDeposits.map((deposit) =>
+        deposit.id === id ? { ...deposit, status: newStatus } : deposit
+      )
+    );
+  };
+  
+
+  // Fungsi untuk konfirmasi deposit
   const handleConfirm = (id) => {
     if (!confirm("Apakah Anda yakin ingin mengonfirmasi deposit ini?")) return;
-
+  
     setData("depositId", id);
-
+  
     post(`/admin/deposit/confirm/${id}`, {
       onSuccess: () => {
-        alert("Deposit berhasil dikonfirmasi.");
+        updateDepositStatus(id, "confirmed"); // Perbarui status menjadi "confirmed"
       },
       onError: () => {
-        alert("Gagal mengonfirmasi deposit.");
+        console.error("Gagal mengonfirmasi deposit.");
       },
     });
   };
-
+  
   const handleCancelConfirm = (id) => {
     if (!confirm("Apakah Anda yakin ingin membatalkan konfirmasi deposit ini?")) return;
-
+  
     setData("depositId", id);
-
+  
     post(`/admin/deposit/cancel-confirm/${id}`, {
       onSuccess: () => {
-        alert("Konfirmasi deposit berhasil dibatalkan.");
+        updateDepositStatus(id, "pending"); // Perbarui status menjadi "pending"
       },
       onError: () => {
-        alert("Gagal membatalkan konfirmasi deposit.");
+        console.error("Gagal membatalkan konfirmasi deposit.");
       },
     });
   };
+  
+
+  // useEffect untuk memantau perubahan state deposits
+  useEffect(() => {
+    console.log("Status deposit telah diperbarui:", deposits);
+  }, [deposits]);
 
   return (
     <div className="container mx-auto p-6">
@@ -88,28 +106,29 @@ const AdminDeposits = ({ deposits }) => {
                   )}
                 </td>
                 <td className="border px-4 py-2">
-                  {deposit.status === "pending" ? (
-                    <button
-                      onClick={() => handleConfirm(deposit.id)}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                      disabled={processing && data.depositId === deposit.id}
-                    >
-                      {processing && data.depositId === deposit.id
-                        ? "Memproses..."
-                        : "Konfirmasi"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleCancelConfirm(deposit.id)}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
-                      disabled={processing && data.depositId === deposit.id}
-                    >
-                      {processing && data.depositId === deposit.id
-                        ? "Memproses..."
-                        : "Batalkan Konfirmasi"}
-                    </button>
-                  )}
-                </td>
+  {deposit.status === "pending" ? (
+    <button
+      onClick={() => handleConfirm(deposit.id)}
+      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+      disabled={processing && data.depositId === deposit.id}
+    >
+      {processing && data.depositId === deposit.id
+        ? "Memproses..."
+        : "Konfirmasi"}
+    </button>
+  ) : (
+    <button
+      onClick={() => handleCancelConfirm(deposit.id)}
+      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+      disabled={processing && data.depositId === deposit.id}
+    >
+      {processing && data.depositId === deposit.id
+        ? "Memproses..."
+        : "Batalkan Konfirmasi"}
+    </button>
+  )}
+</td>
+
               </tr>
             ))}
           </tbody>

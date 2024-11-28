@@ -25,7 +25,9 @@ class AdminDepositController extends Controller
 
         // Pastikan status deposit adalah 'pending' sebelum diproses
         if ($deposit->status !== 'pending') {
-            return response()->json(['message' => 'Deposit sudah diproses.'], 400);
+            // Tambahkan pesan flash untuk error
+            session()->flash('error', 'Deposit sudah diproses.');
+            return redirect()->back();
         }
 
         $user = $deposit->user;
@@ -38,7 +40,9 @@ class AdminDepositController extends Controller
         $deposit->status = 'confirmed';
         $deposit->save();
 
-        return response()->json(['message' => 'Deposit berhasil dikonfirmasi.'], 200);
+        // Tambahkan pesan flash untuk success
+        session()->flash('success', 'Deposit berhasil dikonfirmasi.');
+        return redirect()->back();
     }
 
     public function cancelConfirm($id)
@@ -46,7 +50,9 @@ class AdminDepositController extends Controller
         $deposit = Deposit::findOrFail($id);
 
         if ($deposit->status !== 'confirmed') {
-            return response()->json(['message' => 'Deposit belum dikonfirmasi.'], 400);
+            // Tambahkan pesan flash untuk error
+            session()->flash('error', 'Deposit belum dikonfirmasi.');
+            return redirect()->back();
         }
 
         $user = $deposit->user;
@@ -59,7 +65,8 @@ class AdminDepositController extends Controller
         $deposit->status = 'pending';
         $deposit->save();
 
-        return response()->json(['message' => 'Konfirmasi deposit dibatalkan.'], 200);
+        // Tambahkan pesan flash untuk success
+        session()->flash('success', 'Konfirmasi deposit dibatalkan.');
+        return redirect()->back();
     }
-
 }
