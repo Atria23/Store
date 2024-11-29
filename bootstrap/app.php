@@ -26,3 +26,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+    $app->singleton(\Illuminate\Contracts\Console\Kernel::class, function ($app) {
+        return new \App\Console\Kernel($app);
+    });
+    
+    // Menjadwalkan command untuk mengecek transaksi yang pending setiap 5 menit
+    $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
+    $kernel->call('transactions:check-pending', [], $app);
+    $kernel->schedule(function ($schedule) {
+        // Menjadwalkan command check-pending setiap 5 menit
+        $schedule->command('transactions:check-pending')->everyOneMinutes();
+    });
+        

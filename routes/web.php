@@ -17,6 +17,7 @@ use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\CartController;
 
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\HistoryController;
 
 
 Route::middleware(['super-admin'])->group(function () {
@@ -53,6 +54,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
 
     Route::get('/balance', [TransactionController::class, 'getBalance']);
+
+    Route::get('/transactions/completed', [TransactionController::class, 'getCompletedTransactions'])
+    ->name('transactions.completed');
+
+    Route::get('/history', [TransactionController::class, 'historyPage']);
+    Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
 });
 

@@ -32,4 +32,13 @@ class Deposit extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // Primary key, jika menggunakan nama berbeda
+    protected $primaryKey = 'id';
+
+    // Pastikan auto increment diaktifkan
+    public $incrementing = true;
+
+    // Pastikan tipe kunci primary key sesuai (default: int)
+    protected $keyType = 'int';
 }
