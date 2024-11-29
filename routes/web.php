@@ -34,7 +34,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
     
-    Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
+    // Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
     
     // Route::get('/transaction', function () {
     //     $user = Auth::user();
@@ -44,14 +44,13 @@ Route::middleware(['auth'])->group(function () {
     //     ]);
     // })->name('transaction.form');
 
+    // Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
+
+    Route::get('/transaction', function () {
+        return Inertia::render('TransactionForm'); // Pastikan 'TransactionForm' adalah nama komponen React
+    })->name('transaction.form');
+    
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
-
-
-//     Route::get('/transactions', function () {
-//         return inertia('CreateTransactionPage');
-//     });
-// Route::post('/create-transaction', [TransactionController::class, 'createTransaction'])->name('create-transaction');
-
 
     Route::get('/balance', [TransactionController::class, 'getBalance']);
 
