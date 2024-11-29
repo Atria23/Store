@@ -34,17 +34,25 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
     
-    Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
+    // Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
     
-    Route::get('/transaction', function () {
-        $user = Auth::user();
+    // Route::get('/transaction', function () {
+    //     $user = Auth::user();
     
-        return Inertia::render('TransactionForm', [
-            'balance' => $user->balance,
-        ]);
-    })->name('transaction.form');
+    //     return Inertia::render('TransactionForm', [
+    //         'balance' => $user->balance,
+    //     ]);
+    // })->name('transaction.form');
 
-    Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
+    // Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
+
+
+    
+
+    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+    Route::post('/transactions/send', [TransactionController::class, 'sendTransaction'])->name('transactions.send');
+    
+
 
     Route::get('/balance', [TransactionController::class, 'getBalance']);
 
