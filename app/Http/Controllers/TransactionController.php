@@ -8,6 +8,7 @@
 // use App\Models\User; // Model User untuk memanipulasi data user
 // use App\Models\Transaction; // Pastikan Model Transaction sudah ada
 // use App\Models\Product; // Model untuk mengambil data produk
+// use Inertia\Inertia;
 
 // class TransactionController extends Controller
 // {
@@ -103,8 +104,8 @@
 //             'message' => $responseData['data']['message'] ?? 'Transaction failed',
 //         ]);
 
-//         if ($responseData['data']['status'] === 'Sukses') {
-//             // Kurangi saldo hanya jika status Sukses
+//         if ($responseData['data']['status'] !== 'Gagal') {
+//             // Kurangi saldo hanya jika status tidak gagal
 //             $user->balance -= $price_product;
 //             $user->save();
 
@@ -126,7 +127,100 @@
 //         }
 //     }
 
+//     public function getCompletedTransactions()
+//     {
+//         $transactions = Transaction::all(['ref_id', 'product_name', 'customer_no', 'price', 'status']);
+
+//         return Inertia::render('Transactions/Completed', [
+//             'transactions' => $transactions,
+//         ]);
+//     }
+
+//     public function historyPage()
+//     {
+//         $user = Auth::user();
+
+//         // Ambil data dari tabel transactions_history berdasarkan user_id
+//         $transactionsHistory = \DB::table('transactions_history')
+//             ->where('user_id', $user->id)
+//             ->orderBy('created_at', 'desc')
+//             ->get(['ref_id', 'product_name', 'customer_no', 'price', 'status']);
+
+//         // Kirim data ke Inertia
+//         return Inertia::render('History', [
+//             'transactions' => $transactionsHistory,
+//         ]);
+//     }
+
+
+//     public function updateTransactionStatus(Request $request)
+// {
+//     $transactionId = $request->input('transaction_id');
+
+//     // Cari transaksi dengan status Pending
+//     $transaction = Transaction::where('ref_id', $transactionId)->where('status', 'Pending')->first();
+
+//     if (!$transaction) {
+//         return response()->json([
+//             'message' => 'No pending transaction found or invalid ID',
+//         ], 404);
+//     }
+
+//     // Data untuk validasi transaksi
+//     $username = env('P_U');
+//     $apiKey = env('P_AK');
+//     $sign = md5($username . $apiKey . $transaction->ref_id);
+
+//     $data = [
+//         'username' => $username,
+//         'ref_id' => $transaction->ref_id,
+//         'sign' => $sign,
+//     ];
+
+//     // Kirim permintaan ke API
+//     $response = Http::withHeaders([
+//         'Content-Type' => 'application/json',
+//     ])->post('https://api.digiflazz.com/v1/transaction', $data);
+
+//     $responseData = $response->json();
+
+//     // Periksa apakah status transaksi berhasil diperoleh
+//     if (isset($responseData['data']['status'])) {
+//         $transaction->status = $responseData['data']['status'];
+//         $transaction->save();
+
+//         // Jika status transaksi gagal, kembalikan saldo pengguna
+//         if ($responseData['data']['status'] === 'Gagal') {
+//             $user = $transaction->user;
+//             $user->balance += $transaction->price_product;
+//             $user->save();
+//         }
+
+//         return response()->json([
+//             'message' => 'Transaction status updated successfully',
+//             'data' => $responseData['data'],
+//             'balance' => $transaction->user->balance,
+//         ], 200);
+//     }
+
+//     return response()->json([
+//         'message' => 'Failed to update transaction status',
+//         'data' => $responseData['data'] ?? null,
+//     ], $response->status());
 // }
+
+
+
+
+// }
+
+
+
+
+
+
+
+
 
 
 
@@ -327,6 +421,22 @@ class TransactionController extends Controller
     ])->post('https://api.digiflazz.com/v1/transaction', $data);
 
     $responseData = $response->json();
+
+    // Simpan transaksi ke database
+    $transaction = Transaction::create([
+        'user_id' => $user->id,
+        'ref_id' => $ref_id,
+        'buyer_sku_code' => $buyer_sku_code,
+        'customer_no' => $customer_no,
+        'status' => $responseData['data']['status'] ?? 'Failed',
+        'price' => $price,
+        'price_product' => $price_product,
+        'product_name' => $product_name,
+        'rc' => $responseData['data']['rc'] ?? 'UNKNOWN_ERROR',
+        'sn' => $responseData['data']['sn'] ?? null,
+        'buyer_last_saldo' => $user->balance,
+        'message' => $responseData['data']['message'] ?? 'Transaction failed',
+    ]);
 
     // Periksa apakah status transaksi berhasil diperoleh
     if (isset($responseData['data']['status'])) {
