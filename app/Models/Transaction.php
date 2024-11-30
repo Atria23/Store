@@ -23,4 +23,11 @@ class Transaction extends Model
         'message',
         'price_product',
     ];
+
+    // Transaction.php
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
 }

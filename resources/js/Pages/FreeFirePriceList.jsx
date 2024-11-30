@@ -74,7 +74,7 @@ export default function FreeFirePriceList() {
             .then((response) => response.json())
             .then((data) => {
                 if (data.success) {
-                    alert('Transaksi berhasil!');
+                    alert(`${data.message}`);
                 } else {
                     alert(`Transaksi gagal: ${data.message}`);
                 }
