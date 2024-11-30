@@ -19,9 +19,9 @@ class UserTableSeeder extends Seeder
 
         // create new admin
         $user = User::create([
-            'name' => 'Rafi Taufiqurrahman',
-            'email' => 'raf@dev.com',
-            'password' => bcrypt('password'),
+            'name' => 'Iwak Darat',
+            'email' => 'muvausastore1@gmail.com',
+            'password' => bcrypt('5yaaslinyaduwa'),
         ]);
 
         // assign a role to user
