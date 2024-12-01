@@ -21,7 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'super-admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class, // Tambahkan ini
+            'admin-or-super-admin' => \App\Http\Middleware\AdminOrSuperAdminMiddleware::class,
         ]);
+        
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

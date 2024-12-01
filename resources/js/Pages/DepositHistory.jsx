@@ -42,23 +42,38 @@ const DepositHistory = ({ deposits }) => {
 
   const handleConfirm = (id) => {
     if (confirm("Are you sure you want to confirm this deposit?")) {
-      setLoading(true);
-      setLoadingId(id);
+        setLoading(true);
+        setLoadingId(id);
 
-      post(`/deposit/confirm/${id}`, {}, {
-        onSuccess: () => {
-          alert("Deposit confirmed successfully!");
-          setLoading(false);
-          setLoadingId(null);
-        },
-        onError: () => {
-          alert("Failed to confirm deposit.");
-          setLoading(false);
-          setLoadingId(null);
-        },
-      });
+        // Menggunakan fetch untuk menggantikan post dan menangani responsnya
+        fetch(`/deposit/confirm/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({}), // Body kosong jika tidak ada data tambahan
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            // Jika berhasil
+            if (data.success) {
+                window.location.reload();  // Tampilkan pesan sukses
+            } else {
+                alert(`Konfirmasi gagal: tidak ditemukan data yang sesuai`);  // Tampilkan pesan gagal
+            }
+        })
+        .catch((error) => {
+            // Tangani kesalahan jaringan
+            alert('Terjadi kesalahan: ' + error.message);
+        })
+        .finally(() => {
+            setLoading(false);
+            setLoadingId(null);
+        });
     }
-  };
+};
+
 
   const handleViewDetails = (deposit) => {
     setSelectedDeposit(deposit); // Set the selected deposit

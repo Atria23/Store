@@ -18,9 +18,9 @@ use App\Http\Controllers\CartController;
 
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 
-
-Route::middleware(['super-admin'])->group(function () {
+Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::get('/admin/deposits', [AdminDepositController::class, 'index'])->name('admin.deposits');
     Route::post('/admin/deposit/confirm/{id}', [AdminDepositController::class, 'confirm'])->name('admin.deposit.confirm');
     Route::post('/admin/deposit/cancel-confirm/{id}', [AdminDepositController::class, 'cancelConfirm']);
@@ -36,20 +36,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
     
     Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
-    
-    // Route::get('/transaction', function () {
-    //     $user = Auth::user();
-    
-    //     return Inertia::render('TransactionForm', [
-    //         'balance' => $user->balance,
-    //     ]);
-    // })->name('transaction.form');
-
-    // Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
-
-    // Route::get('/transaction', function () {
-    //     return Inertia::render('TransactionForm'); // Pastikan 'TransactionForm' adalah nama komponen React
-    // })->name('transaction.form');
     
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
 
@@ -69,14 +55,18 @@ Route::get('/', function () {
         $user = Auth::user(); // Ambil data pengguna yang sedang login
 
         // Cek apakah pengguna memiliki role dengan role_id 4
-        $role = $user->roles()->where('role_id', 4)->first();
-
-        if ($role) {
+        if ($user->roles()->where('role_id', 4)->exists()) {
             // Jika ada role dengan role_id 4, arahkan ke /apps/dashboard
             return redirect()->route('apps.dashboard');
         }
 
-        // Jika tidak memiliki role_id 4, arahkan ke /user/dashboard
+        // Cek apakah pengguna memiliki role dengan role_id 6
+        if ($user->roles()->where('role_id', 6)->exists()) {
+            // Jika ada role dengan role_id 6, arahkan ke /admin/dashboard
+            return redirect()->route('admin.dashboard');
+        }
+
+        // Jika tidak memiliki role_id 4 atau 6, arahkan ke /user/dashboard
         return redirect()->route('user.dashboard');
     }
 
@@ -100,6 +90,11 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
 });
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+});
+
 
 // Rute untuk aplikasi admin
 Route::group(['prefix' => 'apps', 'as' => 'apps.' , 'middleware' => ['auth']], function(){

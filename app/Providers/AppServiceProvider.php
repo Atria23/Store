@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,9 +22,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // define super admin
+        // Define super admin access
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super-admin') ? true : null;
         });
+
+        // Share auth user data with Inertia
+        Inertia::share([
+            'auth' => function () {
+                $user = Auth::user();
+                return [
+                    'user' => $user ? $user->only(['id', 'name', 'email']) : null, // Share name and email
+                ];
+            },
+        ]);
     }
 }

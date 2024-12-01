@@ -112,6 +112,11 @@ class DepositController extends Controller
 
         $mutasiData = $response->json();
 
+        // Periksa apakah 'data' ada dan berupa array
+        if (!isset($mutasiData['data']) || !is_array($mutasiData['data'])) {
+            return response()->json(['success' => false, 'error' => 'Invalid data structure from API'], 500);
+        }
+
         foreach ($mutasiData['data'] as $item) {
             if ($item['amount'] == ($deposit->amount + $deposit->unique_code + $deposit->admin_fee)) {
                 $deposit->update(['status' => 'confirmed']);
