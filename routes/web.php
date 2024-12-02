@@ -15,15 +15,19 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\AdminDepositController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\CartController;
-
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+
+use App\Http\Controllers\MutasiQrisController;
+
 
 Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::get('/admin/deposits', [AdminDepositController::class, 'index'])->name('admin.deposits');
     Route::post('/admin/deposit/confirm/{id}', [AdminDepositController::class, 'confirm'])->name('admin.deposit.confirm');
     Route::post('/admin/deposit/cancel-confirm/{id}', [AdminDepositController::class, 'cancelConfirm']);
+    Route::get('/mutasi-qris', [MutasiQrisController::class, 'index'])->name('mutasi-qris.index');
+
 });
 
 
