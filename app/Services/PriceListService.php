@@ -1,22 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Services;
 
-use Illuminate\Http\Request;
 use App\Models\PriceList;
 use App\Models\Product;
-use Illuminate\Support\Facades\Http;
-use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class PriceListController extends Controller
+class PriceListService
 {
     /**
-     * Fetch the price list from the external API and update the database.
+     * Fetch and update the price list from the external API.
      */
-
-    public function fetchPriceList()
+    public function fetchAndUpdatePriceList()
     {
         // Ambil waktu pembaruan terakhir dari tabel produk
         $lastUpdated = Product::max('updated_at');
@@ -35,7 +32,7 @@ class PriceListController extends Controller
                 Log::info("Pembaruan data ditunda. Data baru bisa diperbarui dalam {$timeRemaining} detik. Waktu update berikutnya: {$nextUpdateTime->toDateTimeString()}.");
 
                 // Berhenti tanpa melanjutkan proses update
-                return;
+                return false;
             }
         }
 
@@ -76,58 +73,11 @@ class PriceListController extends Controller
             }
 
             Log::info("Data berhasil diperbarui pada " . now()->toDateTimeString() . ".");
-            return;
+            return true;
         }
 
         // Jika API tidak berhasil, log pesan error
         Log::error("Gagal memperbarui data dari API.");
+        return false;
     }
-     
-     
-    /**
-     * Show the page with Pulsa products, ensuring data is updated first.
-     */
-
-    public function showAllProducts()
-    {
-        // Perbarui data hanya sekali sebelum menampilkan
-        $this->fetchPriceList();
-    
-        // Ambil semua data produk
-        $products = Product::all();
-    
-        // Kirim data ke komponen React menggunakan Inertia
-        return Inertia::render('AllProducts', [
-            'products' => $products
-        ]);
-    }
-    
-    public function showPulsaProducts()
-    {
-        // Perbarui data hanya sekali sebelum menampilkan
-        $this->fetchPriceList();
-
-        // Ambil data produk dengan kategori 'pulsa'
-        $products = Product::where('category', 'pulsa')->get();
-
-        // Kirim data ke komponen React menggunakan Inertia
-        return Inertia::render('PulsaPriceList', [
-            'products' => $products
-        ]);
-    }
-
-    public function showFreeFireProducts()
-    {
-        // Perbarui data hanya sekali sebelum menampilkan
-        $this->fetchPriceList();
-
-        // Ambil data produk dengan brand 'free fire'
-        $products = Product::where('brand', 'free fire')->get();
-
-        // Kirim data ke komponen React menggunakan Inertia
-        return Inertia::render('FreeFirePriceList', [
-            'products' => $products
-        ]);
-    }
-
 }

@@ -104,7 +104,7 @@ class CreatePriceListTable extends Migration
             $table->string('type');
             $table->string('seller_name');
             $table->string('price'); // Harga disimpan sebagai string
-            $table->string('buyer_sku_code');
+            $table->string('buyer_sku_code')->unique(); // Membuat buyer_sku_code unik
             $table->boolean('buyer_product_status');
             $table->boolean('seller_product_status');
             $table->boolean('unlimited_stock');
