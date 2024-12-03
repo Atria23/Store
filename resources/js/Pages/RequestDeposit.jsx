@@ -75,13 +75,13 @@ const RequestDeposit = () => {
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             required
           >
-            <option value="ShopeePay">ShopeePay (No Admin Fee)</option>
-            <option value="Dana">Dana (No Admin Fee)</option>
-            <option value="GoPay">GoPay (No Admin Fee)</option>
-            <option value="OVO">OVO (No Admin Fee)</option>
-            <option value="LinkAja">LinkAja (No Admin Fee)</option>
-            <option value="QRIS">QRIS (Admin Fee 0.7%)</option>
-            <option value="QRIS Manual">QRIS Manual (No Admin Fee)</option>
+            <option value="shopeepay">ShopeePay (No Admin Fee)</option>
+            <option value="dana">Dana (No Admin Fee)</option>
+            <option value="gopay">GoPay (No Admin Fee)</option>
+            <option value="ovo">OVO (No Admin Fee)</option>
+            <option value="ainkaja">LinkAja (No Admin Fee)</option>
+            <option value="qris">QRIS (Admin Fee 0.7%)</option>
+            <option value="qrismanual">QRIS Manual (No Admin Fee)</option>
           </select>
           {errors.payment_method && (
             <span className="text-red-500 text-sm">{errors.payment_method}</span>

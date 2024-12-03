@@ -18,8 +18,9 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
-
 use App\Http\Controllers\MutasiQrisController;
+
+use App\Http\Controllers\WalletController;
 
 
 Route::middleware(['admin-or-super-admin'])->group(function () {
@@ -27,9 +28,14 @@ Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::post('/admin/deposit/confirm/{id}', [AdminDepositController::class, 'confirm'])->name('admin.deposit.confirm');
     Route::post('/admin/deposit/cancel-confirm/{id}', [AdminDepositController::class, 'cancelConfirm']);
     Route::get('/mutasi-qris', [MutasiQrisController::class, 'index'])->name('mutasi-qris.index');
-
+    Route::get('/wallet', [WalletController::class, 'edit'])->name('wallet.edit');
+    Route::post('/wallet', [WalletController::class, 'update'])->name('wallet.update');
 });
 
+Route::middleware(['super-admin'])->group(function () {
+    Route::get('/wallet/qris', [WalletController::class, 'editQris'])->name('wallet.qris.edit');
+    Route::post('/wallet/qris', [WalletController::class, 'updateQris'])->name('wallet.qris.update');
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/deposit', [DepositController::class, 'index'])->name('deposit-history');
@@ -44,7 +50,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
 
     Route::get('/balance', [TransactionController::class, 'getBalance']);
-
     Route::get('/transactions/completed', [TransactionController::class, 'getCompletedTransactions'])
     ->name('transactions.completed');
 

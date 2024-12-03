@@ -1,1 +1,0 @@
-import{j as s}from"./app-sxq2rzXq.js";function r({admin:e}){return s.jsxs("div",{className:"p-4",children:[s.jsx("h1",{className:"text-xl font-bold",children:"Admin Dashboard"}),s.jsxs("p",{children:["Welcome, ",e.name,"!"]})]})}export{r as default};
