@@ -14,16 +14,17 @@ return new class extends Migration
         Schema::create('deposits', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->integer('amount'); // Menggunakan integer untuk amount
-            $table->integer('unique_code'); // Kode unik dalam bentuk integer
-            $table->integer('admin_fee')->default(0); // Kolom admin_fee dalam bentuk integer
-            $table->integer('get_saldo')->default(0); // Kolom get_saldo dalam bentuk integer
-            $table->integer('total_pay')->default(0); // Total yang harus dibayar (amount + unique_code + admin_fee)
-            $table->enum('status', ['pending', 'confirmed', 'expired'])->default('pending');
-            $table->timestamp('expires_at')->nullable(); // Waktu expired deposit
-            $table->string('payment_method'); // Kolom untuk menyimpan metode pembayaran
-            $table->string('proof_of_payment')->nullable(); // Menyimpan bukti pembayaran
-            $table->boolean('has_admin_fee')->default(true); // Kolom untuk menandakan apakah deposit memiliki biaya admin
+            $table->integer('amount'); // Jumlah nominal deposit
+            $table->integer('unique_code')->nullable(); // Kode unik tambahan
+            $table->integer('admin_fee')->default(0); // Biaya admin
+            $table->integer('get_saldo')->default(0); // Saldo yang didapatkan
+            $table->integer('total_pay')->default(0); // Total pembayaran (amount + unique_code + admin_fee)
+            $table->enum('status', ['pending', 'confirmed', 'expired'])->default('pending'); // Status deposit
+            $table->timestamp('expires_at')->nullable(); // Waktu kedaluwarsa
+            $table->string('payment_method'); // Metode pembayaran
+            $table->string('proof_of_payment')->nullable(); // Bukti pembayaran
+            $table->boolean('has_admin_fee')->default(true); // Apakah ada biaya admin
+            $table->string('admin_account')->nullable(); // Akun admin yang digunakan untuk pembayaran
             $table->timestamps();
 
             // Relasi ke tabel users

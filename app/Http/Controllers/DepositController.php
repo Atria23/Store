@@ -9,6 +9,7 @@
 // use Illuminate\Support\Facades\Auth;
 // use Inertia\Inertia;
 // use Illuminate\Support\Facades\DB;
+// use App\Models\MutasiQris;
 
 // class DepositController extends Controller
 // {
@@ -74,6 +75,8 @@
 //     // Tampilkan riwayat deposit
 //     public function index()
 //     {
+
+//         $syncMessage = $this->syncMutasiQrisData();
 //         $deposits = Deposit::where('user_id', Auth::id())->get();
 
 //         return Inertia::render('DepositHistory', [
@@ -189,10 +192,48 @@
 //         return response()->file($filePath);
 //     }
 
+//     public function syncMutasiQrisData()
+//     {
+//         try {
+//             // Mengambil data dari API
+//             $response = Http::withHeaders([
+//                 'Cookie' => env('API_MUTASI_COOKIE'),
+//             ])->get(env('API_MUTASI_URL'));
+
+//             // Periksa apakah respon berhasil
+//             if ($response->successful()) {
+//                 $data = $response->json(); // Mendapatkan data JSON
+
+//                 // Pastikan data ada dalam key 'data'
+//                 if (isset($data['data']) && is_array($data['data'])) {
+//                     // Proses setiap item data dalam 'data'
+//                     foreach ($data['data'] as $item) {
+//                         MutasiQris::updateOrCreate(
+//                             ['issuer_reff' => $item['issuer_reff']], // Kondisi unik
+//                             [
+//                                 'date' => $item['date'] ?? null,
+//                                 'amount' => $item['amount'] ?? null,
+//                                 'type' => $item['type'] ?? null,
+//                                 'qris' => $item['qris'] ?? null,
+//                                 'brand_name' => $item['brand_name'] ?? null,
+//                                 'buyer_reff' => $item['buyer_reff'] ?? null,
+//                                 'balance' => $item['balance'] ?? null,
+//                             ]
+//                         );
+//                     }
+
+//                     return "Data berhasil disinkronisasi.";
+//                 } else {
+//                     return "Data tidak ditemukan dalam respons API.";
+//                 }
+//             } else {
+//                 return "Gagal mendapatkan data dari API. Kode status: " . $response->status();
+//             }
+//         } catch (\Exception $e) {
+//             return "Terjadi kesalahan: " . $e->getMessage();
+//         }
+//     }
 // }
-
-
-
 
 
 
@@ -206,18 +247,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Deposit;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use App\Models\Deposit;
+use App\Models\Admin;
+use App\Models\User;
 use App\Models\MutasiQris;
+use Inertia\Inertia;
 
 class DepositController extends Controller
 {
-    // Form untuk membuat deposit baru
+    // Menampilkan halaman pembuatan deposit
     public function create()
     {
         return Inertia::render('RequestDeposit');
@@ -229,16 +271,28 @@ class DepositController extends Controller
         // Validasi input
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|string', // Validasi payment method
+            'payment_method' => 'required|string|in:shopeepay,dana,gopay,ovo,linkaja,qris,qris_manual',
         ]);
 
-        // Hitung admin fee
+        // Pilih admin berdasarkan prioritas (kecuali untuk QRIS)
+        $admin = null;
+        $admin = Admin::where('admin_status', true)
+            ->where('wallet_is_active', true)
+            ->where($validated['payment_method'] . '_status', true)
+            ->orderBy('user_id', 'asc')
+            ->first();
+
+        if (!$admin) {
+            return response()->json(['error' => 'No valid admin found for this payment method'], 422);
+        }
+
+        // Hitung admin fee untuk QRIS
         $adminFeePercentage = 0.007; // 0.7%
-        $hasAdminFee = $validated['payment_method'] === 'QRIS'; // Admin fee hanya berlaku untuk QRIS
-        $uniqueCode = 1; // Mulai dari 1
+        $hasAdminFee = $validated['payment_method'] === 'qris';
+        $uniqueCode = 1;
         $adminFee = $hasAdminFee ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
 
-        // Total yang harus dibayar (amount + unique_code + admin_fee)
+        // Total yang harus dibayar
         $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
 
         // Pastikan total_pay unik pada tanggal yang sama
@@ -247,19 +301,19 @@ class DepositController extends Controller
             ->whereDate('created_at', $today)
             ->where('total_pay', $totalPay)
             ->exists()) {
-            $uniqueCode += 1; // Tambahkan unique_code
-            $adminFee = $hasAdminFee ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0; // Recalculate admin_fee
-            $totalPay = $validated['amount'] + $uniqueCode + $adminFee; // Update total_pay
+            $uniqueCode += 1;
+            $adminFee = $hasAdminFee ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
+            $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
         }
 
         // Total saldo yang diterima pengguna
         $totalSaldo = $validated['amount'] + $uniqueCode;
 
-        // Set waktu expired (10 menit dari sekarang)
-        $expiresAt = now()->addMinutes(10);
+        // Set waktu expired (2 jam untuk non-QRIS, 10 menit untuk QRIS)
+        $expiresAt = $validated['payment_method'] === 'qris' ? now()->addMinutes(10) : now()->addHours(2);
 
         // Simpan deposit
-        Deposit::create([
+        $deposit = Deposit::create([
             'user_id' => auth()->id(),
             'amount' => $validated['amount'],
             'unique_code' => $uniqueCode,
@@ -270,11 +324,13 @@ class DepositController extends Controller
             'expires_at' => $expiresAt,
             'payment_method' => $validated['payment_method'],
             'has_admin_fee' => $hasAdminFee,
+            'admin_account' => $admin->{$validated['payment_method']} ?? null, // Ambil nilai sesuai payment method
         ]);
 
         return redirect()->route('deposit-history')
                         ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
     }
+
 
     // Tampilkan riwayat deposit
     public function index()
@@ -298,6 +354,7 @@ class DepositController extends Controller
                     'get_saldo' => $deposit->get_saldo,
                     'proof_of_payment' => $deposit->proof_of_payment,
                     'payment_method' => $deposit->payment_method,
+                    'admin_account' => $deposit->admin_account,
                 ];
             }),
         ]);
@@ -437,7 +494,4 @@ class DepositController extends Controller
             return "Terjadi kesalahan: " . $e->getMessage();
         }
     }
-
-
-
 }

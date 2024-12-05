@@ -13,8 +13,8 @@ const Admin = ({ admin }) => {
         ovo_status: admin?.ovo_status || false,
         linkaja: admin?.linkaja?.toString() || "",
         linkaja_status: admin?.linkaja_status || false,
-        wallet_is_active: admin?.wallet_is_active || true,
-        admin_status: admin?.admin_status || true,
+        wallet_is_active: admin?.wallet_is_active || false,
+        admin_status: admin?.admin_status || false,
     });
 
     const handleSubmit = (e) => {

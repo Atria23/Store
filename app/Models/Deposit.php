@@ -21,6 +21,7 @@ class Deposit extends Model
         'payment_method',
         'proof_of_payment',
         'has_admin_fee',
+        'admin_account',
     ];
 
     protected $casts = [

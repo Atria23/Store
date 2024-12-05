@@ -8,7 +8,19 @@ const DepositHistory = ({ deposits }) => {
   const [selectedDeposit, setSelectedDeposit] = useState(null); // For storing selected deposit details
   const [uploadingId, setUploadingId] = useState(null); // For tracking the deposit being uploaded
   const { post } = useForm();
+  const [isImageOpen, setIsImageOpen] = useState(false); // State untuk mengontrol tampilan gambar besar
+  const [imageSrc, setImageSrc] = useState(""); // Menyimpan URL gambar yang ingin diperbesar
 
+  const handleImageClick = (src) => {
+    setImageSrc(src);
+    setIsImageOpen(true); // Tampilkan modal gambar
+  };
+
+  const closeImage = () => {
+    setIsImageOpen(false); // Tutup modal gambar
+    setImageSrc("");
+  };
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setUpdatedDeposits((prevDeposits) =>
@@ -42,37 +54,37 @@ const DepositHistory = ({ deposits }) => {
 
   const handleConfirm = (id) => {
     if (confirm("Are you sure you want to confirm this deposit?")) {
-        setLoading(true);
-        setLoadingId(id);
+      setLoading(true);
+      setLoadingId(id);
 
-        // Menggunakan fetch untuk menggantikan post dan menangani responsnya
-        fetch(`/deposit/confirm/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            },
-            body: JSON.stringify({}), // Body kosong jika tidak ada data tambahan
-        })
+      // Menggunakan fetch untuk menggantikan post dan menangani responsnya
+      fetch(`/deposit/confirm/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        body: JSON.stringify({}), // Body kosong jika tidak ada data tambahan
+      })
         .then((response) => response.json())
         .then((data) => {
-            // Jika berhasil
-            if (data.success) {
-                window.location.reload();  // Tampilkan pesan sukses
-            } else {
-                alert(`Konfirmasi gagal: tidak ditemukan data yang sesuai`);  // Tampilkan pesan gagal
-            }
+          // Jika berhasil
+          if (data.success) {
+            window.location.reload();  // Tampilkan pesan sukses
+          } else {
+            alert(`Konfirmasi gagal: tidak ditemukan data yang sesuai`);  // Tampilkan pesan gagal
+          }
         })
         .catch((error) => {
-            // Tangani kesalahan jaringan
-            alert('Terjadi kesalahan: ' + error.message);
+          // Tangani kesalahan jaringan
+          alert('Terjadi kesalahan: ' + error.message);
         })
         .finally(() => {
-            setLoading(false);
-            setLoadingId(null);
+          setLoading(false);
+          setLoadingId(null);
         });
     }
-};
+  };
 
 
   const handleViewDetails = (deposit) => {
@@ -85,12 +97,12 @@ const DepositHistory = ({ deposits }) => {
 
   const handleUploadProof = (id, file) => {
     if (!file) return;
-    
+
     setUploadingId(id);
-  
+
     const formData = new FormData();
     formData.append("proof_of_payment", file);
-  
+
     fetch(`/deposit/upload-proof/${id}`, {
       method: "POST",
       body: formData,
@@ -98,24 +110,24 @@ const DepositHistory = ({ deposits }) => {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
       },
     })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        alert("Proof of payment uploaded successfully!");
-        window.location.href = `/deposit`; // Arahkan ke halaman detail deposit
-      } else {
-        alert("Failed to upload proof of payment.");
-      }
-    })
-    .catch((error) => {
-      console.error("Error uploading proof:", error);
-      alert("An error occurred while uploading proof.");
-    })
-    .finally(() => setUploadingId(null));
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          alert("Proof of payment uploaded successfully!");
+          window.location.href = `/deposit`; // Arahkan ke halaman detail deposit
+        } else {
+          alert("Failed to upload proof of payment.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error uploading proof:", error);
+        alert("An error occurred while uploading proof.");
+      })
+      .finally(() => setUploadingId(null));
   };
-  
-  
-  
+
+
+
 
   return (
     <div className="container mx-auto p-4">
@@ -131,6 +143,7 @@ const DepositHistory = ({ deposits }) => {
               <th className="border px-4 py-2">Get Saldo</th>
               <th className="border px-4 py-2">Total Pay</th>
               <th className="border px-4 py-2">Payment Method</th>
+              <th className="border px-4 py-2">Admin Account</th>
               <th className="border px-4 py-2">Status</th>
               <th className="border px-4 py-2">Expires In</th>
               <th className="border px-4 py-2">Proof of Payment</th>
@@ -144,15 +157,75 @@ const DepositHistory = ({ deposits }) => {
                 <td className="border px-4 py-2">{deposit.get_saldo}</td>
                 <td className="border px-4 py-2">{deposit.total_pay}</td>
                 <td className="border px-4 py-2">{deposit.payment_method}</td>
+                {/* <td className="border px-4 py-2">{deposit.admin_account || "N/A"}</td> */}
+                <td className="border px-4 py-2">
+                  {deposit.payment_method === "qris" && deposit.admin_account ? (
+                    <div>
+                      <img
+                        src={`/storage/${deposit.admin_account}`}
+                        alt="QRIS"
+                        className="w-20 h-20 object-cover cursor-pointer"
+                        onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                      />
+                      <button
+                        onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                        className="text-blue-500 underline text-sm mt-2"
+                      >
+                        Perbesar
+                      </button>
+                    </div>
+                  ) : deposit.payment_method === "qris_manual" && deposit.admin_account ? (
+                    <div>
+                      <img
+                        src={`/storage/${deposit.admin_account}`}
+                        alt="QRIS Manual"
+                        className="w-20 h-20 object-cover cursor-pointer"
+                        onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                      />
+                      <button
+                        onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                        className="text-blue-500 underline text-sm mt-2"
+                      >
+                        Perbesar
+                      </button>
+                    </div>
+                  ) : (
+                    deposit.admin_account || "N/A"
+                  )}
+                </td>
+
+                {/* Modal untuk memperbesar gambar */}
+                {isImageOpen && (
+                  <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={closeImage}
+                  >
+                    <div
+                      className="relative"
+                      onClick={(e) => e.stopPropagation()} // Mencegah penutupan modal saat klik dalam gambar
+                    >
+                      <img
+                        src={imageSrc}
+                        alt="Full View"
+                        className="max-h-screen"
+                      />
+                      <button
+                        onClick={closeImage}
+                        className="absolute top-2 right-2 text-white bg-red-600 px-3 py-1 rounded"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <td className="border px-4 py-2">
                   <span
-                    className={`px-2 py-1 rounded ${
-                      deposit.status === "pending"
-                        ? "bg-yellow-100 text-yellow-600"
-                        : deposit.status === "confirmed"
+                    className={`px-2 py-1 rounded ${deposit.status === "pending"
+                      ? "bg-yellow-100 text-yellow-600"
+                      : deposit.status === "confirmed"
                         ? "bg-green-100 text-green-600"
                         : "bg-red-100 text-red-600"
-                    }`}
+                      }`}
                   >
                     {deposit.status}
                   </span>
@@ -162,7 +235,7 @@ const DepositHistory = ({ deposits }) => {
                     ? formatTimeLeft(deposit.expires_at)
                     : "Expired"}
                 </td>
-                
+
                 <td className="border px-4 py-2">
                   {deposit.proof_of_payment ? (
                     <div className="flex flex-col items-center">
@@ -193,7 +266,7 @@ const DepositHistory = ({ deposits }) => {
                     </div>
                   ) : deposit.status === "confirmed" || new Date(deposit.expires_at) <= new Date() ? (
                     <p className="text-grey-400">N/A</p>
-                  ) : deposit.payment_method === "QRIS" ? (
+                  ) : deposit.payment_method === "qris" ? (
                     <button
                       onClick={() => handleConfirm(deposit.id)}
                       className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -259,13 +332,12 @@ const DepositHistory = ({ deposits }) => {
             <p>
               <strong>Status:</strong>{" "}
               <span
-                className={`px-2 py-1 rounded ${
-                  selectedDeposit.status === "pending"
-                    ? "bg-yellow-100 text-yellow-600"
-                    : selectedDeposit.status === "confirmed"
+                className={`px-2 py-1 rounded ${selectedDeposit.status === "pending"
+                  ? "bg-yellow-100 text-yellow-600"
+                  : selectedDeposit.status === "confirmed"
                     ? "bg-green-100 text-green-600"
                     : "bg-red-100 text-red-600"
-                }`}
+                  }`}
               >
                 {selectedDeposit.status}
               </span>

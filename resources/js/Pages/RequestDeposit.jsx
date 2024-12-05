@@ -4,7 +4,7 @@ import { useForm } from "@inertiajs/react";
 const RequestDeposit = () => {
   const { post, data, setData, processing, errors } = useForm({
     amount: "",
-    payment_method: "ShopeePay", // Set default payment method
+    payment_method: "shopeepay", // Set default payment method
   });
 
   const [adminFee, setAdminFee] = useState(0); // State untuk admin fee
@@ -14,7 +14,7 @@ const RequestDeposit = () => {
     setData("payment_method", method); // Update payment method
 
     // Calculate admin fee if payment method is QRIS
-    if (method === "QRIS") {
+    if (method === "qris") {
       const fee = Math.ceil(data.amount * 0.007); // Admin fee 0.7% for QRIS
       setAdminFee(fee);
     } else {
@@ -27,7 +27,7 @@ const RequestDeposit = () => {
     setData("amount", amount);
 
     // Recalculate admin fee when amount changes
-    if (data.payment_method === "QRIS") {
+    if (data.payment_method === "qris") {
       const fee = Math.ceil(amount * 0.007);
       setAdminFee(fee);
     }
@@ -79,9 +79,9 @@ const RequestDeposit = () => {
             <option value="dana">Dana (No Admin Fee)</option>
             <option value="gopay">GoPay (No Admin Fee)</option>
             <option value="ovo">OVO (No Admin Fee)</option>
-            <option value="ainkaja">LinkAja (No Admin Fee)</option>
+            <option value="linkaja">LinkAja (No Admin Fee)</option>
             <option value="qris">QRIS (Admin Fee 0.7%)</option>
-            <option value="qrismanual">QRIS Manual (No Admin Fee)</option>
+            <option value="qris_manual">QRIS Manual (No Admin Fee)</option>
           </select>
           {errors.payment_method && (
             <span className="text-red-500 text-sm">{errors.payment_method}</span>
