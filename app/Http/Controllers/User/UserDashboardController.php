@@ -10,9 +10,19 @@ class UserDashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user(); // Ambil user yang sedang login
+        $user = Auth::user();
+
+        // Menyiapkan data dengan nilai default jika kosong
+        $userData = [
+            'name' => optional($user)->name ?? 'Guest',
+            'transactions' => optional($user)->transactions ?? 0,
+            'balance' => optional($user)->balance ?? 0,
+            'points' => optional($user)->points ?? 0,
+            'depositHistory' => optional($user)->depositHistory ?? [],
+        ];
+
         return Inertia::render('User/Dashboard', [
-            'user' => $user, // Kirim data user ke tampilan
+            'user' => $userData, // Kirim data user dengan nilai default
         ]);
     }
 }

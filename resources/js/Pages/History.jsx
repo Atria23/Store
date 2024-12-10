@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
+import Footer from "./Footer"; // Adjust the path to your Footer file
 
 const HistoryPage = () => {
   const { transactions: initialTransactions } = usePage().props;
@@ -39,57 +40,59 @@ const HistoryPage = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Transaction History</h1>
-      <table className="table-auto w-full border-collapse border border-gray-300">
-        <thead>
-          <tr>
-            <th className="border border-gray-300 px-4 py-2">Transaction ID</th>
-            <th className="border border-gray-300 px-4 py-2">Product Name</th>
-            <th className="border border-gray-300 px-4 py-2">Customer Number</th>
-            <th className="border border-gray-300 px-4 py-2">Price</th>
-            <th className="border border-gray-300 px-4 py-2">Status</th>
-            <th className="border border-gray-300 px-4 py-2">SN</th>
-            <th className="border border-gray-300 px-4 py-2">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.length === 0 ? (
+    <>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Transaction History</h1>
+        <table className="table-auto w-full border-collapse border border-gray-300">
+          <thead>
             <tr>
-              <td colSpan="6" className="text-center py-4">
-                {loading ? "Loading data..." : "No transactions available"}
-              </td>
+              <th className="border border-gray-300 px-4 py-2">Transaction ID</th>
+              <th className="border border-gray-300 px-4 py-2">Product Name</th>
+              <th className="border border-gray-300 px-4 py-2">Customer Number</th>
+              <th className="border border-gray-300 px-4 py-2">Price</th>
+              <th className="border border-gray-300 px-4 py-2">Status</th>
+              <th className="border border-gray-300 px-4 py-2">SN</th>
+              <th className="border border-gray-300 px-4 py-2">Action</th>
             </tr>
-          ) : (
-            transactions.map((transaction) => (
-              <tr key={transaction.ref_id}>
-                <td className="border border-gray-300 px-4 py-2">{transaction.ref_id}</td>
-                <td className="border border-gray-300 px-4 py-2">{transaction.product_name}</td>
-                <td className="border border-gray-300 px-4 py-2">{transaction.customer_no}</td>
-                <td className="border border-gray-300 px-4 py-2">{transaction.price}</td>
-                <td className="border border-gray-300 px-4 py-2">{transaction.status}</td>
-                <td className="border border-gray-300 px-4 py-2">{transaction.sn}</td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {transaction.status === "Pending" ? (
-                    <button
-                      onClick={() => updateStatus(transaction.ref_id)}
-                      className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ${
-                        loading ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
-                      disabled={loading}
-                    >
-                      {loading ? "Loading..." : "Update Status"}
-                    </button>
-                  ) : (
-                    "No Action"
-                  )}
+          </thead>
+          <tbody>
+            {transactions.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-4">
+                  {loading ? "Loading data..." : "No transactions available"}
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+            ) : (
+              transactions.map((transaction) => (
+                <tr key={transaction.ref_id}>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.ref_id}</td>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.product_name}</td>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.customer_no}</td>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.price}</td>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.status}</td>
+                  <td className="border border-gray-300 px-4 py-2">{transaction.sn}</td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {transaction.status === "Pending" ? (
+                      <button
+                        onClick={() => updateStatus(transaction.ref_id)}
+                        className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ${loading ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        disabled={loading}
+                      >
+                        {loading ? "Loading..." : "Update Status"}
+                      </button>
+                    ) : (
+                      "No Action"
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <Footer />
+    </>
   );
 };
 

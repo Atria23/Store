@@ -61,7 +61,7 @@ const Dashboard = ({ admin, transactions, topups, points }) => {
                 <strong>Balance: ******</strong>
               ) : (
                 <>
-                  <strong>Balance:</strong> ${user.balance}
+                  <strong>Balance:</strong> ${admin.balance}
                 </>
               )}
             </span>

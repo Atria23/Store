@@ -27,6 +27,7 @@
         "clsx": "^2.1.1",
         "react-chartjs-2": "^5.2.0",
         "react-hot-toast": "^2.4.1",
+        "react-router-dom": "^7.0.2",
         "sweetalert2": "^11.10.7",
         "uuid": "^11.0.3"
     }
