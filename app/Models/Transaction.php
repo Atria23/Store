@@ -9,6 +9,19 @@ class Transaction extends Model
 {
     use HasFactory;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'transactions';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+
     protected $fillable = [
         'user_id',
         'ref_id',
@@ -22,6 +35,9 @@ class Transaction extends Model
         'buyer_last_saldo',
         'message',
         'price_product',
+        'category',
+        'brand',
+        'type',
     ];
 
     // Transaction.php

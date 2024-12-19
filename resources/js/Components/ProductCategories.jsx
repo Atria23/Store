@@ -12,7 +12,7 @@ const ProductCategories = () => {
                 <img
                   src="/storage/ikon_home/pulsa.png"
                   alt="Description of the image"
-                  className="w-12 h-12"
+                  className="w-10 h-10"
                 />
               </div>
             </div>
@@ -24,7 +24,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/paket-data.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Paket Data</p>
@@ -35,7 +35,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/games.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Games</p>
@@ -46,7 +46,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/inject-voucher.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Inject Voucher</p>
@@ -57,7 +57,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/voucher-wifi.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Voucher Wifi</p>
@@ -68,7 +68,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/voucher.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Voucher</p>
@@ -79,7 +79,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/telepon-sms.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Telepon SMS</p>
@@ -90,7 +90,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/token-listrik.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Token Listrik</p>
@@ -101,7 +101,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/tagihan.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Tagihan</p>
@@ -112,7 +112,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/hiburan.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Hiburan</p>
@@ -123,7 +123,7 @@ const ProductCategories = () => {
               <img
                 src="/storage/ikon_home/masa-aktif.png"
                 alt="Description of the image"
-                className="w-12 h-12"
+                className="w-10 h-10"
               />
             </div>
             <p className="mt-2 text-sm text-center">Masa Aktif</p>

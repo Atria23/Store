@@ -22,7 +22,7 @@
             }
         </style>
     </head>
-    <body class="font-sans antialiased bg-[#E9E9E9]" style="font-family: 'Jost', sans-serif;" onload="setInitialTheme()">
+    <body class="font-sans antialiased bg-gray-100" style="font-family: 'Jost', sans-serif;" onload="setInitialTheme()">
         @inertia
         <script>
             function setInitialTheme() {

@@ -30,6 +30,9 @@ class TransactionsHistory extends Model
         'saldo_terakhir',
         'sn',
         'created_at',
+        'category',
+        'brand',
+        'type',
     ];
 } 
 
@@ -46,7 +49,11 @@ class TransactionsHistory extends Model
 //     price_product AS price,
 //     buyer_last_saldo AS saldo_terakhir,
 //     sn,
-//     created_at
+//     created_at,
+//     category,
+//     brand,
+//     type
+
 // FROM
 //     transactions;
 

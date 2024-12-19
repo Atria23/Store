@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
 
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -103,5 +105,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuperAdmin()
     {
         return $this->hasRole('super-admin');
+    }
+
+    // Relasi ke Store
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class);
     }
 }

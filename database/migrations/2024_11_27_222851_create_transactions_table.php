@@ -14,6 +14,9 @@ class CreateTransactionsTable extends Migration
             $table->string('ref_id')->unique();
             $table->string('buyer_sku_code');
             $table->string('product_name')->nullable();
+            $table->string('category')->nullable();
+            $table->string('brand')->nullable();
+            $table->string('type')->nullable();
             $table->string('customer_no');
             $table->string('status');
             $table->integer('price')->nullable();

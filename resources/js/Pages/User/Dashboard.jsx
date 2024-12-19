@@ -32,7 +32,7 @@ function Dashboard({ user }) {
               </div>
               <div className="flex items-center space-x-4">
                 <p className="text-3xl font-bold text-gray-800">
-                  {showBalance ? `Rp${user.balance.toLocaleString()}` : "••••••••"}
+                  {showBalance ? `Rp${user.balance.toLocaleString('id-ID')}` : "••••••••"}
                 </p>
                 <button
                   onClick={toggleBalanceVisibility}
