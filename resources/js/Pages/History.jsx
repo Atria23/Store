@@ -35,7 +35,7 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
     return (
         <div onClick={handleTransactionClick} className="flex items-center p-4 rounded-lg shadow-md bg-white my-2 cursor-pointer">
             <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center rounded-full shadow bg-blue-50 text-blue-600 mr-4">
-                <img src="https://i.ibb.co/YRD8yDC/logo-muvausa-store-lingkaran-putih.webp" alt="Company Logo" className="rounded-lg" />
+                <img src="/storage/logo.webp" alt="Company Logo" className="rounded-lg" />
             </div>
             <div className="flex-grow overflow-hidden">
                 <div className="text-md font-semibold text-gray-700 truncate">{product_name}</div>

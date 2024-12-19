@@ -142,7 +142,7 @@
 //                     <div className="flex justify-center mb-4">
 //                         <img
 //                             // src={storeData.image || "https://i.ibb.co/YRD8yDC/logo-muvausa-store-lingkaran-putih.webp"}
-//                             src={storeData.image || "logo.webp"}
+//                             src={storeData.image || "/storage/logo.webp"}
 //                             alt="Store Logo"
 //                             className="w-20 h-20 rounded-md"
 //                         />
@@ -419,7 +419,7 @@ const HistoryDetail = () => {
         name: "Nama Toko Default",
         address: "Alamat Toko Default",
         phone_number: "Nomor Default",
-        image: "https://i.ibb.co/YRD8yDC/logo-muvausa-store-lingkaran-putih.webp",
+        image: "/storage/logo.webp",
     };
 
 
@@ -562,7 +562,7 @@ const HistoryDetail = () => {
                     <div className="flex justify-center mb-4">
                         <img
                             // src={storeData.image || "https://i.ibb.co/YRD8yDC/logo-muvausa-store-lingkaran-putih.webp"}
-                            src={storeData.image || "logo.webp"}
+                            src={storeData.image || "/storage/logo.webp"}
                             alt="Store Logo"
                             className="w-20 h-20 rounded-md"
                         />
