@@ -4,7 +4,7 @@ import { useForm } from "@inertiajs/react";
 export default function AccountSettings({ user }) {
     const fileInputRef = useRef(null);
     const [imagePreview, setImagePreview] = useState(
-        user?.avatar ? `http://localhost:8000/storage/${user.avatar}` : "/logo.webp"
+        user?.avatar ? `${user.avatar}` : "/logo.webp"
     );
 
     const { data, setData, post, progress, errors } = useForm({

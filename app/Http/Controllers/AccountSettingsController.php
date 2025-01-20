@@ -15,7 +15,7 @@ class AccountSettingsController extends Controller
             'user' => [
                 'name' => $user->name,
                 'username' => $user->username,
-                'avatar' => $user->avatar ? 'avatars/' . basename($user->avatar) : null,
+                'avatar' => $user->avatar ? '/storage/avatars/' . basename($user->avatar) : null,
                 'email' => $user->email,
                 'email_verified_at' => $user->email_verified_at,
             ],
