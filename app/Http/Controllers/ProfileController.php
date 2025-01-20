@@ -22,7 +22,7 @@ class ProfileController extends Controller
         // Menyiapkan data user dengan nilai default jika kosong
         $userData = [
             'name' => optional($user)->name ?? 'Guest',
-            'avatar' => $user->avatar ? 'avatars/' . basename($user->avatar) : null,
+            'avatar' => $user->avatar ? '/storage/avatars/' . basename($user->avatar) : null,
             'email' => optional($user)->email ?? '@gmail.com', 
             'transactions' => $transactionsCount, // Gunakan jumlah transaksi sukses
             'balance' => optional($user)->balance ?? 0,

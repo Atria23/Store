@@ -159,7 +159,7 @@ import { Head } from '@inertiajs/react';
 function Profile({ user }) {
     const [showBalance, setShowBalance] = useState(false);
     const [imagePreview, setImagePreview] = useState(
-        user?.avatar ? `http://localhost:8000/storage/${user.avatar}` : "/storage/logo.webp"
+        user?.avatar ? `${user.avatar}` : "/storage/logo.webp"
     );
 
     const toggleBalanceVisibility = () => {
