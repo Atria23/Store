@@ -226,6 +226,227 @@
 
 
 
+// namespace App\Http\Controllers;
+
+// use Illuminate\Http\Request;
+// use Illuminate\Support\Facades\Http;
+// use Illuminate\Support\Facades\Auth; // Untuk autentikasi
+// use App\Models\User; // Model User untuk memanipulasi data user
+// use App\Models\Transaction; // Pastikan Model Transaction sudah ada
+// use App\Models\Product; // Model untuk mengambil data produk
+// use Inertia\Inertia;
+
+// class TransactionController extends Controller
+// {
+//     public function getBalance()
+//     {
+//         $user = Auth::user();
+    
+//         if (!$user) {
+//             return response()->json(['message' => 'User not authenticated'], 401);
+//         }
+    
+//         return response()->json(['balance' => $user->balance], 200);
+//     }
+    
+//     public function makeTransaction(Request $request)
+//     {
+//         $user = Auth::user();
+
+//         if (!$user) {
+//             return response()->json(['message' => 'User not authenticated'], 401);
+//         }
+
+//         $username = env('P_U');
+//         $apiKey = env('P_AK');
+//         $ref_id = uniqid();
+//         $buyer_sku_code = $request->input('buyer_sku_code');
+//         $customer_no = $request->input('customer_no');
+//         $price = $request->input('price');
+//         $sign = md5($username . $apiKey . $ref_id);
+
+//         $data = [
+//             'username' => $username,
+//             'buyer_sku_code' => $buyer_sku_code,
+//             'customer_no' => $customer_no,
+//             'ref_id' => $ref_id,
+//             'sign' => $sign,
+//         ];
+
+//         $response = Http::withHeaders([
+//             'Content-Type' => 'application/json',
+//         ])->post('https://api.digiflazz.com/v1/transaction', $data);
+
+//         $responseData = $response->json();
+
+//         // Ambil data produk dari tabel products berdasarkan buyer_sku_code
+//         $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
+
+//         if (!$product) {
+//             return response()->json(['message' => 'Product not found'], 404);
+//         }
+
+//         // Ambil data produk
+//         $product_name = $product->product_name;
+//         $price_product = $product->price;
+//         $category = $product->category;  // Ambil category dari tabel products
+//         $brand = $product->brand;        // Ambil brand dari tabel products
+//         $type = $product->type;          // Ambil type dari tabel products
+
+//         // Simpan transaksi ke database
+//         $transaction = Transaction::create([
+//             'user_id' => $user->id,
+//             'ref_id' => $ref_id,
+//             'buyer_sku_code' => $buyer_sku_code,
+//             'customer_no' => $customer_no,
+//             'status' => $responseData['data']['status'] ?? 'Failed',
+//             'price' => $price,
+//             'price_product' => $price_product,
+//             'product_name' => $product_name,
+//             'category' => $category,  // Menambahkan category
+//             'brand' => $brand,        // Menambahkan brand
+//             'type' => $type,          // Menambahkan type
+//             'rc' => $responseData['data']['rc'] ?? 'UNKNOWN_ERROR',
+//             'sn' => $responseData['data']['sn'] ?? null,
+//             'buyer_last_saldo' => $user->balance,
+//             'message' => $responseData['data']['message'] ?? 'Transaction failed',
+//         ]);
+
+//         if ($responseData['data']['status'] !== 'Gagal') {
+//             // Kurangi saldo hanya jika status tidak gagal
+//             $user->balance -= $price_product;
+//             $user->save();
+
+//             // Perbarui saldo transaksi
+//             $transaction->buyer_last_saldo = $user->balance;
+//             $transaction->save();
+
+//             return response()->json([
+//                 'message' => 'Transaction successful',
+//                 'data' => $responseData['data'],
+//                 'balance' => $user->balance,
+//             ], 200);
+//         } else {
+//             return response()->json([
+//                 'message' => 'Transaction failed',
+//                 'data' => $responseData['data'] ?? null,
+//                 'balance' => $user->balance,
+//             ], $response->status());
+//         }
+//     }
+
+
+//     public function getCompletedTransactions()
+//     {
+//         $transactions = Transaction::all(['ref_id', 'product_name', 'customer_no', 'price', 'status', 'created_at', 'category', 'brand', 'type']);
+
+// return Inertia::render('Transactions/Completed', [
+//     'transactions' => $transactions,
+// ]);
+
+//     }
+
+//     public function historyPage()
+//     {
+//         $user = Auth::user();
+
+//         // Ambil data dari tabel transactions_history berdasarkan user_id
+//         $transactionsHistory = \DB::table('transactions_history')
+//             ->where('user_id', $user->id)
+//             ->orderBy('created_at', 'desc')
+//             ->get(['ref_id', 'product_name', 'customer_no', 'price', 'status', 'sn', 'created_at']);
+
+//         // Kirim data ke Inertia
+//         return Inertia::render('History', [
+//             'transactions' => $transactionsHistory,
+//         ]);
+//     }
+
+
+//     public function updateTransactionStatus(Request $request)
+//     {
+//         $transactionId = $request->input('transaction_id');
+
+//         // Cari transaksi dengan status Pending
+//         $transaction = Transaction::where('ref_id', $transactionId)->where('status', 'Pending')->first();
+
+//         if (!$transaction) {
+//             return response()->json([
+//                 'message' => 'No pending transaction found or invalid ID',
+//             ], 404);
+//         }
+
+//         // Data untuk validasi transaksi
+//         $username = env('P_U');
+//         $apiKey = env('P_AK');
+//         $sign = md5($username . $apiKey . $transaction->ref_id);
+
+//         $data = [
+//             'username' => $username,
+//             'ref_id' => $transaction->ref_id,
+//             'sign' => $sign,
+//         ];
+
+//         // Kirim permintaan ke API
+//         $response = Http::withHeaders([
+//             'Content-Type' => 'application/json',
+//         ])->post('https://api.digiflazz.com/v1/transaction', $data);
+
+//         $responseData = $response->json();
+
+//         // Periksa apakah respons API valid
+//         $apiData = $responseData['data'] ?? null;
+
+//         if (!$apiData) {
+//             return response()->json([
+//                 'message' => 'Invalid response from API',
+//             ], 500);
+//         }
+
+//         // Update data transaksi di database
+//         $transaction->update([
+//             'status' => $apiData['status'] ?? 'Failed',
+//             'rc' => $apiData['rc'] ?? 'UNKNOWN_ERROR',
+//             'sn' => $apiData['sn'] ?? null,
+//             'message' => $apiData['message'] ?? 'Transaction failed',
+//         ]);
+
+//         // Jika status transaksi gagal, kembalikan saldo pengguna
+//         if ($apiData['status'] === 'Gagal') {
+//             $user = $transaction->user;
+//             $user->balance += $transaction->price_product;
+//             $user->save();
+//         }
+
+//         return response()->json([
+//             'message' => 'Transaction status updated successfully',
+//             'data' => $apiData,
+//             'balance' => $transaction->user->balance,
+//         ], 200);
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -424,4 +645,63 @@ return Inertia::render('Transactions/Completed', [
             'balance' => $transaction->user->balance,
         ], 200);
     }
+
+    public function webhookHandler(Request $request)
+    {
+        // Pastikan Secret sesuai dengan yang diberikan oleh Digiflazz
+        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET', '9f340d7968486dcb'); // Simpan Secret di .env
+
+        // Ambil payload dari request
+        $payload = $request->getContent();
+        $headers = $request->headers->all();
+
+        // Verifikasi keaslian webhook
+        $calculatedSignature = hash_hmac('sha256', $payload, $secret);
+        $receivedSignature = $headers['x-signature'][0] ?? '';
+
+        if ($calculatedSignature !== $receivedSignature) {
+            return response()->json(['message' => 'Invalid signature'], 403);
+        }
+
+        // Decode payload
+        $data = json_decode($payload, true);
+
+        if (!$data || !isset($data['event'])) {
+            return response()->json(['message' => 'Invalid payload'], 400);
+        }
+
+        // Proses event webhook
+        $event = $data['event'];
+        $transactionRefId = $data['ref_id'] ?? null;
+        $transactionStatus = $data['status'] ?? null;
+
+        if (!$transactionRefId) {
+            return response()->json(['message' => 'Transaction ID is missing'], 400);
+        }
+
+        // Cari transaksi berdasarkan ref_id
+        $transaction = Transaction::where('ref_id', $transactionRefId)->first();
+
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        // Update status transaksi berdasarkan event webhook
+        $transaction->update([
+            'status' => $transactionStatus,
+            'rc' => $data['rc'] ?? $transaction->rc,
+            'sn' => $data['sn'] ?? $transaction->sn,
+            'message' => $data['message'] ?? $transaction->message,
+        ]);
+
+        // Jika transaksi gagal, kembalikan saldo pengguna
+        if ($transactionStatus === 'Gagal') {
+            $user = $transaction->user;
+            $user->balance += $transaction->price_product;
+            $user->save();
+        }
+
+        return response()->json(['message' => 'Webhook processed successfully'], 200);
+    }
+
 }

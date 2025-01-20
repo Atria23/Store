@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -21,6 +21,8 @@ export default function Register() {
     };
 
     return (
+        <>
+        <Head title="Register" />
         <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6">
             <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header Section */}
@@ -104,7 +106,7 @@ export default function Register() {
                                 type="password"
                                 name="password"
                                 value={data.password}
-                                placeholder="Bikin yang susah tebak"
+                                placeholder="Bikin yang susah ditebak"
                                 onChange={(e) => setData('password', e.target.value)}
                                 className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 required
@@ -144,7 +146,7 @@ export default function Register() {
                                 disabled={processing}
                                 className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
-                                {processing ? 'Registering...' : 'Daftar'}
+                                {processing ? 'Pendaftaran...' : 'Daftar'}
                             </button>
                         </div>
                     </form>
@@ -162,5 +164,6 @@ export default function Register() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

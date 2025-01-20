@@ -2,62 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use App\Models\TransactionsHistory;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): Response
+    public function index()
     {
-        return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+        // Ambil user yang sedang login
+        $user = Auth::user();
+
+        // Ambil jumlah transaksi sukses untuk user tertentu
+        $transactionsCount = TransactionsHistory::where('user_id', $user->id)
+            ->where('status', 'Sukses')
+            ->count();
+
+        // Menyiapkan data user dengan nilai default jika kosong
+        $userData = [
+            'name' => optional($user)->name ?? 'Guest',
+            'avatar' => $user->avatar ? 'avatars/' . basename($user->avatar) : null,
+            'email' => optional($user)->email ?? '@gmail.com', 
+            'transactions' => $transactionsCount, // Gunakan jumlah transaksi sukses
+            'balance' => optional($user)->balance ?? 0,
+            'points' => optional($user)->points ?? 0,
+            'depositHistory' => optional($user)->depositHistory ?? [],
+        ];
+
+        // Kirimkan data user dengan jumlah transaksi sukses ke komponen React
+        return Inertia::render('Profile', [
+            'user' => $userData, // Kirim data user dengan jumlah transaksi sukses
         ]);
-    }
-
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
     }
 }

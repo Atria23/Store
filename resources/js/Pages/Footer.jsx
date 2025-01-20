@@ -96,8 +96,8 @@ function Footer() {
           />
         </svg>
       ),
-      path: "#",
-      onClick: () => setShowPopup(true),
+      path: "/profile",
+      onClick: () => Inertia.visit("/profile"),
     },
     {
       label: "Log out",

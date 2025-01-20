@@ -208,7 +208,7 @@ const PopupEditStore = ({ isOpen, onClose, store }) => {
                             onClick={handleImageClick}
                         >
                             <img
-                                src={imagePreview || "https://i.ibb.co/YRD8yDC/logo-muvausa-store-lingkaran-putih.webp"}
+                                src={imagePreview || "/storage/.webp"}
                                 alt="Foto Toko"
                                 className="w-32 h-32 object-cover rounded-full shadow-lg border"
                             />
