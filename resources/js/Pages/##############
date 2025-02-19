@@ -1,0 +1,216 @@
+import { useState } from "react";
+import { Link, usePage, router } from "@inertiajs/react";
+
+export default function CategoryList() {
+    const { categories } = usePage().props;
+    const [search, setSearch] = useState("");
+    const [sortOrder, setSortOrder] = useState("asc");
+    const [modal, setModal] = useState(false);
+    const [editCategory, setEditCategory] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+    const [errors, setErrors] = useState({});
+
+    const [form, setForm] = useState({
+        name: "",
+        image: null,
+    });
+
+    const handleChange = (e) => {
+        if (e.target.name === "image") {
+            const file = e.target.files[0];
+            if (file) {
+                setPreviewImage(URL.createObjectURL(file));
+                setForm({ ...form, image: file });
+            }
+        } else {
+            setForm({ ...form, [e.target.name]: e.target.value });
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setErrors({}); // Reset error
+
+        const formData = new FormData();
+        formData.append("name", form.name);
+        if (form.image) formData.append("image", form.image);
+
+        if (editCategory) {
+            router.post(`/categories/${editCategory.id}`, formData, {
+                onSuccess: () => {
+                    setModal(false);
+                    setEditCategory(null);
+                    setPreviewImage(null);
+                },
+                onError: (err) => setErrors(err),
+            });
+        } else {
+            router.post("/categories", formData, {
+                onSuccess: () => {
+                    setModal(false);
+                    setPreviewImage(null);
+                },
+                onError: (err) => setErrors(err),
+            });
+        }
+    };
+
+    const openEditModal = (category) => {
+        setEditCategory(category);
+        setForm({
+            name: category.name,
+            image: null,
+        });
+        setPreviewImage(category.image);
+        setModal(true);
+    };
+
+    const handleDelete = (id) => {
+        if (confirm("Apakah Anda yakin ingin menghapus kategori ini?")) {
+            router.delete(`/categories/${id}`);
+        }
+    };
+
+    const sortedCategories = [...categories]
+        .filter((category) =>
+            category.name.toLowerCase().includes(search.toLowerCase())
+        )
+        .sort((a, b) =>
+            sortOrder === "asc"
+                ? a.name.localeCompare(b.name)
+                : b.name.localeCompare(a.name)
+        );
+
+    return (
+        <div className="w-full max-w-[412px] max-h-[892px] md:h-screen mx-auto overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-lg font-semibold">Kelola Kategori</h1>
+                <button
+                    onClick={() => {
+                        setEditCategory(null);
+                        setForm({ name: "", image: null });
+                        setPreviewImage(null);
+                        setModal(true);
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                    + Tambah
+                </button>
+            </div>
+
+            {/* Pencarian & Sortir */}
+            <div className="mb-4 flex gap-2">
+                <input
+                    type="text"
+                    placeholder="Cari kategori..."
+                    className="w-full p-2 border rounded-lg"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                <button
+                    onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                    {sortOrder === "asc" ? "🔼 A-Z" : "🔽 Z-A"}
+                </button>
+            </div>
+
+            {/* Daftar Kategori */}
+            <div className="space-y-4">
+                {sortedCategories.map((category) => (
+                    <div
+                        key={category.id}
+                        className="flex justify-between items-center border p-4 rounded-lg shadow"
+                    >
+                        <div className="flex items-center space-x-4">
+                            <img
+                                src={category.image || "storage/categories/default.png"}
+                                alt={category.name}
+                                className="w-14 h-14 rounded-full object-cover"
+                            />
+                            <div>
+                                <p className="font-semibold">{category.name}</p>
+                                <p className="text-sm text-gray-500">
+                                    Dibuat: {new Date(category.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => openEditModal(category)}
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+                            >
+                                ✏ Edit
+                            </button>
+                            <button
+                                onClick={() => handleDelete(category.id)}
+                                disabled={category.is_used}
+                                className={`px-3 py-1 rounded ${category.is_used ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
+                            >
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Modal Tambah/Edit */}
+            {modal && (
+                <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                    <div className="bg-white p-6 rounded-lg w-96 shadow-lg animate-fadeIn">
+                        <h2 className="text-lg font-semibold mb-4">
+                            {editCategory ? "Edit Kategori" : "Tambah Kategori"}
+                        </h2>
+                        <form onSubmit={handleSubmit} encType="multipart/form-data">
+                            <input
+                                type="text"
+                                name="name"
+                                value={form.name}
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded mb-2"
+                                placeholder="Nama Kategori"
+                                required
+                            />
+                            {errors.name && (
+                                <p className="text-red-500 text-sm">{errors.name}</p>
+                            )}
+
+                            <input
+                                type="file"
+                                name="image"
+                                accept="image/*"
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded mb-2"
+                            />
+                            {previewImage && (
+                                <img
+                                    src={previewImage}
+                                    alt="Preview"
+                                    className="w-20 h-20 object-cover rounded-full mb-2"
+                                />
+                            )}
+                            {errors.image && (
+                                <p className="text-red-500 text-sm">{errors.image}</p>
+                            )}
+
+                            <button
+                                type="submit"
+                                className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                            >
+                                Simpan
+                            </button>
+                            <button
+                                type="button"
+                                className="w-full mt-2 bg-gray-500 text-white p-2 rounded hover:bg-gray-600 transition"
+                                onClick={() => setModal(false)}
+                            >
+                                Batal
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

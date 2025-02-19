@@ -649,7 +649,7 @@ return Inertia::render('Transactions/Completed', [
     public function webhookHandler(Request $request)
     {
         // Pastikan Secret sesuai dengan yang diberikan oleh Digiflazz
-        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET', '9f340d7968486dcb'); // Simpan Secret di .env
+        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET'); // Simpan Secret di .env
 
         // Ambil payload dari request
         $payload = $request->getContent();

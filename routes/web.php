@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DepositController;
-use App\Http\Controllers\AdminDepositController;
+use App\Http\Controllers\KelolaDepositController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\TransactionController;
@@ -27,6 +27,14 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\AccountSettingsController;
+
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\HomeController;
+
+Route::get('/beranda', [HomeController::class, 'index'])->name('home');
+
+
+Route::get('/products', [PriceListController::class, 'showAllProducts']);
 
 Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
@@ -70,9 +78,9 @@ Route::middleware(['auth', 'admin-or-super-admin'])->group(function () {
 
 
 Route::middleware(['admin-or-super-admin'])->group(function () {
-    Route::get('/admin/deposits', [AdminDepositController::class, 'index'])->name('admin.deposits');
-    Route::post('/admin/deposit/confirm/{id}', [AdminDepositController::class, 'confirm'])->name('admin.deposit.confirm');
-    Route::post('/admin/deposit/cancel-confirm/{id}', [AdminDepositController::class, 'cancelConfirm']);
+    Route::get('/admin/deposits', [KelolaDepositController::class, 'index'])->name('admin.deposit');
+    Route::post('/admin/deposit/confirm/{id}', [KelolaDepositController::class, 'confirm'])->name('admin.deposit.confirm');
+    Route::post('/admin/deposit/cancel-confirm/{id}', [KelolaDepositController::class, 'cancelConfirm']);
     Route::get('/mutasi-qris', [MutasiQrisController::class, 'index'])->name('mutasi-qris.index');
 
     Route::get('/deposit-account', [AdminController::class, 'edit'])->name('admin.edit');
@@ -84,6 +92,11 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/qris', [AdminController::class, 'editQris'])->name('admin.editQris');
     // Update data QRIS (untuk super admin)
     Route::post('/qris', [AdminController::class, 'updateQris'])->name('admin.updateQris');
+Route::get('/manage-categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::post('/manage-categories', [CategoryController::class, 'store'])->name('categories.store');
+Route::post('/manage-categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+Route::delete('/manage-categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+Route::post('/manage-categories/sync', [CategoryController::class, 'syncCategories'])->name('categories.sync');
 });
 
 Route::middleware(['auth'])->group(function () {

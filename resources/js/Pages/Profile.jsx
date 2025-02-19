@@ -177,7 +177,7 @@ function Profile({ user }) {
                                 <img
                                     src={imagePreview}
                                     alt="Logo Muvausa Store"
-                                    className="md:w-20 w-12 p-1.5 border-2 border-white rounded-full shadow-lg bg-white"
+                                    className="md:w-20 md:h-20 w-12 h-12 p-1.5 border-2 border-white rounded-full shadow-lg bg-white"
                                     onError={(e) => (e.target.src = "/storage/logo.webp")}
                                 />
                                 <div className="flex flex-col">
