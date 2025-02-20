@@ -806,14 +806,17 @@ export default function CategoryList() {
                             </div>
 
                             <div className="max-w-[200px] flex flex-col items-start space-y-[2px]">
-                                <p className="font-utama font-semibold text-sm truncate w-full">{category.name}</p>
-                                <p className="font-utama text-xs text-gray-500">
-                                    Update Terakhir: {new Date(category.updated_at).toLocaleDateString()}
-                                </p>
-                                <p className="font-utama text-xs text-gray-500">
-                                    Tanggal Dibuat: {new Date(category.created_at).toLocaleDateString()}
-                                </p>
-                            </div>
+    <p className="font-utama font-semibold text-sm truncate w-full">{category.name}</p>
+    <p className="font-utama text-xs text-gray-500">
+        Diperbarui: {new Date(category.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })},{" "}
+        {new Date(category.updated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })}
+    </p>
+    <p className="font-utama text-xs text-gray-500">
+        Dibuat: {new Date(category.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })},{" "}
+        {new Date(category.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })}
+    </p>
+</div>
+
                         </div>
 
                         <div className="w-12 h-full flex flex-col items-center space-y-2">

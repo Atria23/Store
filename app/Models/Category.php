@@ -9,5 +9,5 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'image', 'updated_at']; // Tambahkan kolom image
+    protected $fillable = ['name', 'image', 'updated_at', 'created_at']; // Tambahkan kolom image
 }
