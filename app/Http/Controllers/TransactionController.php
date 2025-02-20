@@ -452,6 +452,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth; // Untuk autentikasi
+use Illuminate\Support\Facades\Log;
 use App\Models\User; // Model User untuk memanipulasi data user
 use App\Models\Transaction; // Pastikan Model Transaction sudah ada
 use App\Models\Product; // Model untuk mengambil data produk
@@ -609,11 +610,19 @@ return Inertia::render('Transactions/Completed', [
         ];
 
         // Kirim permintaan ke API
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post('https://api.digiflazz.com/v1/transaction', $data);
-
-        $responseData = $response->json();
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post('https://api.digiflazz.com/v1/transaction', $data);
+        
+            $responseData = $response->json();
+        } catch (\Exception $e) {
+            Log::error('API request failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to connect to Digiflazz API',
+            ], 500);
+        }
+        
 
         // Periksa apakah respons API valid
         $apiData = $responseData['data'] ?? null;
@@ -645,63 +654,85 @@ return Inertia::render('Transactions/Completed', [
             'balance' => $transaction->user->balance,
         ], 200);
     }
-
+    
     public function webhookHandler(Request $request)
-    {
-        // Pastikan Secret sesuai dengan yang diberikan oleh Digiflazz
-        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET'); // Simpan Secret di .env
+{
+    Log::info('Webhook function triggered');
 
-        // Ambil payload dari request
+    try {
+        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET');
+
+        if (!$secret) {
+            Log::error('Webhook secret is not set');
+            return response()->json(['message' => 'Webhook secret missing'], 500);
+        }
+
         $payload = $request->getContent();
         $headers = $request->headers->all();
 
-        // Verifikasi keaslian webhook
-        $calculatedSignature = hash_hmac('sha256', $payload, $secret);
-        $receivedSignature = $headers['x-signature'][0] ?? '';
+        Log::info('Webhook Received', ['headers' => $headers, 'payload' => json_decode($payload, true)]);
 
-        if ($calculatedSignature !== $receivedSignature) {
+        if (!$request->hasHeader('x-signature')) {
+            Log::warning('Missing x-signature header');
+            return response()->json(['message' => 'Missing signature'], 403);
+        }
+
+        $calculatedSignature = hash_hmac('sha256', $payload, $secret);
+        $receivedSignature = $request->header('x-signature');
+
+        if (!hash_equals($calculatedSignature, $receivedSignature)) {
+            Log::warning('Invalid signature', ['calculated' => $calculatedSignature, 'received' => $receivedSignature]);
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-        // Decode payload
         $data = json_decode($payload, true);
 
-        if (!$data || !isset($data['event'])) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::warning('Invalid JSON payload', ['error' => json_last_error_msg()]);
+            return response()->json(['message' => 'Invalid JSON'], 400);
+        }
+
+        if (!isset($data['event'], $data['ref_id'], $data['status']) || empty($data['ref_id'])) {
+            Log::warning('Invalid payload format', ['payload' => $data]);
             return response()->json(['message' => 'Invalid payload'], 400);
         }
 
-        // Proses event webhook
-        $event = $data['event'];
-        $transactionRefId = $data['ref_id'] ?? null;
-        $transactionStatus = $data['status'] ?? null;
-
-        if (!$transactionRefId) {
-            return response()->json(['message' => 'Transaction ID is missing'], 400);
-        }
-
-        // Cari transaksi berdasarkan ref_id
-        $transaction = Transaction::where('ref_id', $transactionRefId)->first();
+        $transaction = Transaction::where('ref_id', $data['ref_id'])->first();
 
         if (!$transaction) {
+            Log::warning('Transaction not found', ['ref_id' => $data['ref_id']]);
             return response()->json(['message' => 'Transaction not found'], 404);
         }
 
-        // Update status transaksi berdasarkan event webhook
-        $transaction->update([
-            'status' => $transactionStatus,
-            'rc' => $data['rc'] ?? $transaction->rc,
-            'sn' => $data['sn'] ?? $transaction->sn,
-            'message' => $data['message'] ?? $transaction->message,
-        ]);
-
-        // Jika transaksi gagal, kembalikan saldo pengguna
-        if ($transactionStatus === 'Gagal') {
-            $user = $transaction->user;
-            $user->balance += $transaction->price_product;
-            $user->save();
+        if (in_array($transaction->status, ['Sukses', 'Gagal'])) {
+            Log::info('Transaction already processed', ['ref_id' => $transaction->ref_id, 'status' => $transaction->status]);
+            return response()->json(['message' => 'Transaction already processed'], 200);
         }
 
+        DB::transaction(function () use ($transaction, $data) {
+            $transaction->update([
+                'status' => $data['status'],
+                'rc' => $data['rc'] ?? $transaction->rc,
+                'sn' => $data['sn'] ?? $transaction->sn,
+                'message' => $data['message'] ?? $transaction->message,
+            ]);
+
+            if ($data['status'] === 'Gagal') {
+                $user = $transaction->user;
+                if ($user) {
+                    $user->increment('balance', $transaction->price_product);
+                    Log::info('Balance refunded', ['user_id' => $user->id, 'amount' => $transaction->price_product]);
+                }
+            }
+        });
+
+        Log::info('Transaction updated', ['ref_id' => $transaction->ref_id, 'status' => $data['status']]);
+
         return response()->json(['message' => 'Webhook processed successfully'], 200);
+    } catch (\Exception $e) {
+        Log::error('Webhook processing error', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Internal Server Error'], 500);
     }
+}
 
 }

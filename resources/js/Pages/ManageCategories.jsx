@@ -719,7 +719,7 @@ export default function CategoryList() {
                             viewBox="0 0 24 24"
                             fill="currentColor"
                             stroke="currentColor"
-                            strokeWidth="1"  // Ubah ketebalan stroke di sini
+                            strokeWidth="0.3"  // Ubah ketebalan stroke di sini
                             className="w-5 h-5 text-main"
                         >
                             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
@@ -730,17 +730,37 @@ export default function CategoryList() {
                         {/* Sort Button */}
                         <button
                             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                            className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-4 h-4 text-main"
-                            >
-                                <path d="M3 6h8v2H3zm0 5h5v2H3zm0 5h3v2H3zM15 5l-4 4h3v8h2V9h3z" />
-                            </svg>
-                            <span className="text-utama text-xs font-thin text-left align-middle text-blue-600">Urutkan</span>
+                            className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2"
+                        >
+                            {sortOrder === "asc" ? (
+                                // Ikon A-Z (urutan naik)
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    className="w-4 h-4 text-main"
+                                >
+                                    <path fillRule="evenodd" d="M10.082 5.629 9.664 7H8.598l1.789-5.332h1.234L13.402 7h-1.12l-.419-1.371zm1.57-.785L11 2.687h-.047l-.652 2.157z" />
+                                    <path d="M12.96 14H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
+                                </svg>
+                            ) : (
+                                // Ikon Z-A (urutan turun)
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    className="w-4 h-4 text-main"
+                                >
+                                    <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645z" />
+                                    <path fillRule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371zm1.57-.785L11 9.688h-.047l-.652 2.156z" />
+                                    <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
+                                </svg>
+                            )}
+                            <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">
+                                Urutkan
+                            </span>
                         </button>
+
                         <div className="shrink-0 w-8 text-main">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -757,13 +777,13 @@ export default function CategoryList() {
                         <button className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
+                                viewBox="0 0 16 16"
                                 fill="currentColor"
                                 className="w-4 h-4 text-main"
                             >
-                                <path d="M10 18h4v-2h-4zm-7-6h18v-2H3zm4-6v2h10V6z" />
+                                <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
                             </svg>
-                            <span className="text-utama text-xs font-thin text-left align-middle text-blue-600">Filter</span>
+                            <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">Filter</span>
                         </button>
                     </div>
                 </div>
@@ -786,37 +806,36 @@ export default function CategoryList() {
                             </div>
 
                             <div className="max-w-[200px] flex flex-col items-start space-y-[2px]">
-                                <p className="font-utama font-semibold text-xs truncate w-full">{category.name}</p>
-                                <p className="font-utama text-[10px] text-gray-500">
+                                <p className="font-utama font-semibold text-sm truncate w-full">{category.name}</p>
+                                <p className="font-utama text-xs text-gray-500">
                                     Update Terakhir: {new Date(category.updated_at).toLocaleDateString()}
                                 </p>
-                                <p className="font-utama text-[10px] text-gray-500">
+                                <p className="font-utama text-xs text-gray-500">
                                     Tanggal Dibuat: {new Date(category.created_at).toLocaleDateString()}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="w-12 h-full flex flex-col items-center space-y-1">
+                        <div className="w-12 h-full flex flex-col items-center space-y-2">
                             <button
                                 onClick={() => openEditModal(category)}
-                                className="w-full h-max px-2 py-[2px] text-[10px] text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
+                                className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
                             >
                                 Edit
                             </button>
                             <button
-                        onClick={() => {
-                            setSelectedCategoryId(category.id);
-                            setIsPopupOpen(true);
-                        }}
-                        disabled={category.is_used}
-                        className={`w-full h-max px-2 py-[2px] text-[10px] rounded-3xl flex items-center justify-center ${
-                            category.is_used
-                                ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
-                                : "text-red-600 bg-red-50 border border-red-600"
-                        }`}
-                    >
-                        Hapus
-                    </button>
+                                onClick={() => {
+                                    setSelectedCategoryId(category.id);
+                                    setIsPopupOpen(true);
+                                }}
+                                disabled={category.is_used}
+                                className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${category.is_used
+                                    ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
+                                    : "text-red-600 bg-red-50 border border-red-600"
+                                    }`}
+                            >
+                                Hapus
+                            </button>
                         </div>
 
                     </div>
@@ -832,7 +851,7 @@ export default function CategoryList() {
                             <button className="w-full flex items-end justify-end" onClick={() => setModal(false)}>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
+                                    viewBox="0 0 16 16"
                                     fill="currentColor"
                                     className="w-7 h-7 text-red-500"
                                 >
@@ -871,10 +890,10 @@ export default function CategoryList() {
                                     </label>
                                     {/* Error message */}
                                     {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
-                                    <p className="w-full h-max text-utama font-medium text-xs text-center align-middle">Gambar Kategori</p>
+                                    <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Kategori</p>
                                 </div>
                                 <div className="w-[294px] h-max flex flex-col space-y-2">
-                                    <p className="w-full h-max text-utama font-medium text-s text-left align-middle">Nama</p>
+                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama</p>
                                     <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
                                         {/* Search Bar */}
                                         <input
@@ -882,7 +901,7 @@ export default function CategoryList() {
                                             name="name"
                                             value={form.name}
                                             onChange={handleChange}
-                                            className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                             placeholder="Nama Kategori"
                                             required
                                         />
@@ -909,9 +928,9 @@ export default function CategoryList() {
             {/* Popup Konfirmasi Hapus */}
             {isPopupOpen && (
                 <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
                         <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                        Yakin Hapus Kategori?
+                            Yakin Hapus Kategori?
                         </p>
                         <div className="w-full h-max flex flex-row space-x-2">
                             <button

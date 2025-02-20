@@ -31,12 +31,13 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HomeController;
 
+Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
+
 Route::get('/beranda', [HomeController::class, 'index'])->name('home');
 
 
 Route::get('/products', [PriceListController::class, 'showAllProducts']);
 
-Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
 // Halaman verifikasi email
 Route::middleware(['auth'])->group(function () {
