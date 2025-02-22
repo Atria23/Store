@@ -170,21 +170,70 @@ public function syncBrands()
         return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
     }
 
-    public function destroy(Brand $brand)
-    {
-        // Periksa apakah kategori masih digunakan di tabel price_list
-        $isUsed = PriceList::where('brand', $brand->name)->exists();
+    // public function destroy(Brand $brand)
+    // {
+    //     // Periksa apakah kategori masih digunakan di tabel price_list
+    //     $isUsed = PriceList::where('brand', $brand->name)->exists();
 
-        if ($isUsed) {
-            return redirect()->route('brands.index')->with('error', 'brand masih digunakan dan tidak dapat dihapus.');
-        }
+    //     if ($isUsed) {
+    //         return redirect()->route('brands.index')->with('error', 'brand masih digunakan dan tidak dapat dihapus.');
+    //     }
 
-        if ($brand->image) {
-            Storage::disk('public')->delete($brand->image);
-        }
+    //     if ($brand->image) {
+    //         Storage::disk('public')->delete($brand->image);
+    //     }
 
-        $brand->delete();
+    //     $brand->delete();
 
-        return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
+    //     return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
+    // }
+
+
+//     public function destroy(Brand $brand)
+// {
+//     // Periksa apakah brand masih digunakan di tabel price_list
+//     $isUsed = PriceList::where('brand', $brand->name)->exists();
+
+//     if ($isUsed) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Brand masih digunakan dan tidak dapat dihapus.'
+//         ], 400);
+//     }
+
+//     // Hapus gambar jika ada
+//     if ($brand->image) {
+//         Storage::disk('public')->delete($brand->image);
+//     }
+
+//     // Hapus brand
+//     $brand->delete();
+
+//     return response()->json([
+//         'success' => true,
+//         'message' => 'Brand berhasil dihapus.'
+//     ]);
+// }
+
+public function destroy(Brand $brand)
+{
+    // Periksa apakah brand masih digunakan di tabel price_list
+    $isUsed = PriceList::where('brand', $brand->name)->exists();
+
+    if ($isUsed) {
+        return redirect()->route('brands.index')->with('error', 'Brand masih digunakan dan tidak dapat dihapus.');
     }
+
+    // Hapus gambar jika ada
+    if ($brand->image) {
+        Storage::disk('public')->delete($brand->image);
+    }
+
+    // Hapus brand
+    $brand->delete();
+
+    return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
+}
+
+
 }

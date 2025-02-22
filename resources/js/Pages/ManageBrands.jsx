@@ -8,12 +8,12 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("asc");
     const [errors, setErrors] = useState({});
-
-
     const [searchCategory, setSearchCategory] = useState("");
     const [searchInputType, setSearchInputType] = useState("");
     const [showCategoryPopup, setShowCategoryPopup] = useState(false);
     const [showInputTypePopup, setShowInputTypePopup] = useState(false);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedBrandId, setSelectedBrandId] = useState(null);
 
     const filteredBrands = brands.filter(brand =>
         brand.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -54,7 +54,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
         if (data.image) {
             formData.append("image", data.image);
         }
-        
+
         if (editBrand) {
             post(route("brands.update", data.id), {
                 data: formData,
@@ -81,7 +81,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                 },
             });
         }
-        
+
     };
 
 
@@ -111,11 +111,24 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
     };
 
     // 🔹 Handle Delete
-    const handleDelete = (id) => {
-        if (confirm("Yakin ingin menghapus brand ini?")) {
-            destroy(route("brands.destroy", id));
-        }
+    // const handleDelete = (id) => {
+    //     if (confirm("Yakin ingin menghapus brand ini?")) {
+    //         destroy(route("brands.destroy", id));
+    //     }
+    // };
+
+    const confirmDelete = (brandId) => {
+        setSelectedBrandId(brandId);
+        setIsPopupOpen(true);
     };
+
+    const handleDelete = (id) => {
+        setIsPopupOpen(false); // Tutup pop-up setelah user konfirmasi
+        destroy(route("brands.destroy", id));
+    };
+
+
+
 
     const sortedBrands = [...filteredBrands].sort((a, b) =>
         sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
@@ -285,15 +298,17 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                             Edit
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(brand.id)}
+                                            onClick={() => confirmDelete(brand.id)}
                                             disabled={brand.is_used}
                                             className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${brand.is_used
-                                                ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
-                                                : "text-red-600 bg-red-50 border border-red-600"
+                                                    ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
+                                                    : "text-red-600 bg-red-50 border border-red-600"
                                                 }`}
                                         >
                                             Hapus
                                         </button>
+
+
                                     </div>
 
                                 </div>
@@ -304,18 +319,45 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                 </div>
             </div>
 
+            {isPopupOpen && (
+    <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+        <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+            <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
+                Yakin ingin menghapus brand ini?
+            </p>
+            <div className="w-full h-max flex flex-row space-x-2">
+                <button
+                    onClick={() => handleDelete(selectedBrandId)}
+                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                    Ya
+                </button>
+                <button
+                    onClick={() => setIsPopupOpen(false)}
+                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-main rounded-md hover:bg-blue-700"
+                >
+                    Tidak
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
+
+
+
             {/* 🔹 MODAL FORM */}
             {showModal && (
                 <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
                     <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
                         <div className="w-full h-max flex flex-col">
                             {/* Ikon silang di kanan atas */}
-                            <button 
-                                className="w-full flex items-end justify-end" 
+                            <button
+                                className="w-full flex items-end justify-end"
                                 onClick={() => {
                                     setShowModal(false);
                                     setErrors({}); // Menghapus error saat modal ditutup
-                                    }}>
+                                }}>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 16 16"
@@ -440,9 +482,9 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                                                     <img
                                                                         src={cat.image ? `/storage/${cat.image}` : "storage/categories/default.png"}
                                                                         alt={cat.name}
-                                                                        className="w-6 h-6 border border-gray-300 rounded-full object-cover"
+                                                                        className="w-8 h-8 border border-gray-300 rounded-full object-cover"
                                                                     />
-                                                                    <p className="text-utama text-xs font-thin text-left align-middle">{cat.name}</p>
+                                                                    <p className="text-utama text-sm text-left align-middle">{cat.name}</p>
                                                                 </div>
                                                             ))}
                                                     </div>
@@ -517,7 +559,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                                                         setShowInputTypePopup(false);
                                                                     }}
                                                                 >
-                                                                    <p className="text-utama text-xs font-thin text-left align-middle">{type.name}</p>
+                                                                    <p className="text-utama text-sm text-left align-middle">{type.name}</p>
                                                                 </div>
                                                             ))}
                                                     </div>
@@ -572,8 +614,8 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                     type="submit"
                                     disabled={processing || !data.name || !data.category_id || !data.input_type_id}
                                     className={`w-full p-2 rounded transition ${processing || !data.name || !data.category_id || !data.input_type_id
-                                            ? "bg-gray-300 cursor-not-allowed"
-                                            : "bg-blue-600 text-white hover:bg-blue-700"
+                                        ? "bg-gray-300 cursor-not-allowed"
+                                        : "bg-blue-600 text-white hover:bg-blue-700"
                                         }`}
                                 >
                                     {editBrand ? "Update" : "Tambah"}
