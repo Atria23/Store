@@ -219,12 +219,22 @@ class PriceListController extends Controller
                 }
 
                 // Update brand jika ada
-                if (!empty($item['brand'])) {
-                    Brand::updateOrCreate(
-                        ['name' => $item['brand']],
-                        ['updated_at' => now()]
-                    );
+                if (!empty($item['brand']) && !empty($item['category'])) {
+                    $category = Category::where('name', $item['category'])->first();
+
+                    if ($category) {
+                        Brand::updateOrCreate(
+                            [
+                                'name' => $item['brand'],
+                                'category_id' => $category->id, // Pastikan category_id selalu ada
+                            ],
+                            [
+                                'updated_at' => now(),
+                            ]
+                        );
+                    }
                 }
+
             }
 
             Log::info("Data berhasil diperbarui pada " . now()->toDateTimeString() . ".");

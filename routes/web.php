@@ -27,13 +27,10 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InputTypeController;
+use App\Http\Controllers\BrandController;
+use App\Http\Controllers\BrandCategoryController;
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/input-types', [InputTypeController::class, 'index'])->name('input-types.index');
-    Route::post('/input-types', [InputTypeController::class, 'store'])->name('input-types.store');
-    Route::put('/input-types/{inputType}', [InputTypeController::class, 'update'])->name('input-types.update');
-    Route::delete('/input-types/{inputType}', [InputTypeController::class, 'destroy'])->name('input-types.destroy');
-
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
         ->name('verification.notice');
@@ -115,6 +112,21 @@ Route::middleware(['super-admin'])->group(function () {
     Route::post('/manage-categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/manage-categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     Route::post('/manage-categories/sync', [CategoryController::class, 'syncCategories'])->name('categories.sync');
+    Route::get('/manage-input-types', [InputTypeController::class, 'index'])->name('input-types.index');
+    Route::post('/manage-input-types', [InputTypeController::class, 'store'])->name('input-types.store');
+    Route::put('/manage-input-types/{inputType}', [InputTypeController::class, 'update'])->name('input-types.update');
+    Route::delete('/manage-input-types/{inputType}', [InputTypeController::class, 'destroy'])->name('input-types.destroy');
+    Route::get('/manage-brands', [BrandController::class, 'index'])->name('brands.index');
+    Route::post('/manage-brands', [BrandController::class, 'store'])->name('brands.store');
+    Route::post('/manage-brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+    Route::delete('/manage-brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
+
+    // Route::resource('brandcategories', BrandCategoryController::class);
+    // Route::post('/brandcategories/sync', [BrandCategoryController::class, 'sync'])->name('brandcategories.sync');
+    // Route::get('/brandcategories/{brandCategory}/edit', [BrandCategoryController::class, 'edit'])->name('brandcategories.edit');
+
+
+    
 });
 
 Route::get('/', function () {

@@ -89,15 +89,18 @@ export default function CategoryList() {
         );
 
     return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] h-screen">
+        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
             {/* fixed position */}
-            <div className="sticky top-0 z-10 bg-main">
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
                 {/* Header */}
                 <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
                     {/* Left Section (Back Icon + Title) */}
                     <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
                         {/* Back Icon */}
-                        <button className="shrink-0 w-6 h-6">
+                        <button
+                            className="shrink-0 w-6 h-6"
+                            onClick={() => window.history.back()}
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
                             </svg>
@@ -210,7 +213,7 @@ export default function CategoryList() {
                 </div>
             </div>
             {/* Daftar Kategori */}
-            <div className="mb-4 min-h-[756px] bg-white">
+            <div className="mb-4 min-h-[756px] pt-[163px] bg-white">
                 {sortedCategories.map((category) => (
                     <div
                         key={category.id}
@@ -272,7 +275,13 @@ export default function CategoryList() {
                     <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
                         <div className="w-full h-max flex flex-col">
                             {/* Ikon silang di kanan atas */}
-                            <button className="w-full flex items-end justify-end" onClick={() => setModal(false)}>
+                            <button 
+                                className="w-full flex items-end justify-end" 
+                                onClick={() => {
+                                    setModal(false);
+                                    setErrors({});
+                                }}
+                            >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 16 16"
@@ -329,10 +338,10 @@ export default function CategoryList() {
                                             placeholder="Nama Kategori"
                                             required
                                         />
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
-                                        )}
                                     </div>
+                                    {errors.name && (
+                                        <p className="text-red-600 text-sm">{errors.name}</p>
+                                    )}
                                 </div>
                             </div>
 

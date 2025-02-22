@@ -16,14 +16,14 @@ export default function Index({ inputTypes }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isEditing) {
-            put(`/input-types/${data.id}`, {
+            put(`/manage-input-types/${data.id}`, {
                 onSuccess: () => {
                     reset();
                     setIsEditing(false);
                 },
             });
         } else {
-            post("/input-types", { onSuccess: () => reset() });
+            post("/manage-input-types", { onSuccess: () => reset() });
         }
     };
 
@@ -39,7 +39,7 @@ export default function Index({ inputTypes }) {
 
     const handleDelete = () => {
         if (selectedId) {
-            destroy(`/input-types/${selectedId}`, {
+            destroy(`/manage-input-types/${selectedId}`, {
                 onSuccess: () => {
                     setIsPopupOpen(false);
                     setSelectedId(null);
@@ -49,11 +49,14 @@ export default function Index({ inputTypes }) {
     };
 
     return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] h-screen bg-gray-100">
+        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen bg-gray-100">
             <div className="sticky top-0 z-10 bg-main">
                 {/* Header */}
                 <div className="w-full flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                    <button className="shrink-0 w-6 h-6">
+                    <button
+                        className="shrink-0 w-6 h-6"
+                        onClick={() => window.history.back()}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
                             <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
                         </svg>

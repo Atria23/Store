@@ -43,28 +43,24 @@ class CategoryController extends Controller
      * Menampilkan daftar kategori di Inertia.js.
      */
     public function index()
-{
-    $categories = Category::orderBy('name', 'asc')->get()->map(function ($category) {
-        $isUsed = PriceList::where('category', $category->name)->exists();
-        
-        return [
-            'id' => $category->id,
-            'name' => $category->name,
-            'image' => $category->image ? url('storage/' . $category->image) : null,
-            'is_used' => $isUsed,
-            'created_at' => $category->created_at,
-            'updated_at' => $category->updated_at
-        ];
-    });
+    {
+        $categories = Category::orderBy('name', 'asc')->get()->map(function ($category) {
+            $isUsed = PriceList::where('category', $category->name)->exists();
+            
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'image' => $category->image ? url('storage/' . $category->image) : null,
+                'is_used' => $isUsed,
+                'created_at' => $category->created_at,
+                'updated_at' => $category->updated_at
+            ];
+        });
 
-    return Inertia::render('ManageCategories', [
-        'categories' => $categories
-    ]);
-}
-
-
-
-
+        return Inertia::render('ManageCategories', [
+            'categories' => $categories
+        ]);
+    }
 
     /**
      * Menambah kategori baru.
