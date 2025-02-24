@@ -121,11 +121,6 @@ Route::middleware(['super-admin'])->group(function () {
     Route::post('/manage-brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
     Route::delete('/manage-brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
 
-    // Route::resource('brandcategories', BrandCategoryController::class);
-    // Route::post('/brandcategories/sync', [BrandCategoryController::class, 'sync'])->name('brandcategories.sync');
-    // Route::get('/brandcategories/{brandCategory}/edit', [BrandCategoryController::class, 'edit'])->name('brandcategories.edit');
-
-
     
 });
 
