@@ -32,21 +32,41 @@ export default function CategoryList() {
     const handleSubmit = (e) => {
         e.preventDefault();
         setErrors({}); // Reset error
-
-        const formData = new FormData();
-        formData.append("name", form.name);
-        if (form.image) formData.append("image", form.image);
-
+    
         if (editCategory) {
-            router.post(`/manage-categories/${editCategory.id}`, formData, {
-                onSuccess: () => {
-                    setModal(false);
-                    setEditCategory(null);
-                    setPreviewImage(null);
-                },
-                onError: (err) => setErrors(err),
-            });
+            // Jika ada gambar, gunakan FormData
+            if (form.image) {
+                const formData = new FormData();
+                formData.append("name", form.name);
+                formData.append("image", form.image);
+    
+                router.put(`/manage-categories/${editCategory.id}`, formData, {
+                    onSuccess: () => {
+                        setModal(false);
+                        setEditCategory(null);
+                        setPreviewImage(null);
+                    },
+                    onError: (err) => setErrors(err),
+                });
+            } else {
+                // Jika tidak ada gambar, kirim sebagai objek biasa
+                router.put(`/manage-categories/${editCategory.id}`, {
+                    name: form.name,
+                }, {
+                    onSuccess: () => {
+                        setModal(false);
+                        setEditCategory(null);
+                        setPreviewImage(null);
+                    },
+                    onError: (err) => setErrors(err),
+                });
+            }
         } else {
+            // Untuk tambah kategori tetap gunakan FormData jika ada gambar
+            const formData = new FormData();
+            formData.append("name", form.name);
+            if (form.image) formData.append("image", form.image);
+    
             router.post("/manage-categories", formData, {
                 onSuccess: () => {
                     setModal(false);
@@ -56,6 +76,7 @@ export default function CategoryList() {
             });
         }
     };
+    
 
     const openEditModal = (category) => {
         setEditCategory(category);

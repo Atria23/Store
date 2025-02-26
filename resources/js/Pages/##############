@@ -1,910 +1,373 @@
-// import { useState } from "react";
-// import { useForm } from "@inertiajs/react";
-
-// export default function ManageBrands({ brands, categories, inputTypes }) {
-//     const [showModal, setShowModal] = useState(false);
-//     const [editBrand, setEditBrand] = useState(null);
-//     const [previewImage, setPreviewImage] = useState(null);
-//     const [searchTerm, setSearchTerm] = useState("");
-//     const [sortOrder, setSortOrder] = useState("asc");
-
-//     const [searchCategory, setSearchCategory] = useState("");
-//     const [searchInputType, setSearchInputType] = useState("");
-//     const [showCategoryPopup, setShowCategoryPopup] = useState(false);
-//     const [showInputTypePopup, setShowInputTypePopup] = useState(false);
-
-//     const filteredBrands = brands.filter(brand =>
-//         brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-//     );
-
-//     const filteredCategories = categories.filter(category =>
-//         category.name.toLowerCase().includes(searchCategory.toLowerCase())
-//     );
-
-//     const filteredInputTypes = inputTypes.filter(type =>
-//         type.name.toLowerCase().includes(searchInputType.toLowerCase())
-//     );
-
-//     const { data, setData, post, processing, reset, delete: destroy } = useForm({
-//         id: "",
-//         name: "",
-//         image: null,
-//         category_id: "",
-//         input_type_id: "",
-//         profit_persen: "",
-//         profit_tetap: "",
-//     });
-
-//     // 🔹 Handle Submit (Tambah & Edit)
-//     const handleSubmit = (e) => {
-//         e.preventDefault();
-
-//         const formData = new FormData();
-//         formData.append("name", data.name);
-//         formData.append("category_id", data.category_id);
-//         formData.append("input_type_id", data.input_type_id);
-//         formData.append("profit_persen", data.profit_persen);
-//         formData.append("profit_tetap", data.profit_tetap);
-
-//         if (data.image) {
-//             formData.append("image", data.image);
-//         }
-
-//         if (editBrand) {
-//             post(route("brands.update", data.id), {
-//                 data: formData,
-//                 onSuccess: () => {
-//                     reset();
-//                     setPreviewImage(null);
-//                     setEditBrand(null);
-//                     setTimeout(() => setShowModal(false), 300); // Auto-close modal after update
-//                 },
-//             });
-//         } else {
-//             post(route("brands.store"), {
-//                 data: formData,
-//                 onSuccess: () => {
-//                     reset();
-//                     setPreviewImage(null);
-//                     setTimeout(() => setShowModal(false), 300); // Auto-close modal after insert
-//                 },
-//             });
-//         }
-//     };
-
-
-//     // 🔹 Handle Edit
-//     const handleEdit = (brand) => {
-//         setEditBrand(brand);
-//         setData({
-//             id: brand.id,
-//             name: brand.name,
-//             image: null,
-//             cateogory_id: brand.category_id || "",
-//             input_type_id: brand.input_type_id || "",
-//             profit_persen: brand.profit_persen || "",
-//             profit_tetap: brand.profit_tetap || "",
-//         });
-//         setPreviewImage(brand.image);
-//         setShowModal(true);
-//     };
-
-//     // 🔹 Handle Ganti Gambar
-//     const handleImageChange = (e) => {
-//         const file = e.target.files[0];
-//         if (file) {
-//             setData("image", file);
-//             setPreviewImage(URL.createObjectURL(file));
-//         }
-//     };
-
-//     // 🔹 Handle Delete
-//     const handleDelete = (id) => {
-//         if (confirm("Yakin ingin menghapus brand ini?")) {
-//             destroy(route("brands.destroy", id));
-//         }
-//     };
-
-//     const sortedBrands = [...filteredBrands].sort((a, b) =>
-//         sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-//     );
-
-
-//     return (
-//         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
-//             <div className="sticky top-0 z-10 bg-main">
-//                 {/* Header */}
-//                 <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-//                     {/* Left Section (Back Icon + Title) */}
-//                     <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-//                         {/* Back Icon */}
-//                         <button
-//                             className="shrink-0 w-6 h-6"
-//                             onClick={() => window.history.back()}
-//                         >
-//                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-//                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-//                             </svg>
-//                         </button>
-//                         {/* Title */}
-//                         <div className="font-utama text-white font-bold text-lg">
-//                             Kelola Brand
-//                         </div>
-//                     </div>
-//                     {/* Plus Icon */}
-//                     <button
-//                         onClick={() => {
-//                             setEditBrand(null);
-//                             reset();
-//                             setPreviewImage(null);
-//                             setShowModal(true);
-//                         }}
-//                         className="flex items-center w-6 h-6">
-//                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white">
-//                             <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8.01 8.01 0 0 1-8 8" />
-//                             <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4z" />
-//                         </svg>
-//                     </button>
-//                 </div>
-//                 {/* Search & Filter */}
-//                 <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
-//                     <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-//                         {/* Search Bar */}
-//                         <input
-//                             id="searchInput"
-//                             type="text"
-//                             className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-//                             placeholder="Cari kategori"
-//                             value={searchTerm}
-//                             onChange={(e) => setSearchTerm(e.target.value)}
-//                         />
-//                         {/* Search Icon */}
-//                         <svg
-//                             xmlns="http://www.w3.org/2000/svg"
-//                             viewBox="0 0 24 24"
-//                             fill="currentColor"
-//                             stroke="currentColor"
-//                             strokeWidth="0.3"  // Ubah ketebalan stroke di sini
-//                             className="w-5 h-5 text-main"
-//                         >
-//                             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-//                         </svg>
-//                     </div>
-//                     {/* Sorting & Filter */}
-//                     <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-//                         {/* Sort Button */}
-//                         <button
-//                             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-//                             className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2"
-//                         >
-//                             {sortOrder === "asc" ? (
-//                                 // Ikon A-Z (urutan naik)
-//                                 <svg
-//                                     xmlns="http://www.w3.org/2000/svg"
-//                                     viewBox="0 0 16 16"
-//                                     fill="currentColor"
-//                                     className="w-4 h-4 text-main"
-//                                 >
-//                                     <path fillRule="evenodd" d="M10.082 5.629 9.664 7H8.598l1.789-5.332h1.234L13.402 7h-1.12l-.419-1.371zm1.57-.785L11 2.687h-.047l-.652 2.157z" />
-//                                     <path d="M12.96 14H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-//                                 </svg>
-//                             ) : (
-//                                 // Ikon Z-A (urutan turun)
-//                                 <svg
-//                                     xmlns="http://www.w3.org/2000/svg"
-//                                     viewBox="0 0 16 16"
-//                                     fill="currentColor"
-//                                     className="w-4 h-4 text-main"
-//                                 >
-//                                     <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645z" />
-//                                     <path fillRule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371zm1.57-.785L11 9.688h-.047l-.652 2.156z" />
-//                                     <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-//                                 </svg>
-//                             )}
-//                             <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">
-//                                 Urutkan
-//                             </span>
-//                         </button>
-
-//                         <div className="shrink-0 w-8 text-main">
-//                             <svg
-//                                 xmlns="http://www.w3.org/2000/svg"
-//                                 viewBox="0 0 24 24"
-//                                 fill="none"
-//                                 stroke="currentColor"
-//                                 strokeWidth="1"
-//                                 className="w-full h-full"
-//                             >
-//                                 <line x1="12" y1="4" x2="12" y2="20" />
-//                             </svg>
-//                         </div>
-//                         {/* Filter Button */}
-//                         <button className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
-//                             <svg
-//                                 xmlns="http://www.w3.org/2000/svg"
-//                                 viewBox="0 0 16 16"
-//                                 fill="currentColor"
-//                                 className="w-4 h-4 text-main"
-//                             >
-//                                 <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
-//                             </svg>
-//                             <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">Filter</span>
-//                         </button>
-//                     </div>
-//                 </div>
-//             </div>
-
-//             <div className="mb-4 min-h-[756px] bg-white">
-//                 {/* 🔹 TABEL BRAND */}
-//                 <div>
-//                     {filteredBrands.length > 0 ? (
-//                         [...filteredBrands]
-//                             .filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
-//                             .sort((a, b) => (sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))) // 🔀 Sorting
-//                             .map((brand) => (
-//                                 <div
-//                                     key={brand.id}
-//                                     className="flex justify-between items-center p-4 border-b-2 border-b-neutral-100"
-//                                 >
-//                                     <div className="w-full h-max flex items-center space-x-3 content-start">
-//                                         <div className="w-13 h-13 space-x-2 flex items-center justify center p-1 rounded-xl bg-white shadow">
-//                                             <img
-//                                                 src={brand.image || "storage/brands/default.png"}
-//                                                 alt={brand.name}
-//                                                 className="w-10 h-10 rounded-xl object-cover"
-//                                             />
-//                                         </div>
-//                                         <div className="max-w-[200px] flex flex-col items-start space-y-[2px]">
-//                                             <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
-//                                             <p className="font-utama text-xs text-gray-500">
-//                                                 Diperbarui: {new Date(brand.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })},{" "}
-//                                                 {new Date(brand.updated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })}
-//                                             </p>
-//                                             <p className="font-utama text-xs text-gray-500">
-//                                                 Dibuat: {new Date(brand.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })},{" "}
-//                                                 {new Date(brand.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })}
-//                                             </p>
-//                                             <button
-//                                                 className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
-//                                             >
-//                                                 {brand.profit_tetap} & {brand.profit_persen}
-//                                             </button>
-//                                         </div>
-//                                     </div>
-
-
-//                                     <div className="border p-2">{brand.category_id}</div>
-//                                     <div className="border p-2">{brand.input_type_id}</div>
-//                                     <div className="border p-2">
-//                                         <button
-//                                             onClick={() => handleEdit(brand)}
-//                                             className="bg-yellow-500 text-white px-2 py-1 rounded mx-1"
-//                                         >
-//                                             Edit
-//                                         </button>
-//                                         <button
-//                                             onClick={() => handleDelete(brand.id)}
-//                                             className="bg-red-500 text-white px-2 py-1 rounded mx-1"
-//                                         >
-//                                             Hapus
-//                                         </button>
-//                                     </div>
-//                                 </div>
-//                             ))
-//                     ) : (
-//                         <div>
-//                             <div colSpan="8" className="text-center p-4">Brand tidak ditemukan</div>
-//                         </div>
-//                     )}
-//                 </div>
-//             </div>
-
-//             {/* 🔹 MODAL FORM */}
-//             {/* 🔹 MODAL FORM */}
-//             {showModal && (
-//                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-//                     <div className="bg-white p-6 rounded w-96">
-//                         <h2 className="text-xl font-bold mb-4">
-//                             {editBrand ? "Edit Brand" : "Tambah Brand"}
-//                         </h2>
-//                         <form onSubmit={handleSubmit}>
-//                             <input
-//                                 type="text"
-//                                 placeholder="Nama Brand"
-//                                 value={data.name}
-//                                 onChange={(e) => setData("name", e.target.value)}
-//                                 className="border p-2 w-full mb-2"
-//                             />
-
-//                             <div className="relative">
-//                                 <input
-//                                     type="text"
-//                                     placeholder="Pilih Kategori"
-//                                     value={categories.find(cat => cat.id === data.category_id)?.name || ""}
-//                                     readOnly
-//                                     onClick={() => setShowCategoryPopup(true)}
-//                                     className="border p-2 w-full mb-2 cursor-pointer"
-//                                 />
-//                                 {showCategoryPopup && (
-//                                     <div className="absolute top-full left-0 bg-white border w-full max-h-40 overflow-y-auto z-10">
-//                                         <input
-//                                             type="text"
-//                                             placeholder="Cari Kategori..."
-//                                             value={searchCategory}
-//                                             onChange={(e) => setSearchCategory(e.target.value)}
-//                                             className="border p-2 w-full"
-//                                         />
-//                                         {categories.filter(cat => cat.name.toLowerCase().includes(searchCategory.toLowerCase())).map((cat) => (
-//                                             <div
-//                                                 key={cat.id}
-//                                                 className="p-2 cursor-pointer hover:bg-gray-200"
-//                                                 onClick={() => {
-//                                                     setData("category_id", cat.id);
-//                                                     setShowCategoryPopup(false);
-//                                                 }}
-//                                             >
-//                                                 {cat.name}
-//                                             </div>
-//                                         ))}
-//                                     </div>
-//                                 )}
-//                             </div>
-//                             <div className="relative">
-//                                 <input
-//                                     type="text"
-//                                     placeholder="Pilih Input Type"
-//                                     value={inputTypes.find(type => type.id === data.input_type_id)?.name || ""}
-//                                     readOnly
-//                                     onClick={() => setShowInputTypePopup(true)}
-//                                     className="border p-2 w-full mb-2 cursor-pointer"
-//                                 />
-//                                 {showInputTypePopup && (
-//                                     <div className="absolute top-full left-0 bg-white border w-full max-h-40 overflow-y-auto z-10">
-//                                         <input
-//                                             type="text"
-//                                             placeholder="Cari Input Type..."
-//                                             value={searchInputType}
-//                                             onChange={(e) => setSearchInputType(e.target.value)}
-//                                             className="border p-2 w-full"
-//                                         />
-//                                         {inputTypes.filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase())).map((type) => (
-//                                             <div
-//                                                 key={type.id}
-//                                                 className="p-2 cursor-pointer hover:bg-gray-200"
-//                                                 onClick={() => {
-//                                                     setData("input_type_id", type.id);
-//                                                     setShowInputTypePopup(false);
-//                                                 }}
-//                                             >
-//                                                 {type.name}
-//                                             </div>
-//                                         ))}
-//                                     </div>
-//                                 )}
-//                             </div>
-
-//                             <input
-//                                 type="number"
-//                                 placeholder="Profit Persen"
-//                                 value={data.profit_persen}
-//                                 onChange={(e) => setData("profit_persen", e.target.value)}
-//                                 className="border p-2 w-full mb-2"
-//                             />
-
-//                             <input
-//                                 type="number"
-//                                 placeholder="Profit Tetap"
-//                                 value={data.profit_tetap}
-//                                 onChange={(e) => setData("profit_tetap", e.target.value)}
-//                                 className="border p-2 w-full mb-2"
-//                             />
-
-//                             {/* UPLOAD & PREVIEW IMAGE */}
-//                             {previewImage && (
-//                                 <img src={previewImage} alt="Preview" className="w-32 h-32 mx-auto mb-2 object-cover" />
-//                             )}
-//                             <input type="file" onChange={handleImageChange} className="border p-2 w-full mb-2" />
-
-//                             <div className="flex justify-end space-x-2">
-//                                 <button type="button" onClick={() => setShowModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">
-//                                     Batal
-//                                 </button>
-//                                 <button type="submit" disabled={processing} className="bg-blue-500 text-white px-4 py-2 rounded">
-//                                     {editBrand ? "Update" : "Tambah"}
-//                                 </button>
-//                             </div>
-//                         </form>
-//                     </div>
-//                 </div>
-//             )}
-//         </div>
-//     );
-// }
-
-
-
-
-
-
-
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "@inertiajs/react";
 
-export default function ManageBrands({ brands, categories, inputTypes }) {
+export default function ManageTypes({ types = [], brands = [], categories = [], inputTypes = [] }) {
     const [showModal, setShowModal] = useState(false);
-    const [editBrand, setEditBrand] = useState(null);
-    const [previewImage, setPreviewImage] = useState(null);
+    const [editType, setEditType] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("asc");
-    const [errors, setErrors] = useState({});
-
-
-    const [searchCategory, setSearchCategory] = useState("");
-    const [searchInputType, setSearchInputType] = useState("");
+    const [showBrandPopup, setShowBrandPopup] = useState(false);
     const [showCategoryPopup, setShowCategoryPopup] = useState(false);
     const [showInputTypePopup, setShowInputTypePopup] = useState(false);
+    const [selectedTypeId, setSelectedTypeId] = useState(null);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [searchBrand, setSearchBrand] = useState("");
+    const [searchCategory, setSearchCategory] = useState("");
+    const [searchInputType, setSearchInputType] = useState("");
 
-    const filteredBrands = brands.filter(brand =>
-        brand.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredTypes = types.filter(type =>
+        type.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const filteredCategories = categories.filter(category =>
-        category.name.toLowerCase().includes(searchCategory.toLowerCase())
-    );
-
-    const filteredInputTypes = inputTypes.filter(type =>
-        type.name.toLowerCase().includes(searchInputType.toLowerCase())
-    );
-
-    const { data, setData, post, processing, reset, delete: destroy } = useForm({
+    const { data, setData, post, put, processing, reset, delete: destroy } = useForm({
         id: "",
         name: "",
-        image: null,
+        brand_id: "",
         category_id: "",
         input_type_id: "",
-        profit_persen: "",
-        profit_tetap: "",
     });
 
-    // 🔹 Handle Submit (Tambah & Edit)
     const handleSubmit = (e) => {
         e.preventDefault();
-        setErrors({}); // Reset error
-
+        setErrors({});
 
         const formData = new FormData();
         formData.append("name", data.name);
-        formData.append("category_id", data.category_id);
-        formData.append("input_type_id", data.input_type_id);
-        formData.append("profit_persen", data.profit_persen);
-        formData.append("profit_tetap", data.profit_tetap);
+        formData.append("brand_id", data.brand_id);
+        formData.append("category_id", data.category_id ?? "");
+        formData.append("input_type_id", data.input_type_id ?? "");
 
-        if (data.image) {
-            formData.append("image", data.image);
-        }
-
-        if (editBrand) {
-            post(route("brands.update", data.id), {
+        if (editType) {
+            put(route("types.update", data.id), {
                 data: formData,
                 onSuccess: () => {
                     reset();
-                    setPreviewImage(null);
-                    setEditBrand(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after update
+                    setEditType(null);
+                    setShowModal(false);
                 },
+                onError: (err) => setErrors(err),
             });
         } else {
-            post(route("brands.store"), {
+            // Jika tambah
+            post(route("types.store"), {
                 data: formData,
                 onSuccess: () => {
                     reset();
-                    setPreviewImage(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after insert
+                    setEditType(null);
+                    setShowModal(false);
                 },
+                onError: (err) => setErrors(err),
             });
         }
     };
 
 
     // 🔹 Handle Edit
-    const handleEdit = (brand) => {
-        setEditBrand(brand);
+    const handleEdit = (type) => {
+        setEditType(type);
         setData({
-            id: brand.id,
-            name: brand.name,
-            image: null,
-            category_id: brand.category_id || "",
-            input_type_id: brand.input_type_id || "",
-            profit_persen: brand.profit_persen || "",
-            profit_tetap: brand.profit_tetap || "",
+            id: type.id,
+            name: type.name,
+            brand_id: type.brand_id,
+            category_id: type.category_id,
+            input_type_id: type.input_type_id,
         });
-        setPreviewImage(brand.image);
         setShowModal(true);
     };
 
-    // 🔹 Handle Ganti Gambar
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData("image", file);
-            setPreviewImage(URL.createObjectURL(file));
-        }
+    // 🔹 Hapus Type
+    const confirmDelete = (typeId) => {
+        setSelectedTypeId(typeId);
+        setIsPopupOpen(true);
     };
 
-    // 🔹 Handle Delete
     const handleDelete = (id) => {
-        if (confirm("Yakin ingin menghapus brand ini?")) {
-            destroy(route("brands.destroy", id));
-        }
+        setIsPopupOpen(false);
+        destroy(route("types.destroy", id));
     };
 
-    const sortedBrands = [...filteredBrands].sort((a, b) =>
+    const sortedTypes = [...filteredTypes].sort((a, b) =>
         sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     );
 
-
     return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
-            <div className="sticky top-0 z-10 bg-main">
-                {/* Header */}
-                <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                    {/* Left Section (Back Icon + Title) */}
-                    <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                        {/* Back Icon */}
-                        <button
-                            className="shrink-0 w-6 h-6"
-                            onClick={() => window.history.back()}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                            </svg>
-                        </button>
-                        {/* Title */}
-                        <div className="font-utama text-white font-bold text-lg">
-                            Kelola Kategori
-                        </div>
-                    </div>
-                    {/* Plus Icon */}
-                    <button
-                        onClick={() => {
-                            setEditBrand(null);
-                            reset();
-                            setPreviewImage(null);
-                            setShowModal(true);
-                        }}
-                        className="flex items-center w-6 h-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white">
-                            <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8.01 8.01 0 0 1-8 8" />
-                            <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4z" />
-                        </svg>
-                    </button>
-                </div>
-                {/* Search & Filter */}
-                <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
-                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                        {/* Search Bar */}
-                        <input
-                            id="searchInput"
-                            type="text"
-                            className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                            placeholder="Cari kategori"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        {/* Search Icon */}
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            stroke="currentColor"
-                            strokeWidth="0.3"  // Ubah ketebalan stroke di sini
-                            className="w-5 h-5 text-main"
-                        >
-                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                        </svg>
-                    </div>
-                    {/* Sorting & Filter */}
-                    <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                        {/* Sort Button */}
-                        <button
-                            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                            className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2"
-                        >
-                            {sortOrder === "asc" ? (
-                                // Ikon A-Z (urutan naik)
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 16 16"
-                                    fill="currentColor"
-                                    className="w-4 h-4 text-main"
-                                >
-                                    <path fillRule="evenodd" d="M10.082 5.629 9.664 7H8.598l1.789-5.332h1.234L13.402 7h-1.12l-.419-1.371zm1.57-.785L11 2.687h-.047l-.652 2.157z" />
-                                    <path d="M12.96 14H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-                                </svg>
-                            ) : (
-                                // Ikon Z-A (urutan turun)
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 16 16"
-                                    fill="currentColor"
-                                    className="w-4 h-4 text-main"
-                                >
-                                    <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645z" />
-                                    <path fillRule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371zm1.57-.785L11 9.688h-.047l-.652 2.156z" />
-                                    <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-                                </svg>
-                            )}
-                            <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">
-                                Urutkan
-                            </span>
-                        </button>
-
-                        <div className="shrink-0 w-8 text-main">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1"
-                                className="w-full h-full"
-                            >
-                                <line x1="12" y1="4" x2="12" y2="20" />
-                            </svg>
-                        </div>
-                        {/* Filter Button */}
-                        <button className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
-                                className="w-4 h-4 text-main"
-                            >
-                                <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
-                            </svg>
-                            <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">Filter</span>
-                        </button>
-                    </div>
-                </div>
+        <div className="p-4">
+            {/* 🔹 Search & Add Button */}
+            <div className="flex justify-between mb-4">
+                <input
+                    type="text"
+                    placeholder="Cari Type..."
+                    className="border p-2 rounded"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button
+                    className="bg-blue-500 text-white p-2 rounded"
+                    onClick={() => setShowModal(true)}
+                >
+                    Tambah Type
+                </button>
             </div>
 
-            <div className="mb-4 min-h-[756px] bg-white">
-
-                <div className="mb-4 min-h-[756px] bg-white">
-                    {filteredBrands.length > 0 ? (
-                        [...filteredBrands]
-                            .filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
-                            .sort((a, b) => (sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))) // 🔀 Sorting
-                            .map((brand) => (
-                                <div
-                                    key={brand.id}
-                                    className="flex justify-between items-center p-4 border-b-2 border-b-neutral-100"
-                                >
-
-                                    <div className="w-full h-max flex items-center space-x-3 content-start">
-                                        <div className="w-13 h-13 space-x-2 flex items-center justify center p-1 rounded-xl bg-white shadow">
-                                            <img
-                                                src={brand.image || "storage/categories/default.png"}
-                                                alt={brand.name}
-                                                className="w-10 h-10 rounded-xl object-cover"
-                                            />
-                                        </div>
-
-                                        <div className="max-w-[200px] flex flex-col items-start space-y-[2px]">
-                                            <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
-                                            <p className="font-utama text-xs text-gray-500">{brand.category_id}</p>
-                                            <p className="font-utama text-xs text-gray-500">{brand.input_type_id}</p>
-                                            <div className="w-full h-max px-2 py-[2px] text-xs text-green-600 rounded-3xl bg-green-50 border border-green-600 flex items-center justify-center">
-                                                {brand.profit_persen}% + Rp{brand.profit_tetap}
-                                            </div>
-                                        </div>
-
-                                    </div>
-
+            {/* 🔹 Table Type */}
+            <table className="w-full border">
+                <thead>
+                    <tr className="bg-gray-200">
+                        <th className="p-2 border">Nama</th>
+                        <th className="p-2 border">Brand</th>
+                        <th className="p-2 border">Kategori</th>
+                        <th className="p-2 border">Input Type</th>
+                        <th className="p-2 border">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sortedTypes.length > 0 ? (
+                        sortedTypes.map((type) => (
+                            <tr key={type.id} className="border">
+                                <td className="p-2 border">{type.name}</td>
+                                <td className="p-2 border">{type.brand_name || "-"}</td>
+                                <td className="p-2 border">{type.category_name || "-"}</td>
+                                <td className="p-2 border">{type.input_type_name || "-"}</td>
+                                <td className="p-2 border">
                                     <div className="w-12 h-full flex flex-col items-center space-y-2">
                                         <button
-                                            onClick={() => handleEdit(brand)}
+                                            onClick={() => handleEdit(type)}
                                             className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
                                         >
                                             Edit
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(brand.id)}
-                                            disabled={brand.is_used}
-                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${brand.is_used
+                                            onClick={() => confirmDelete(type.id)}
+                                            disabled={type.is_used}
+                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${type.is_used
                                                 ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
                                                 : "text-red-600 bg-red-50 border border-red-600"
                                                 }`}
                                         >
                                             Hapus
                                         </button>
-                                    </div>
 
-                                </div>
-                            ))
+
+                                    </div>
+                                </td>
+                            </tr>
+                        ))
                     ) : (
-                        <div className="flex justify-between items-center p-4 border-b-2 border-b-neutral-100">
-                            <div className="w-full h-max flex items-center space-x-3 content-start">
-                                <p>Brand tidak ditemukan</p>
-                            </div>
-                        </div>
+                        <tr>
+                            <td colSpan="5" className="text-center p-4">Tidak ada data tersedia</td>
+                        </tr>
                     )}
-                </div>
-            </div>
-
-            {/* 🔹 MODAL FORM */}
+                </tbody>
+            </table>
+            {/* 🔹 Modal Tambah/Edit */}
             {showModal && (
-                <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
-                        <div className="w-full h-max flex flex-col">
-                            {/* Ikon silang di kanan atas */}
-                            <button className="w-full flex items-end justify-end" onClick={() => setShowModal(false)}>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 16 16"
-                                    fill="currentColor"
-                                    className="w-7 h-7 text-red-500"
-                                >
-                                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
-                                </svg>
-                            </button>
-                            {/* Judul di tengah */}
-                            <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                {editBrand ? "Edit Brand" : "Tambah Brand"}
-                            </h2>
-                        </div>
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white p-5 rounded w-96">
+                        <h2 className="text-lg font-bold">{editType ? "Edit Type" : "Tambah Type"}</h2>
                         <form onSubmit={handleSubmit}>
-                        <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                    <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
-                                        {/* Input file transparan di atas lingkaran */}
-                                        <input
-                                            type="file"
-                                            name="image"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        {/* Preview gambar atau placeholder */}
-                                        {previewImage ? (
-                                            <img
-                                                src={previewImage}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
-                                                Pilih Gambar
-                                            </span>
-                                        )}
-                                    </label>
-                                    {/* Error message */}
-                                    {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
-                                    <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Kategori</p>
-                                </div>
-                                <div className="w-[294px] h-max flex flex-col space-y-2">
-                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama Brand</p>
-                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                        {/* Search Bar */}
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={data.name}
-                                            onChange={(e) => setData("name", e.target.value)}
-                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                            placeholder="Contoh: Mobile Legends"
-                                            required
-                                        />
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
+                            {/* 🔹 Input Nama Type */}
                             <input
                                 type="text"
-                                placeholder="Nama Brand"
+                                className="border p-2 w-full mt-2"
+                                placeholder="Nama Type"
                                 value={data.name}
                                 onChange={(e) => setData("name", e.target.value)}
-                                className="border p-2 w-full mb-2"
                             />
 
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Pilih Kategori"
-                                    value={categories.find(cat => cat.id === data.category_id)?.name || ""}
-                                    readOnly
+                            {/* 🔹 Select Kategori */}
+                            <div className="relative mt-2">
+                                <button
+                                    type="button"
+                                    className="border p-2 w-full text-left"
                                     onClick={() => setShowCategoryPopup(true)}
-                                    className="border p-2 w-full mb-2 cursor-pointer"
-                                />
-                                {showCategoryPopup && (
-                                    <div className="absolute top-full left-0 bg-white border w-full max-h-40 overflow-y-auto z-10">
-                                        <input
-                                            type="text"
-                                            placeholder="Cari Kategori..."
-                                            value={searchCategory}
-                                            onChange={(e) => setSearchCategory(e.target.value)}
-                                            className="border p-2 w-full"
-                                        />
-                                        {categories.filter(cat => cat.name.toLowerCase().includes(searchCategory.toLowerCase())).map((cat) => (
-                                            <div
-                                                key={cat.id}
-                                                className="p-2 cursor-pointer hover:bg-gray-200"
-                                                onClick={() => {
-                                                    setData("category_id", cat.id);
-                                                    setShowCategoryPopup(false);
-                                                }}
-                                            >
-                                                {cat.name}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Pilih Input Type"
-                                    value={inputTypes.find(type => type.id === data.input_type_id)?.name || ""}
-                                    readOnly
-                                    onClick={() => setShowInputTypePopup(true)}
-                                    className="border p-2 w-full mb-2 cursor-pointer"
-                                />
-                                {showInputTypePopup && (
-                                    <div className="absolute top-full left-0 bg-white border w-full max-h-40 overflow-y-auto z-10">
-                                        <input
-                                            type="text"
-                                            placeholder="Cari Input Type..."
-                                            value={searchInputType}
-                                            onChange={(e) => setSearchInputType(e.target.value)}
-                                            className="border p-2 w-full"
-                                        />
-                                        {inputTypes.filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase())).map((type) => (
-                                            <div
-                                                key={type.id}
-                                                className="p-2 cursor-pointer hover:bg-gray-200"
-                                                onClick={() => {
-                                                    setData("input_type_id", type.id);
-                                                    setShowInputTypePopup(false);
-                                                }}
-                                            >
-                                                {type.name}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <input
-                                type="number"
-                                placeholder="Profit Persen"
-                                value={data.profit_persen}
-                                onChange={(e) => setData("profit_persen", e.target.value)}
-                                className="border p-2 w-full mb-2"
-                            />
-
-                            <input
-                                type="number"
-                                placeholder="Profit Tetap"
-                                value={data.profit_tetap}
-                                onChange={(e) => setData("profit_tetap", e.target.value)}
-                                className="border p-2 w-full mb-2"
-                            />
-
-                            {/* UPLOAD & PREVIEW IMAGE */}
-                            {previewImage && (
-                                <img src={previewImage} alt="Preview" className="w-32 h-32 mx-auto mb-2 object-cover" />
-                            )}
-                            <input type="file" onChange={handleImageChange} className="border p-2 w-full mb-2" />
-
-                            <div className="flex justify-end space-x-2">
-                                <button type="submit" disabled={processing} className="bg-blue-500 text-white px-4 py-2 rounded">
-                                    {editBrand ? "Update" : "Tambah"}
+                                >
+                                    {categories.find(c => c.id === data.category_id)?.name || "Pilih Kategori"}
                                 </button>
                             </div>
+
+                            {/* 🔹 Select Brand */}
+                            <div className="relative mt-2">
+                                <button
+                                    type="button"
+                                    className="border p-2 w-full text-left"
+                                    onClick={() => setShowBrandPopup(true)}
+                                >
+                                    {brands.find(b => b.id === data.brand_id)?.name || "Pilih Brand"}
+                                </button>
+                            </div>
+
+                            {/* 🔹 Select Input Type */}
+                            <div className="relative mt-2">
+                                <button
+                                    type="button"
+                                    className="border p-2 w-full text-left"
+                                    onClick={() => setShowInputTypePopup(true)}
+                                >
+                                    {inputTypes.find(i => i.id === data.input_type_id)?.name || "Pilih Input Type"}
+                                </button>
+                            </div>
+
+                            {errors.name && (
+                                <p className="text-red-600 text-sm">{errors.name}</p>
+                            )}
+
+                            {/* 🔹 Tombol Simpan */}
+                            <button type="submit" className="bg-blue-500 text-white p-2 rounded mt-4 w-full">
+                                {editType ? "Update" : "Simpan"}
+                            </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* 🔹 Popup Pilihan Kategori */}
+            {showCategoryPopup && (
+                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                        <div className="w-full h-9 flex flex-row items-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                            <input
+                                type="text"
+                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                placeholder="Cari Kategori..."
+                                value={searchCategory}
+                                onChange={(e) => setSearchCategory(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="w-full max-h-[342px] overflow-y-auto">
+                            {categories
+                                .filter(c => c.name.toLowerCase().includes(searchCategory.toLowerCase()))
+                                .map(c => (
+                                    <div
+                                        key={c.id}
+                                        className="flex items-center gap-2 w-full py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100 px-2"
+                                        onClick={() => {
+                                            setData("category_id", c.id);
+                                            setShowCategoryPopup(false);
+                                        }}
+                                    >
+                                        <img
+                                            src={c.image ? `/storage/${c.image}` : "/storage/categories/default.png"}
+                                            alt={c.name}
+                                            className="w-8 h-8 border border-gray-300 rounded-full object-cover"
+                                        />
+                                        <p className="text-sm text-left">{c.name}</p>
+                                    </div>
+                                ))}
+                        </div>
+
+                        <button onClick={() => setShowCategoryPopup(false)} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 🔹 Popup Pilihan Brand */}
+            {showBrandPopup && (
+                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                        <div className="w-full h-9 flex flex-row items-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                            <input
+                                type="text"
+                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                placeholder="Cari Brand..."
+                                value={searchBrand}
+                                onChange={(e) => setSearchBrand(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="w-full max-h-[342px] overflow-y-auto">
+                            {brands
+                                .filter(b => b.name.toLowerCase().includes(searchBrand.toLowerCase()))
+                                .map(b => (
+                                    <div
+                                        key={b.id}
+                                        className="flex items-center gap-2 w-full py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100 px-2"
+                                        onClick={() => {
+                                            setData("brand_id", b.id);
+                                            setShowBrandPopup(false);
+                                        }}
+                                    >
+                                        <img
+                                            src={b.image ? `/storage/${b.image}` : "/storage/brands/default.webp"}
+                                            alt={b.name}
+                                            className="w-8 h-8 border border-gray-300 rounded-full object-cover"
+                                        />
+                                        <p className="text-sm text-left">{b.name}</p>
+                                    </div>
+                                ))}
+                        </div>
+
+                        <button onClick={() => setShowBrandPopup(false)} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+            {/* 🔹 Popup Pilihan Input Type */}
+            {showInputTypePopup && (
+                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                        <div className="w-full h-9 flex flex-row items-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                            <input
+                                type="text"
+                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                placeholder="Cari Input Type..."
+                                value={searchInputType}
+                                onChange={(e) => setSearchInputType(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="w-full max-h-[342px] overflow-y-auto">
+                            {inputTypes
+                                .filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase()))
+                                .map(type => (
+                                    <div
+                                        key={type.id}
+                                        className="w-full py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100"
+                                        onClick={() => {
+                                            setData("input_type_id", type.id);
+                                            setShowInputTypePopup(false);
+                                        }}
+                                    >
+                                        <p className="text-sm text-left">{type.name}</p>
+                                    </div>
+                                ))}
+                        </div>
+
+                        <button onClick={() => setShowInputTypePopup(false)} className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+            {/* 🔹 Popup Konfirmasi Hapus */}
+            {isPopupOpen && (
+                <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                        <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
+                            Yakin ingin menghapus tipe ini?
+                        </p>
+                        <div className="w-full h-max flex flex-row space-x-2">
+                            <button
+                                onClick={() => handleDelete(selectedTypeId)}
+                                className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+                            >
+                                Ya
+                            </button>
+                            <button
+                                onClick={() => setIsPopupOpen(false)}
+                                className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-main rounded-md hover:bg-blue-700"
+                            >
+                                Tidak
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

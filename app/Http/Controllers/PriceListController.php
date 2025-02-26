@@ -149,6 +149,7 @@ use App\Models\PriceList;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Models\Type;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -234,6 +235,26 @@ class PriceListController extends Controller
                         );
                     }
                 }
+
+                if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
+                    $brand = Brand::where('name', $item['brand'])->first();
+                    $category = Category::where('name', $item['category'])->first();
+                
+                    if ($brand && $category) {
+                        Type::updateOrCreate(
+                            [
+                                'name' => $item['type'],
+                                'brand_id' => $brand->id,
+                                'category_id' => $category->id,
+                            ],
+                            [
+                                'input_type_id' => 1, // Default input_type_id = 1
+                                'updated_at' => now(),
+                            ]
+                        );
+                    }
+                }
+                           
 
             }
 

@@ -1,132 +1,95 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "@inertiajs/react";
 
-export default function ManageBrands({ brands, categories, inputTypes }) {
+export default function ManageTypes({ types = [], brands = [], categories = [], inputTypes = [] }) {
     const [showModal, setShowModal] = useState(false);
-    const [editBrand, setEditBrand] = useState(null);
-    const [previewImage, setPreviewImage] = useState(null);
+    const [editType, setEditType] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("asc");
-    const [errors, setErrors] = useState({});
-    const [searchCategory, setSearchCategory] = useState("");
-    const [searchInputType, setSearchInputType] = useState("");
+    const [showBrandPopup, setShowBrandPopup] = useState(false);
     const [showCategoryPopup, setShowCategoryPopup] = useState(false);
     const [showInputTypePopup, setShowInputTypePopup] = useState(false);
+    const [selectedTypeId, setSelectedTypeId] = useState(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedBrandId, setSelectedBrandId] = useState(null);
+    const [errors, setErrors] = useState({});
+    const [searchBrand, setSearchBrand] = useState("");
+    const [searchCategory, setSearchCategory] = useState("");
+    const [searchInputType, setSearchInputType] = useState("");
 
-    const filteredBrands = brands.filter(brand =>
-        brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const filteredCategories = categories.filter(category =>
-        category.name.toLowerCase().includes(searchCategory.toLowerCase())
-    );
-
-    const filteredInputTypes = inputTypes.filter(type =>
-        type.name.toLowerCase().includes(searchInputType.toLowerCase())
+    const filteredTypes = types.filter(type =>
+        type.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const { data, setData, post, put, processing, reset, delete: destroy } = useForm({
         id: "",
         name: "",
-        image: null,
+        brand_id: "",
         category_id: "",
         input_type_id: "",
-        profit_persen: "",
-        profit_tetap: "",
     });
 
-    // 🔹 Handle Submit (Tambah & Edit)
     const handleSubmit = (e) => {
         e.preventDefault();
-        setErrors({}); // Reset error
-
+        setErrors({});
 
         const formData = new FormData();
         formData.append("name", data.name);
-        formData.append("category_id", data.category_id);
-        formData.append("input_type_id", data.input_type_id);
-        formData.append("profit_persen", data.profit_persen);
-        formData.append("profit_tetap", data.profit_tetap);
+        formData.append("brand_id", data.brand_id);
+        formData.append("category_id", data.category_id ?? "");
+        formData.append("input_type_id", data.input_type_id ?? "");
 
-
-        if (data.image) {
-            formData.append("image", data.image);
-        }
-
-        if (editBrand) {
-            put(route("brands.update", data.id), {
+        if (editType) {
+            put(route("types.update", data.id), {
                 data: formData,
                 onSuccess: () => {
                     reset();
-                    setPreviewImage(null);
-                    setEditBrand(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after update
+                    setEditType(null);
+                    setShowModal(false);
                 },
-                onError: (err) => {
-                    setErrors(err); // Menyimpan error ke state
-                },
+                onError: (err) => setErrors(err),
             });
         } else {
-            post(route("brands.store"), {
+            // Jika tambah
+            post(route("types.store"), {
                 data: formData,
                 onSuccess: () => {
                     reset();
-                    setPreviewImage(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after insert
+                    setEditType(null);
+                    setShowModal(false);
                 },
-                onError: (err) => {
-                    setErrors(err); // Menyimpan error ke state
-                },
+                onError: (err) => setErrors(err),
             });
         }
-
     };
 
 
     // 🔹 Handle Edit
-    const handleEdit = (brand) => {
-        setEditBrand(brand);
+    const handleEdit = (type) => {
+        setEditType(type);
         setData({
-            id: brand.id,
-            name: brand.name,
-            image: null,
-            category_id: brand.category_id,
-            input_type_id: brand.input_type_id,
-            profit_persen: brand.profit_persen,
-            profit_tetap: brand.profit_tetap,
+            id: type.id,
+            name: type.name,
+            brand_id: type.brand_id,
+            category_id: type.category_id,
+            input_type_id: type.input_type_id,
         });
-        setPreviewImage(brand.image);
         setShowModal(true);
     };
 
-    // 🔹 Handle Ganti Gambar
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData("image", file);
-            setPreviewImage(URL.createObjectURL(file));
-        }
-    };
-
-    const confirmDelete = (brandId) => {
-        setSelectedBrandId(brandId);
+    // 🔹 Hapus Type
+    const confirmDelete = (typeId) => {
+        setSelectedTypeId(typeId);
         setIsPopupOpen(true);
     };
 
     const handleDelete = (id) => {
-        setIsPopupOpen(false); // Tutup pop-up setelah user konfirmasi
-        destroy(route("brands.destroy", id));
+        setIsPopupOpen(false);
+        destroy(route("types.destroy", id));
     };
 
-
-
-
-    const sortedBrands = [...filteredBrands].sort((a, b) =>
+    const sortedTypes = [...filteredTypes].sort((a, b) =>
         sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     );
-
 
     return (
         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
@@ -146,15 +109,14 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                         </button>
                         {/* Title */}
                         <div className="font-utama text-white font-bold text-lg">
-                            Kelola Brand
+                            Kelola Tipe
                         </div>
                     </div>
                     {/* Plus Icon */}
                     <button
                         onClick={() => {
-                            setEditBrand(null);
+                            setEditType(null);
                             reset();
-                            setPreviewImage(null);
                             setShowModal(true);
                         }}
                         className="flex items-center w-6 h-6">
@@ -172,7 +134,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                             id="searchInput"
                             type="text"
                             className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                            placeholder="Cari brand"
+                            placeholder="Cari tipe"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -254,46 +216,44 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
 
             <div className="mb-4 min-h-[756px] pt-[163px] bg-white">
                 <div className="mb-4 min-h-[756px] bg-white">
-                    {filteredBrands.length > 0 ? (
-                        [...filteredBrands]
-                            .filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
+                    {filteredTypes.length > 0 ? (
+                        [...filteredTypes]
+                            .filter((type) => type.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
                             .sort((a, b) => (sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))) // 🔀 Sorting
-                            .map((brand) => (
+                            .map((type) => (
                                 <div
-                                    key={brand.id}
+                                    key={type.id}
                                     className="flex justify-between items-center p-4 border-b-2 border-b-neutral-100"
                                 >
 
                                     <div className="w-full h-max flex items-center space-x-3 content-start">
                                         <div className="w-13 h-13 space-x-2 flex items-center justify center p-1 rounded-xl bg-white shadow">
                                             <img
-                                                src={brand.image || "storage/categories/default.png"}
-                                                alt={brand.name}
+                                                src={type.image || "storage/brands/default.webp"}
+                                                alt={type.name}
                                                 className="w-10 h-10 rounded-xl object-cover"
                                             />
                                         </div>
 
                                         <div className="max-w-[200px] flex flex-col items-start space-y-[2px]">
-                                            <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
-                                            <p className="font-utama text-xs text-gray-500">{categories.find(cat => cat.id === brand.category_id)?.name || "Tidak ada kategori"} / {inputTypes.find(type => type.id === brand.input_type_id)?.name || "Tidak ada tipe input"}</p>
-                                            <div className="w-[200px] h-max px-2 py-[2px] text-xs text-green-600 rounded-3xl bg-green-50 border border-green-600 flex items-center justify-center">
-                                                {brand.profit_persen}% + Rp{brand.profit_tetap}
-                                            </div>
+                                            <p className="font-utama font-semibold text-sm truncate w-full">{type.name}</p>
+                                            <p className="font-utama text-xs">{type.brand_name || "Tidak ada brand"}</p>
+                                            <p className="font-utama text-xs text-gray-500">{type.category_name || "Tidak ada kategori"} / {type.input_type_name || "-"}</p>
                                         </div>
 
                                     </div>
 
                                     <div className="w-12 h-full flex flex-col items-center space-y-2">
                                         <button
-                                            onClick={() => handleEdit(brand)}
+                                            onClick={() => handleEdit(type)}
                                             className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
                                         >
                                             Edit
                                         </button>
                                         <button
-                                            onClick={() => confirmDelete(brand.id)}
-                                            disabled={brand.is_used}
-                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${brand.is_used
+                                            onClick={() => confirmDelete(type.id)}
+                                            disabled={type.is_used}
+                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${type.is_used
                                                 ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
                                                 : "text-red-600 bg-red-50 border border-red-600"
                                                 }`}
@@ -307,7 +267,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                 </div>
                             ))
                     ) : (
-                        <p className="p-4 text-center">Brand tidak ditemukan</p>
+                        <p className="p-4 text-center">type tidak ditemukan</p>
                     )}
                 </div>
             </div>
@@ -316,11 +276,11 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                 <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
                     <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
                         <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                            Yakin ingin menghapus brand ini?
+                            Yakin ingin menghapus type ini?
                         </p>
                         <div className="w-full h-max flex flex-row space-x-2">
                             <button
-                                onClick={() => handleDelete(selectedBrandId)}
+                                onClick={() => handleDelete(selectedTypeId)}
                                 className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
                             >
                                 Ya
@@ -362,54 +322,23 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                             </button>
                             {/* Judul di tengah */}
                             <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                {editBrand ? "Edit Brand" : "Tambah Brand"}
+                                {editType ? "Edit Tipe" : "Tambah Tipe"}
                             </h2>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                    <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
-                                        {/* Input file transparan di atas lingkaran */}
-                                        <input
-                                            type="file"
-                                            name="image"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        {/* Preview gambar atau placeholder */}
-                                        {previewImage ? (
-                                            <img
-                                                src={previewImage}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
-                                                Pilih Gambar
-                                            </span>
-                                        )}
-                                    </label>
-                                    {/* Error message */}
-                                    {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
-                                    <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Brand</p>
-                                </div>
                                 <div className="w-[294px] h-max flex flex-col space-y-2">
-                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama Brand</p>
+                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama Tipe</p>
                                     <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
                                         <input
                                             type="text"
-                                            name="name"
+                                            placeholder="Contoh: Pulsa Transfer"
                                             value={data.name}
                                             onChange={(e) => setData("name", e.target.value)}
                                             className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                            placeholder="Contoh: Mobile Legends"
                                             required
                                         />
                                     </div>
-                                    {errors.name && (
-                                        <p className="text-red-600 text-sm">{errors.name}</p>
-                                    )}
 
                                     <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Kategori</p>
                                     <div className="relative w-full">
@@ -483,6 +412,86 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                                     </div>
                                                     <button
                                                         onClick={() => setShowCategoryPopup(false)}
+                                                        className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"                                                    >
+                                                        Tutup
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Brand</p>
+                                    <div className="relative w-full">
+                                        <div
+                                            className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
+                                            onClick={() => setShowBrandPopup(true)}
+                                        >
+                                            <span>
+                                                {brands.find(bra => bra.id === data.brand_id)?.name || "Pilih brand"}
+                                            </span>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="w-5 h-5 text-gray-500"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <path d="M6 9l6 6 6-6"></path>
+                                            </svg>
+                                        </div>
+                                        {showBrandPopup && (
+                                            <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                                                <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                                        {/* Search Bar */}
+                                                        <input
+                                                            id="searchInput"
+                                                            type="text"
+                                                            className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                            placeholder="Cari Brand..."
+                                                            value={searchBrand}
+                                                            onChange={(e) => setSearchBrand(e.target.value)}
+                                                        />
+                                                        {/* Search Icon */}
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="currentColor"
+                                                            stroke="currentColor"
+                                                            strokeWidth="0.3"  // Ubah ketebalan stroke di sini
+                                                            className="w-5 h-5 text-main"
+                                                        >
+                                                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                                        </svg>
+                                                    </div>
+
+                                                    <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
+                                                        {brands
+                                                            .filter(bra => bra.name.toLowerCase().includes(searchBrand.toLowerCase()))
+                                                            .map((bra) => (
+                                                                <div
+                                                                    key={bra.id}
+                                                                    className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setData("brand_id", bra.id);
+                                                                        setShowBrandPopup(false);
+                                                                    }}
+                                                                >
+                                                                    {/* Gambar kategori di sebelah kiri */}
+                                                                    <img
+                                                                        src={bra.image ? `/storage/${bra.image}` : "storage/brands/default.webp"}
+                                                                        alt={bra.name}
+                                                                        className="w-8 h-8 border border-gray-300 rounded-full object-cover"
+                                                                    />
+                                                                    <p className="text-utama text-sm text-left align-middle">{bra.name}</p>
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setShowBrandPopup(false)}
                                                         className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"                                                    >
                                                         Tutup
                                                     </button>
@@ -568,39 +577,12 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                             </div>
                                         )}
                                     </div>
-
-                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Persen</p>
-                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={data.profit_persen}
-                                            onChange={(e) => setData("profit_persen", e.target.value)}
-                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                            placeholder="Contoh: 2.5"
-                                        />
-                                    </div>
-                                    {errors.name && (
-                                        <p className="text-red-600 text-sm">{errors.name}</p>
-                                    )}
-
-                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Tetap</p>
-                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                        {/* Search Bar */}
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={data.profit_tetap}
-                                            onChange={(e) => setData("profit_tetap", e.target.value)}
-                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                            placeholder="Contoh: 1000"
-                                        />
-                                    </div>
-                                    {errors.name && (
-                                        <p className="text-red-600 text-sm">{errors.name}</p>
-                                    )}
                                 </div>
                             </div>
+                            
+                            {errors.name && (
+                                <p className="text-red-600 text-sm">{errors.name}</p>
+                            )}
 
                             <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
                                 <button
@@ -611,7 +593,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                         : "bg-blue-600 text-white hover:bg-blue-700"
                                         }`}
                                 >
-                                    {editBrand ? "Update" : "Tambah"}
+                                    {editType ? "Update" : "Tambah"}
                                 </button>
                             </div>
                         </form>

@@ -17,46 +17,46 @@ class BrandController extends Controller
      * Sinkronisasi brand dari price_list ke tabel brands.
      */
 
-public function syncBrands()
-{
-    $brands = PriceList::select('brand', 'category')
-        ->whereNotNull('brand')
-        ->whereNotNull('category')
-        ->distinct()
-        ->get();
+    public function syncBrands()
+    {
+        $brands = PriceList::select('brand', 'category')
+            ->whereNotNull('brand')
+            ->whereNotNull('category')
+            ->distinct()
+            ->get();
 
-    $customBrands = PriceList::select('brand_custom as brand', 'category')
-        ->whereNotNull('brand_custom')
-        ->whereNotNull('category')
-        ->distinct()
-        ->get();
+        $customBrands = PriceList::select('brand_custom as brand', 'category')
+            ->whereNotNull('brand_custom')
+            ->whereNotNull('category')
+            ->distinct()
+            ->get();
 
-    // Gabungkan semua brand berdasarkan brand & category
-    $allBrands = $brands->merge($customBrands)->unique(function ($item) {
-        return strtolower(trim($item->brand)) . '|' . strtolower(trim($item->category));
-    });
+        // Gabungkan semua brand berdasarkan brand & category
+        $allBrands = $brands->merge($customBrands)->unique(function ($item) {
+            return strtolower(trim($item->brand)) . '|' . strtolower(trim($item->category));
+        });
 
-    foreach ($allBrands as $brandData) {
-        $categoryName = trim($brandData->category ?? '');
-        $brandName = trim($brandData->brand ?? '');
+        foreach ($allBrands as $brandData) {
+            $categoryName = trim($brandData->category ?? '');
+            $brandName = trim($brandData->brand ?? '');
 
-        // Jika kategori atau brand kosong, lewati iterasi ini
-        if (empty($categoryName) || empty($brandName)) {
-            continue;
+            // Jika kategori atau brand kosong, lewati iterasi ini
+            if (empty($categoryName) || empty($brandName)) {
+                continue;
+            }
+
+            // Format name: "brand-category"
+            $formattedName = "{$brandName}-{$categoryName}";
+
+            // Simpan brand hanya berdasarkan name tanpa category_id
+            Brand::updateOrCreate(
+                ['name' => $formattedName],
+                ['profit_persen' => 0, 'profit_tetap' => 0]
+            );
         }
 
-        // Format name: "brand-category"
-        $formattedName = "{$brandName}-{$categoryName}";
-
-        // Simpan brand hanya berdasarkan name tanpa category_id
-        Brand::updateOrCreate(
-            ['name' => $formattedName],
-            ['profit_persen' => 0, 'profit_tetap' => 0]
-        );
+        return redirect()->route('brands.index')->with('success', 'Brand berhasil disinkronisasi.');
     }
-
-    return redirect()->route('brands.index')->with('success', 'Brand berhasil disinkronisasi.');
-}
 
     public function index()
     {
@@ -170,70 +170,25 @@ public function syncBrands()
         return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
     }
 
-    // public function destroy(Brand $brand)
-    // {
-    //     // Periksa apakah kategori masih digunakan di tabel price_list
-    //     $isUsed = PriceList::where('brand', $brand->name)->exists();
+    public function destroy(Brand $brand)
+    {
+        // Periksa apakah brand masih digunakan di tabel price_list
+        $isUsed = PriceList::where('brand', $brand->name)->exists();
 
-    //     if ($isUsed) {
-    //         return redirect()->route('brands.index')->with('error', 'brand masih digunakan dan tidak dapat dihapus.');
-    //     }
+        if ($isUsed) {
+            return redirect()->route('brands.index')->with('error', 'Brand masih digunakan dan tidak dapat dihapus.');
+        }
 
-    //     if ($brand->image) {
-    //         Storage::disk('public')->delete($brand->image);
-    //     }
+        // Hapus gambar jika ada
+        if ($brand->image) {
+            Storage::disk('public')->delete($brand->image);
+        }
 
-    //     $brand->delete();
+        // Hapus brand
+        $brand->delete();
 
-    //     return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
-    // }
-
-
-//     public function destroy(Brand $brand)
-// {
-//     // Periksa apakah brand masih digunakan di tabel price_list
-//     $isUsed = PriceList::where('brand', $brand->name)->exists();
-
-//     if ($isUsed) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Brand masih digunakan dan tidak dapat dihapus.'
-//         ], 400);
-//     }
-
-//     // Hapus gambar jika ada
-//     if ($brand->image) {
-//         Storage::disk('public')->delete($brand->image);
-//     }
-
-//     // Hapus brand
-//     $brand->delete();
-
-//     return response()->json([
-//         'success' => true,
-//         'message' => 'Brand berhasil dihapus.'
-//     ]);
-// }
-
-public function destroy(Brand $brand)
-{
-    // Periksa apakah brand masih digunakan di tabel price_list
-    $isUsed = PriceList::where('brand', $brand->name)->exists();
-
-    if ($isUsed) {
-        return redirect()->route('brands.index')->with('error', 'Brand masih digunakan dan tidak dapat dihapus.');
+        return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
     }
 
-    // Hapus gambar jika ada
-    if ($brand->image) {
-        Storage::disk('public')->delete($brand->image);
+
     }
-
-    // Hapus brand
-    $brand->delete();
-
-    return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
-}
-
-
-}
