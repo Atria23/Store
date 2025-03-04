@@ -37,8 +37,7 @@ class TypeController extends Controller
                     'name' => trim($item->type),
                     'brand_id' => $brand->id,
                     'category_id' => $category->id ?? null
-                ],
-                ['input_type_id' => 1] // Default input_type_id = 1
+                ]
             );
         }
 
@@ -50,7 +49,10 @@ class TypeController extends Controller
         $types = Type::with(['brand.category', 'inputType']) // Eager load relationships
             ->get()
             ->map(function ($type) {
-                $isUsed = PriceList::where('type', $type->name)->exists(); // Cek apakah type digunakan di PriceList
+                $isUsed = PriceList::where('category', $type->category->name)
+                    ->where('brand', $type->brand->name)
+                    ->where('type', $type->name)
+                    ->exists();
 
                 return [
                     'id' => $type->id,
@@ -80,106 +82,62 @@ class TypeController extends Controller
         ]);
     }
 
-    // // ✅ 2. Menambahkan Type baru
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'name' => 'required|string|max:255',
-    //         'brand_id' => 'required|exists:brands,id',
-    //         'category_id' => 'nullable|exists:categories,id',
-    //         'input_type_id' => 'nullable|exists:input_types,id'
-    //     ]);
-
-    //     Type::create($request->all());
-
-    //     return redirect()->route('types.index')->with('success', 'Type berhasil ditambahkan.');
-    // }
-
-    // // ✅ 3. Memperbarui Type
-    // public function update(Request $request, Type $type)
-    // {
-    //     $request->validate([
-    //         'name' => 'required|string|max:255',
-    //         'brand_id' => 'required|exists:brands,id',
-    //         'category_id' => 'nullable|exists:categories,id',
-    //         'input_type_id' => 'nullable|exists:input_types,id',
-    //     ]);
-
-    //     // Cek apakah ada type lain dengan kombinasi yang sama (selain dirinya sendiri)
-    //     $exists = Type::where('brand_id', $request->brand_id)
-    //         ->where('category_id', $request->category_id)
-    //         ->where('input_type_id', $request->input_type_id)
-    //         ->where('id', '!=', $type->id) // Pastikan bukan dirinya sendiri
-    //         ->exists();
-
-    //     if ($exists) {
-    //         return back()->withErrors([
-    //             'brand_id' => 'Brand dengan kategori dan input type yang sama sudah ada.',
-    //         ])->withInput();
-    //     }
-
-    //     $type->update($request->all());
-
-    //     return redirect()->route('types.index')->with('success', 'Type berhasil diperbarui.');
-    // }
-
     // ✅ 2. Menambahkan Type baru
-public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'brand_id' => 'required|exists:brands,id',
-        'category_id' => 'nullable|exists:categories,id',
-        'input_type_id' => 'nullable|exists:input_types,id'
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'brand_id' => 'required|exists:brands,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'input_type_id' => 'nullable|exists:input_types,id'
+        ]);
 
-    // Cek apakah kombinasi yang sama sudah ada di database
-    $exists = Type::where('name', $request->name)
-        ->where('brand_id', $request->brand_id)
-        ->where('category_id', $request->category_id)
-        ->where('input_type_id', $request->input_type_id)
-        ->exists();
+        // Cek apakah kombinasi yang sama sudah ada di database
+        $exists = Type::where('name', $request->name)
+            ->where('brand_id', $request->brand_id)
+            ->where('category_id', $request->category_id)
+            ->where('input_type_id', $request->input_type_id)
+            ->exists();
 
-    if ($exists) {
-        return back()->withErrors([
-            'name' => 'Tipe dengan kombinasi yang sama sudah ada.',
-        ])->withInput();
+        if ($exists) {
+            return back()->withErrors([
+                'name' => 'Tipe dengan kombinasi yang sama sudah ada.',
+            ])->withInput();
+        }
+
+        Type::create($request->all());
+
+        return redirect()->route('types.index')->with('success', 'Type berhasil ditambahkan.');
     }
 
-    Type::create($request->all());
+    // ✅ 3. Memperbarui Type
+    public function update(Request $request, Type $type)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'brand_id' => 'required|exists:brands,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'input_type_id' => 'nullable|exists:input_types,id',
+        ]);
 
-    return redirect()->route('types.index')->with('success', 'Type berhasil ditambahkan.');
-}
+        // Cek apakah ada type lain dengan kombinasi yang sama (selain dirinya sendiri)
+        $exists = Type::where('name', $request->name)
+            ->where('brand_id', $request->brand_id)
+            ->where('category_id', $request->category_id)
+            ->where('input_type_id', $request->input_type_id)
+            ->where('id', '!=', $type->id) // Pastikan bukan dirinya sendiri
+            ->exists();
 
-// ✅ 3. Memperbarui Type
-public function update(Request $request, Type $type)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'brand_id' => 'required|exists:brands,id',
-        'category_id' => 'nullable|exists:categories,id',
-        'input_type_id' => 'nullable|exists:input_types,id',
-    ]);
+        if ($exists) {
+            return back()->withErrors([
+                'name' => 'Tipe dengan kombinasi yang sama sudah ada.',
+            ])->withInput();
+        }
 
-    // Cek apakah ada type lain dengan kombinasi yang sama (selain dirinya sendiri)
-    $exists = Type::where('name', $request->name)
-        ->where('brand_id', $request->brand_id)
-        ->where('category_id', $request->category_id)
-        ->where('input_type_id', $request->input_type_id)
-        ->where('id', '!=', $type->id) // Pastikan bukan dirinya sendiri
-        ->exists();
+        $type->update($request->all());
 
-    if ($exists) {
-        return back()->withErrors([
-            'name' => 'Tipe dengan kombinasi yang sama sudah ada.',
-        ])->withInput();
+        return redirect()->route('types.index')->with('success', 'Type berhasil diperbarui.');
     }
-
-    $type->update($request->all());
-
-    return redirect()->route('types.index')->with('success', 'Type berhasil diperbarui.');
-}
-
 
     // ✅ 4. Menghapus Type
     public function destroy(Type $type)

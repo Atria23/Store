@@ -30,6 +30,9 @@ use App\Http\Controllers\InputTypeController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BrandCategoryController;
 use App\Http\Controllers\TypeController;
+use App\Http\Controllers\BarangController;
+use App\Http\Controllers\ProductController;
+
 
 Route::middleware(['auth'])->group(function () {
     // Menampilkan halaman verifikasi email
@@ -110,22 +113,29 @@ Route::middleware(['super-admin'])->group(function () {
     Route::post('/qris', [AdminController::class, 'updateQris'])->name('admin.updateQris');
     Route::get('/manage-categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/manage-categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::put('/manage-categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::post('/manage-categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/manage-categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
-    Route::post('/manage-categories/sync', [CategoryController::class, 'syncCategories'])->name('categories.sync');
+    Route::get('/manage-categories/sync', [CategoryController::class, 'syncCategories'])->name('categories.sync');
     Route::get('/manage-input-types', [InputTypeController::class, 'index'])->name('input-types.index');
     Route::post('/manage-input-types', [InputTypeController::class, 'store'])->name('input-types.store');
-    Route::put('/manage-input-types/{inputType}', [InputTypeController::class, 'update'])->name('input-types.update');
+    Route::post('/manage-input-types/{inputType}', [InputTypeController::class, 'update'])->name('input-types.update');
     Route::delete('/manage-input-types/{inputType}', [InputTypeController::class, 'destroy'])->name('input-types.destroy');
+    Route::get('/manage-brands/sync', [BrandController::class, 'syncBrands'])->name('brands.sync');
     Route::get('/manage-brands', [BrandController::class, 'index'])->name('brands.index');
     Route::post('/manage-brands', [BrandController::class, 'store'])->name('brands.store');
-    Route::put('/manage-brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+    Route::post('/manage-brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
     Route::delete('/manage-brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
     Route::get('/manage-types', [TypeController::class, 'index'])->name('types.index');
     Route::post('/manage-types', [TypeController::class, 'store'])->name('types.store');
-    Route::put('/manage-types/{type}', [TypeController::class, 'update'])->name('types.update');
+    Route::post('/manage-types/{type}', [TypeController::class, 'update'])->name('types.update');
     Route::delete('/manage-types/{type}', [TypeController::class, 'destroy'])->name('types.destroy');
-    Route::post('/manage-types/sync', [TypeController::class, 'syncTypes'])->name('types.sync');
+    Route::get('/manage-types/sync', [TypeController::class, 'syncTypes'])->name('types.sync');
+    Route::get('/manage-products/sync', [BarangController::class, 'syncBarangs'])->name('products.sync');
+    Route::get('/manage-products', [BarangController::class, 'index'])->name('products.index');
+    Route::post('/manage-product-detail', [ProductController::class, 'store'])->name('product.store');
+    Route::post('/manage-product-detail/{id}', [ProductController::class, 'update'])->name('product.update');
+    Route::get('/manage-product-detail/{id?}', [ProductController::class, 'index'])->name('product.index');
+    Route::delete('/manage-product-detail/{id}', [ProductController::class, 'destroy'])->name('product.destroy');;
 
 });
 

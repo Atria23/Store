@@ -19,39 +19,24 @@ class BrandController extends Controller
 
     public function syncBrands()
     {
-        $brands = PriceList::select('brand', 'category')
+        $priceListBrands = PriceList::select('category', 'brand')
+            ->whereNotNull('category')
             ->whereNotNull('brand')
-            ->whereNotNull('category')
             ->distinct()
             ->get();
 
-        $customBrands = PriceList::select('brand_custom as brand', 'category')
-            ->whereNotNull('brand_custom')
-            ->whereNotNull('category')
-            ->distinct()
-            ->get();
+        foreach ($priceListBrands as $item) {
+            $category = Category::where('name', trim($item->category))->first();
 
-        // Gabungkan semua brand berdasarkan brand & category
-        $allBrands = $brands->merge($customBrands)->unique(function ($item) {
-            return strtolower(trim($item->brand)) . '|' . strtolower(trim($item->category));
-        });
-
-        foreach ($allBrands as $brandData) {
-            $categoryName = trim($brandData->category ?? '');
-            $brandName = trim($brandData->brand ?? '');
-
-            // Jika kategori atau brand kosong, lewati iterasi ini
-            if (empty($categoryName) || empty($brandName)) {
-                continue;
+            if (!$category) {
+                continue; // Lewati jika kategori tidak ada
             }
 
-            // Format name: "brand-category"
-            $formattedName = "{$brandName}-{$categoryName}";
-
-            // Simpan brand hanya berdasarkan name tanpa category_id
             Brand::updateOrCreate(
-                ['name' => $formattedName],
-                ['profit_persen' => 0, 'profit_tetap' => 0]
+                [
+                    'name' => trim($item->brand),
+                    'category_id' => $category->id
+                ]
             );
         }
 

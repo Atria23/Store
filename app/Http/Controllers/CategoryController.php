@@ -14,27 +14,20 @@ class CategoryController extends Controller
     /**
      * Sinkronisasi kategori dari price_list ke tabel categories.
      */
+    
     public function syncCategories()
     {
-        $categories = PriceList::select('category')
+        $priceListCategories = PriceList::select('category')
             ->whereNotNull('category')
             ->distinct()
-            ->pluck('category');
+            ->get();
 
-        $customCategories = PriceList::select('category_custom')
-            ->whereNotNull('category_custom')
-            ->distinct()
-            ->pluck('category_custom');
-
-        $allCategories = $categories->merge($customCategories)->unique();
-
-        foreach ($allCategories as $category) {
-            Category::firstOrCreate(['name' => $category]);
+        foreach ($priceListCategories as $item) {
+            Category::updateOrCreate(
+                ['name' => trim($item->category)],
+                ['updated_at' => now()]
+            );
         }
-
-        Category::whereNotIn('name', $allCategories)
-            ->where('is_manual', false) // Jangan hapus kategori manual
-            ->delete();
 
         return redirect()->route('categories.index')->with('success', 'Kategori berhasil disinkronisasi.');
     }

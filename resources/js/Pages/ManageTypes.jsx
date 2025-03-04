@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
+import React, { useState, useEffect } from "react";
+import { useForm, router } from "@inertiajs/react";
 
 export default function ManageTypes({ types = [], brands = [], categories = [], inputTypes = [] }) {
     const [showModal, setShowModal] = useState(false);
@@ -39,7 +39,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
         formData.append("input_type_id", data.input_type_id ?? "");
 
         if (editType) {
-            put(route("types.update", data.id), {
+            post(route("types.update", data.id), {
                 data: formData,
                 onSuccess: () => {
                     reset();
@@ -87,10 +87,25 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
         destroy(route("types.destroy", id));
     };
 
-    const sortedTypes = [...filteredTypes].sort((a, b) =>
-        sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-    );
+    useEffect(() => {
+        // Reset brand_id hanya jika category_id berubah
+        if (data.category_id && !brands.some(bra => bra.id === data.brand_id && bra.category_id === data.category_id)) {
+            setData("brand_id", null);
+        }
+    }, [data.category_id, brands]);
 
+    const handleSync = () => {
+        router.get(route("types.sync"), {}, {
+            onSuccess: (page) => {
+                alert(page.props.flash.message || "Sinkronisasi berhasil!");
+            },
+            onError: (errors) => {
+                console.error("Gagal sinkronisasi:", errors);
+                alert("Gagal melakukan sinkronisasi.");
+            }
+        });
+    };
+    
     return (
         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
             <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
@@ -112,6 +127,15 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                             Kelola Tipe
                         </div>
                     </div>
+                    <button
+                        onClick={handleSync}
+                        className="flex items-center w-6 h-6"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-6 h-6 text-white">
+                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
+                            <path fillRule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
+                        </svg>
+                    </button>
                     {/* Plus Icon */}
                     <button
                         onClick={() => {
@@ -296,9 +320,6 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                 </div>
             )}
 
-
-
-
             {/* 🔹 MODAL FORM */}
             {showModal && (
                 <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
@@ -470,7 +491,10 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
 
                                                     <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
                                                         {brands
-                                                            .filter(bra => bra.name.toLowerCase().includes(searchBrand.toLowerCase()))
+                                                            .filter(bra =>
+                                                                (!data.category_id || bra.category_id === data.category_id) &&  // Filter berdasarkan category_id
+                                                                bra.name.toLowerCase().includes(searchBrand.toLowerCase()) // Filter berdasarkan pencarian
+                                                            )
                                                             .map((bra) => (
                                                                 <div
                                                                     key={bra.id}
@@ -482,14 +506,25 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                                 >
                                                                     {/* Gambar kategori di sebelah kiri */}
                                                                     <img
-                                                                        src={bra.image ? `/storage/${bra.image}` : "storage/brands/default.webp"}
+                                                                        src={bra.image ? `/storage/${bra.image}` : "/storage/brands/default.webp"}
                                                                         alt={bra.name}
                                                                         className="w-8 h-8 border border-gray-300 rounded-full object-cover"
                                                                     />
                                                                     <p className="text-utama text-sm text-left align-middle">{bra.name}</p>
                                                                 </div>
-                                                            ))}
+                                                            ))
+                                                        }
+
+                                                        {/* Jika tidak ada hasil */}
+                                                        {brands.filter(bra =>
+                                                            (!data.category_id || bra.category_id === data.category_id) &&
+                                                            bra.name.toLowerCase().includes(searchBrand.toLowerCase())
+                                                        ).length === 0 && (
+                                                                <p className="text-gray-500 text-sm text-center w-full py-2">Brand tidak ditemukan</p>
+                                                            )}
                                                     </div>
+
+
                                                     <button
                                                         onClick={() => setShowBrandPopup(false)}
                                                         className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"                                                    >
@@ -550,6 +585,18 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
 
                                                     {/* List Input Types */}
                                                     <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
+                                                        {/* Opsi NULL */}
+                                                        <div
+                                                            className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
+                                                            onClick={() => {
+                                                                setData("input_type_id", null);
+                                                                setShowInputTypePopup(false);
+                                                            }}
+                                                        >
+                                                            <p className="text-gray-500 text-sm text-left align-middle">Tidak Ada</p>
+                                                        </div>
+
+                                                        {/* List dari Input Types */}
                                                         {inputTypes
                                                             .filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase()))
                                                             .map((type) => (
@@ -566,6 +613,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                             ))}
                                                     </div>
 
+
                                                     {/* Tombol Tutup */}
                                                     <button
                                                         onClick={() => setShowInputTypePopup(false)}
@@ -579,7 +627,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {errors.name && (
                                 <p className="text-red-600 text-sm">{errors.name}</p>
                             )}
@@ -587,8 +635,8 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                             <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
                                 <button
                                     type="submit"
-                                    disabled={processing || !data.name || !data.category_id || !data.input_type_id}
-                                    className={`w-full p-2 rounded transition ${processing || !data.name || !data.category_id || !data.input_type_id
+                                    disabled={processing || !data.name || !data.category_id || !data.brand_id}
+                                    className={`w-full p-2 rounded transition ${processing || !data.name || !data.category_id || !data.brand_id
                                         ? "bg-gray-300 cursor-not-allowed"
                                         : "bg-blue-600 text-white hover:bg-blue-700"
                                         }`}

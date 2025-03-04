@@ -18,7 +18,7 @@ export default function AddProduct({ product, categories, brands, types, input_t
 
     const handleDelete = () => {
         if (selectedProductId) {
-            router.delete(route("products.destroy", selectedProductId));
+            router.delete(route("product.destroy", selectedProductId));
             setIsPopupOpen(false);
         }
     };
@@ -55,9 +55,9 @@ export default function AddProduct({ product, categories, brands, types, input_t
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isEdit) {
-            post(route("products.update", product.id)); // Mode Edit
+            post(route("product.update", product.id)); // Mode Edit
         } else {
-            post(route("products.store")); // Mode Tambah
+            post(route("product.store")); // Mode Tambah
         }
     };
 
@@ -78,8 +78,6 @@ export default function AddProduct({ product, categories, brands, types, input_t
         const rawValue = e.target.value.replace(/\D/g, ""); // Hanya angka
         setData("price", rawValue);
     };
-
-
 
     return (
         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
@@ -243,19 +241,6 @@ export default function AddProduct({ product, categories, brands, types, input_t
                             </div>
 
                             <div>
-                                <label className="w-full h-32 text-gray-700 text-left align-middle">Deskripsi</label>
-                                <div className="w-full flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <textarea
-                                        type="text"
-                                        placeholder="Contoh: paket lama wajib diunreg terlebih dahulu"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.desc}
-                                        onChange={(e) => setData("desc", e.target.value)}
-                                    ></textarea>
-                                </div>
-                            </div>
-
-                            <div>
                                 <label className="w-full h-max text-gray-700 text-left align-middle">Harga (Wajib Hukumnya)</label>
                                 <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
                                     <input
@@ -267,6 +252,19 @@ export default function AddProduct({ product, categories, brands, types, input_t
                                         required
                                     />
                                     {errors.price && <p className="text-red-500">{errors.price}</p>}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="w-full h-32 text-gray-700 text-left align-middle">Deskripsi</label>
+                                <div className="w-full flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                    <textarea
+                                        type="text"
+                                        placeholder="Contoh: paket lama wajib diunreg terlebih dahulu"
+                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                        value={data.desc}
+                                        onChange={(e) => setData("desc", e.target.value)}
+                                    ></textarea>
                                 </div>
                             </div>
 
@@ -302,11 +300,24 @@ export default function AddProduct({ product, categories, brands, types, input_t
                                     <input
                                         type="text"
                                         placeholder="Contoh: 100"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.stock}
+                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400 disabled:text-gray-500"
+                                        value={data.unlimited_stock ? "Unlimited" : data.stock}
                                         onChange={(e) => setData("stock", e.target.value)}
+                                        disabled={data.unlimited_stock}
                                     />
                                     {errors.stock && <p className="text-red-500">{errors.stock}</p>}
+                                </div>
+                                <div className="flex items-center mt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="unlimitedStock"
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        checked={data.unlimited_stock}
+                                        onChange={(e) => setData("unlimited_stock", e.target.checked)}
+                                    />
+                                    <label htmlFor="unlimitedStock" className="ml-2 text-gray-700 text-sm">
+                                        Unlimited Stok
+                                    </label>
                                 </div>
                             </div>
 

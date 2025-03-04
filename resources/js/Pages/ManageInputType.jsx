@@ -16,7 +16,7 @@ export default function Index({ inputTypes }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isEditing) {
-            put(`/manage-input-types/${data.id}`, {
+            post(`/manage-input-types/${data.id}`, {
                 onSuccess: () => {
                     reset();
                     setIsEditing(false);
