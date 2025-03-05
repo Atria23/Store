@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import Footer from "./Footer";
+import Footer from "../Components/Footer";
 import { Inertia } from "@inertiajs/inertia";
 
 const TransactionItem = ({ ref_id, product_name, customer_no, price, status, created_at }) => {

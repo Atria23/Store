@@ -1,400 +1,303 @@
-import { useState, useEffect } from "react";
-import { router, useForm } from "@inertiajs/react";
-import PopupSelect from "@/Components/PopupSelect";
+import React, { useState } from "react";
+import BannerSlider from "@/Components/BannerSlider";
+import ProductCategories from "@/Components/ProductCategories";
+import Footer from "../../Components/Footer";
+import { Link } from "@inertiajs/react";
 
-export default function AddProduct({ product, categories, brands, types, input_types }) {
-    const isEdit = !!product; // Cek apakah sedang edit atau tambah
-    const [showBrandPopup, setShowBrandPopup] = useState(false);
-    const [showCategoryPopup, setShowCategoryPopup] = useState(false);
-    const [showTypePopup, setShowTypePopup] = useState(false);
-    const [showInputTypePopup, setShowInputTypePopup] = useState(false);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedProductId, setSelectedProductId] = useState(null);
+function Dashboard({ user, categories }) {
+  const [showBalance, setShowBalance] = useState(false);
 
-    const handleDeleteClick = (id) => {
-        setSelectedProductId(id);
-        setIsPopupOpen(true);
-    };
+  const toggleBalanceVisibility = () => {
+    setShowBalance(!showBalance);
+  };
 
-    const handleDelete = () => {
-        if (selectedProductId) {
-            router.delete(route("products.destroy", selectedProductId));
-            setIsPopupOpen(false);
-        }
-    };
-
-    const { data, setData, post, put, processing, errors } = useForm({
-        buyer_sku_code: product?.buyer_sku_code || "",
-        product_name: product?.product_name || "",
-        category_id: product?.category_id || "",
-        brand_id: product?.brand_id || "",
-        type_id: product?.type_id || "",
-        input_type_id: product?.input_type_id || "",
-        price: product?.price || "",
-        buyer_product_status: product?.buyer_product_status ?? true,
-        seller_product_status: product?.seller_product_status ?? true,
-        unlimited_stock: product?.unlimited_stock ?? true,
-        stock: product?.stock || "",
-        multi: product?.multi ?? true,
-        start_cut_off: product?.start_cut_off || "0:0",
-        end_cut_off: product?.end_cut_off || "0:0",
-        desc: product?.desc || "",
-        seller_name: product?.seller_name || "Muvausa Store",
-    });
-
-    useEffect(() => {
-        // Reset brand dan type jika kategori berubah
-        setData(prev => ({ ...prev, brand_id: null, type_id: null }));
-    }, [data.category_id]);
-
-    useEffect(() => {
-        // Reset type jika brand berubah
-        setData(prev => ({ ...prev, type_id: null }));
-    }, [data.brand_id]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (isEdit) {
-            post(route("products.update", product.id)); // Mode Edit
-        } else {
-            post(route("products.store")); // Mode Tambah
-        }
-    };
-
-    const [displayValue, setDisplayValue] = useState("");
-
-    // Format angka ke Rupiah (Rp100.000 tanpa spasi setelah "Rp")
-    const formatRupiah = (value) => {
-        if (!value) return "Rp0";
-        return "Rp" + parseInt(value, 10).toLocaleString("id-ID").replace(/,/g, ".");
-    };
-
-    // Sinkronkan tampilan dengan state utama
-    useEffect(() => {
-        setDisplayValue(formatRupiah(data.price));
-    }, [data.price]);
-
-    const handleChange = (e) => {
-        const rawValue = e.target.value.replace(/\D/g, ""); // Hanya angka
-        setData("price", rawValue);
-    };
-
-
-
-    return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
-                {/* Header */}
-                <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                    {/* Left Section (Back Icon + Title) */}
-                    <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                        {/* Back Icon */}
-                        <button
-                            className="shrink-0 w-6 h-6"
-                            onClick={() => window.history.back()}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                            </svg>
-                        </button>
-                        {/* Title */}
-                        <div className="font-utama text-white font-bold text-lg">
-                            {isEdit ? "Edit Produk" : "Tambah Produk"}
-                        </div>
-                    </div>
-                </div>
+  return (
+    <>
+      <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
+        {/* Header */}
+        <section className="fixed top-0 left-1/2 -translate-x-1/2 w-[412px] z-10 h-max flex flex-row space-x-4 items-center justify-center p-4 bg-main">
+          <div className="w-full h-full flex flex-col my-auto items-start">
+            <div className="font-utama text-white font-bold text-lg">
+              Halo,
             </div>
-            <div className="mb-4 min-h-[756px] pt-[60px] bg-white">
-                <form onSubmit={handleSubmit}>
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="w-[380px] h-max flex flex-col space-y-4 mb-6">
+            <div className="font-utama text-white font-bold text-lg">
+              {user.name}
+            </div>
+          </div>
+          <div className="w-[90px] h-max flex items-center justify-center px-2 py-1 rounded-3xl text-xs text-main bg-blue-50 border border-main">
+            {user.transactions} trx
+          </div>
+        </section>
 
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Nama Produk (Wajib Hukumnya)</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: Pulsa Transfer XL 100.000"
-                                        value={data.product_name}
-                                        onChange={(e) => setData("product_name", e.target.value)}
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        required
-                                    />
-                                    {errors.product_name && <p className="text-red-500">{errors.product_name}</p>}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Kode SKU (Wajib Hukumnya)</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: xl100"
-                                        value={data.buyer_sku_code}
-                                        onChange={(e) => setData("buyer_sku_code", e.target.value)}
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        required
-                                    />
-                                    {errors.buyer_sku_code && <p className="text-red-500">{errors.buyer_sku_code}</p>}
-                                </div>
-                            </div>
-
-                            {/* Pilih Kategori */}
-                            <div className="relative w-full">
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Kategori (Wajib Hukumnya)</label>
-                                <div
-                                    className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
-                                    onClick={() => setShowCategoryPopup(true)}
-                                >
-                                    <span>
-                                        {data.category_id ? categories.find(cat => cat.id === data.category_id)?.name : "Pilih Kategori"}
-                                    </span>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-5 h-5 text-gray-500"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M6 9l6 6 6-6"></path>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* Pilih Brand */}
-                            <div className="relative w-full">
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Brand (Wajib Hukumnya)</label>
-                                <div
-                                    className={`flex items-center justify-between w-full h-10 px-4 py-2 border rounded-md cursor-pointer 
-                                        ${!data.category_id ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed" : "bg-white border-gray-300 text-gray-700"}`}
-                                    onClick={() => data.category_id && setShowBrandPopup(true)}
-                                >
-
-                                    <span>
-                                        {data.brand_id ? brands.find(brand => brand.id === data.brand_id)?.name : "Pilih Brand"}
-                                    </span>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-5 h-5 text-gray-500"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M6 9l6 6 6-6"></path>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* Pilih Type */}
-                            <div className="relative w-full">
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Tipe (Wajib Hukumnya)</label>
-                                <div
-                                    className={`flex items-center justify-between w-full h-10 px-4 py-2 border rounded-md cursor-pointer 
-                                        ${!data.brand_id ? "bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed" : "bg-white border-gray-300 text-gray-700"}`}
-                                    onClick={() => data.brand_id && setShowTypePopup(true)}
-                                >
-                                    <span>
-                                        {data.type_id ? types.find(type => type.id === data.type_id)?.name : "Pilih Type"}
-                                    </span>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-5 h-5 text-gray-500"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M6 9l6 6 6-6"></path>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            {/* Pilih Input Type */}
-                            <div className="relative w-full">
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Tipe Input</label>
-                                <div
-                                    className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
-                                    onClick={() => setShowInputTypePopup(true)}
-                                >
-                                    <span>
-                                        {data.input_type_id ? input_types.find(it => it.id === data.input_type_id)?.name : "Pilih Jenis Input"}
-                                    </span>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-5 h-5 text-gray-500"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M6 9l6 6 6-6"></path>
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-32 text-gray-700 text-left align-middle">Deskripsi</label>
-                                <div className="w-full flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <textarea
-                                        type="text"
-                                        placeholder="Contoh: paket lama wajib diunreg terlebih dahulu"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.desc}
-                                        onChange={(e) => setData("desc", e.target.value)}
-                                    ></textarea>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Harga (Wajib Hukumnya)</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: xl100"
-                                        value={displayValue}
-                                        onChange={handleChange} // Tetap pakai ini
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        required
-                                    />
-                                    {errors.price && <p className="text-red-500">{errors.price}</p>}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Start Cut Off</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: xl100"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.start_cut_off}
-                                        onChange={(e) => setData("start_cut_off", e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">End Cut Off</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: xl100"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.end_cut_off}
-                                        onChange={(e) => setData("end_cut_off", e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="w-full h-max text-gray-700 text-left align-middle">Stok</label>
-                                <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: 100"
-                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        value={data.stock}
-                                        onChange={(e) => setData("stock", e.target.value)}
-                                    />
-                                    {errors.stock && <p className="text-red-500">{errors.stock}</p>}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4">
-
-                                <label className="flex items-center gap-2 px-3 py-2 bg-neutral-100 border-2 border-gray-200 rounded-lg">
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 text-blue-600 border-gray-300 focus:ring focus:ring-blue-300 rounded"
-                                        checked={data.multi}
-                                        onChange={(e) => setData("multi", e.target.checked)}
-                                    />
-                                    <span className="text-gray-700 text-sm">Multi</span>
-                                </label>
-
-                                <label className="flex items-center gap-2 px-3 py-2 bg-neutral-100 border-2 border-gray-200 rounded-lg">
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 text-blue-600 border-gray-300 focus:ring focus:ring-blue-300 rounded"
-                                        checked={data.seller_product_status}
-                                        onChange={(e) => setData("seller_product_status", e.target.checked)}
-                                    />
-                                    <span className="text-gray-700 text-sm">Seller Product Status</span>
-                                </label>
-
-                                <label className="flex items-center gap-2 px-3 py-2 bg-neutral-100 border-2 border-gray-200 rounded-lg">
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 text-blue-600 border-gray-300 focus:ring focus:ring-blue-300 rounded"
-                                        checked={data.buyer_product_status}
-                                        onChange={(e) => setData("buyer_product_status", e.target.checked)}
-                                    />
-                                    <span className="text-gray-700 text-sm">Buyer Product Status</span>
-                                </label>
-                            </div>
-                            <button
-                                type="submit"
-                                className={`px-4 py-2 rounded text-white ${processing || !data.category_id || !data.brand_id || !data.type_id || !data.buyer_sku_code || !data.price || !data.product_name
-                                    ? "bg-gray-400 cursor-not-allowed"
-                                    : "bg-blue-600"
-                                    }`}
-                                disabled={processing || !data.category_id || !data.brand_id || !data.type_id || !data.buyer_sku_code || !data.price || !data.product_name}
-                            >
-                                {processing ? "Processing..." : isEdit ? "Update Produk" : "Tambah Produk"}
-                            </button>
-                            {isEdit && (
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteClick(product.id)}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                >
-                                    Hapus Produk
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-
-                    {isPopupOpen && (
-                        <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                            <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
-                                <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                    Yakin ingin menghapus produk ini?
-                                </p>
-                                <div className="w-full h-max flex flex-row space-x-2">
-                                    <button
-                                        onClick={handleDelete}
-                                        className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
-                                    >
-                                        Ya
-                                    </button>
-                                    <button
-                                        onClick={() => setIsPopupOpen(false)}
-                                        className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-main rounded-md hover:bg-blue-700"
-                                    >
-                                        Tidak
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+        {/* scroll */}
+        <section className="w-[412px] h-[892px] flex flex-col space-y-7 items-start justify-center">
+          {/* menu saldo */}
+          <div className="w-full h-max flex flex-col space-y-4 items-center justify-center px-4 pt-[105px] pb-4 rounded-b-[20px] bg-white">
+            {/* card */}
+            <div className="w-[375px] h-[258px] flex flex-col space-y-3 items-start justify-start p-4 rounded-[20px] bg-main-white">
+              {/* saldo */}
+              <div className="w-max h-max flex flex-col">
+                <p className="w-full h-max font-utama font-semibold text-sm text-left flex items-center justify-center">Saldo</p>
+                <div className="w-max h-max flex flex-row space-x-4 items-center justify-start">
+                  <p className="font-utama text-xl font-bold">
+                    {showBalance ? `Rp${user.balance.toLocaleString('id-ID')}` : "••••••••"}
+                  </p>
+                  <button
+                    onClick={toggleBalanceVisibility}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    {showBalance ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0055bb" className="bi bi-eye-fill" viewBox="0 0 16 16">
+                        <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
+                        <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0055bb" className="bi bi-eye-slash-fill" viewBox="0 0 16 16">
+                        <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" />
+                        <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" />
+                      </svg>
                     )}
-                    {/* Popups */}
-                    <PopupSelect show={showCategoryPopup} setShow={setShowCategoryPopup} title="Kategori" options={categories} selectedId={null} setData={setData} dataKey="category_id" />
-                    <PopupSelect show={showBrandPopup} setShow={setShowBrandPopup} title="Brand" options={brands} selectedId={data.category_id} setData={setData} dataKey="brand_id" filterKey="category_id" />
-                    <PopupSelect show={showTypePopup} setShow={setShowTypePopup} title="Type" options={types} selectedId={data.brand_id} setData={setData} dataKey="type_id" filterKey="brand_id" />
-                    <PopupSelect show={showInputTypePopup} setShow={setShowInputTypePopup} title="Jenis Input" options={input_types} selectedId={null} setData={setData} dataKey="input_type_id" />
-                </form>
+                  </button>
+                </div>
+              </div>
+
+              {/* poinmu */}
+              <div className="w-fill h-max flex flex-row mx-auto items-center">
+                <div className="w-[196px] h-max flex flex-row space-x-1 items-center justify-start">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                    <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
+                  </svg>
+                  <p className="font-utama text-xs text-left flex items-center justify-center">{user.points}</p>
+                </div>
+                <div className="w-[103px] h-[26px] flex flex-row space-x-4 items-center justify-center px-4 py-2 rounded-[8px] bg-main">
+                  <p className="font-utama text-sm font-medium text-left flex items-center justify-center text-white">Tukar</p>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                    <path fillRule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* menu saldo */}
+              <div className="w-full h-max flex flex-row space-x-4 items-start justify-center">
+                <a href="/deposit/create">
+                  <div className="w-full h-full flex flex-col space-y-1 items-start justify-center">
+                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                      <svg className="w-6 h-6 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <p className="flex items-center justify-center text-xs">Deposit</p>
+                  </div>
+                </a>
+                <a href="#">
+                  <div className="w-full h-full flex flex-col space-y-1 items-start justify-center">
+                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                      <svg className="w-6 h-6 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 20V7m0 13-4-4m4 4 4-4m4-12v13m0-13 4 4m-4-4-4 4" />
+                      </svg>
+                    </div>
+                    <p className="flex items-center justify-center text-xs">Mutasi</p>
+                  </div>
+                </a>
+                <a href="/deposit">
+                  <div className="w-full h-full flex flex-col space-y-1 items-start justify-center">
+                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                      <svg className="w-6 h-6 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fillRule="evenodd" d="M7 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2v-4a3 3 0 0 0-3-3H7V6Z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M2 11a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm7.5 1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" clipRule="evenodd" />
+                        <path d="M10.5 14.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+                      </svg>
+                    </div>
+                    <p className="flex items-center justify-center text-xs">Riwayat Deposit</p>
+                  </div>
+                </a>
+                <a href="/history">
+                  <div className="w-full h-full flex flex-col space-y-1 items-start justify-center">
+                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                      <svg className="w-6 h-6 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.617 2.076a1 1 0 0 1 1.09.217L8 3.586l1.293-1.293a1 1 0 0 1 1.414 0L12 3.586l1.293-1.293a1 1 0 0 1 1.414 0L16 3.586l1.293-1.293A1 1 0 0 1 19 3v18a1 1 0 0 1-1.707.707L16 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L12 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L8 20.414l-1.293 1.293A1 1 0 0 1 5 21V3a1 1 0 0 1 .617-.924ZM9 7a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <p className="flex items-center justify-center text-xs">Riwayat Transaksi</p>
+                  </div>
+                </a>
+              </div>
             </div>
-        </div>
-    );
+          </div>
+
+          {/* banner */}
+          <div className="w-[372px] h-[124px] overflow-x-auto">
+            <div className="w-max h-max flex flex-row space-x-4 items-start justify-start">
+              <BannerSlider />
+            </div>
+          </div>
+
+
+          {/* list kategori */}
+          <div className="w-max h-[369px] flex flex-col space-y-4 items-start justify-start">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/${category.name}`}
+                  className="block text-center"
+                >
+                  <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
+                    <img
+                      src={category.image ? `/storage/${category.image}` : "/storage/categories/default.png"}
+                      alt={category.name}
+                      className="w-20 h-20 mx-auto rounded-full object-cover border border-gray-300"
+                    />
+                    <p className="mt-2 text-sm font-semibold">{category.name}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div className="relative z-10 bg-[#0055bb] rounded-b-2xl">
+            <section className="bg-white p-6 rounded-xl shadow-lg">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-800">Saldo</h2>
+              </div>
+              <div className="flex items-center space-x-4">
+                <p className="text-3xl font-bold text-gray-800">
+                  {showBalance ? `Rp${user.balance.toLocaleString('id-ID')}` : "••••••••"}
+                </p>
+                <button
+                  onClick={toggleBalanceVisibility}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  {showBalance ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0055bb" className="bi bi-eye-fill" viewBox="0 0 16 16">
+                      <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
+                      <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#0055bb" className="bi bi-eye-slash-fill" viewBox="0 0 16 16">
+                      <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" />
+                      <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <div className="flex justify-between items-center mt-2  ">
+                <div>
+                  <p className="text-gray-600">PoinMu</p>
+                  <p className="text-xl font-bold text-green-600">{user.points}</p>
+                </div>
+                <button className="bg-[#0055bb] hover:bg-blue-500 text-white py-2 px-4 rounded-lg shadow">
+                  Tukar
+                </button>
+              </div>
+
+              {/* akses cepat */}
+              <div className="mt-4">
+                <div className="w-full h-px bg-gray-300 mb-6"></div>
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Deposit */}
+                  <a href="/deposit/create">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-[#0055bb] text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-lg hover:bg-[#003f8a] transition duration-300">
+                        <svg className="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                          <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="mt-2 text-sm text-center">Deposit</p>
+                    </div>
+                  </a>
+                  {/* Mutasi */}
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#0055bb] text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-lg hover:bg-[#003f8a] transition duration-300">
+                      <svg className="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 20V7m0 13-4-4m4 4 4-4m4-12v13m0-13 4 4m-4-4-4 4" />
+                      </svg>
+                    </div>
+                    <p className="mt-2 text-sm text-center">Mutasi</p>
+                  </div>
+                  {/* Riwayat Deposit */}
+                  <a href="/deposit">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-[#0055bb] text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-lg hover:bg-[#003f8a] transition duration-300">
+                        <svg className="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                          <path fillRule="evenodd" d="M7 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2v-4a3 3 0 0 0-3-3H7V6Z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M2 11a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm7.5 1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" clipRule="evenodd" />
+                          <path d="M10.5 14.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+                        </svg>
+                      </div>
+                      <p className="mt-2 text-sm text-center">Riwayat Deposit</p>
+                    </div>
+                  </a>
+                  {/* Riwayat Transaksi */}
+                  <a href="/history">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-[#0055bb] text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-lg hover:bg-[#003f8a] transition duration-300">
+                        <svg className="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                          <path fillRule="evenodd" d="M5.617 2.076a1 1 0 0 1 1.09.217L8 3.586l1.293-1.293a1 1 0 0 1 1.414 0L12 3.586l1.293-1.293a1 1 0 0 1 1.414 0L16 3.586l1.293-1.293A1 1 0 0 1 19 3v18a1 1 0 0 1-1.707.707L16 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L12 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L8 20.414l-1.293 1.293A1 1 0 0 1 5 21V3a1 1 0 0 1 .617-.924ZM9 7a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="mt-2 text-sm text-center">Riwayat Transaksi</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </section>
+
+          </div>
+
+          {/* Section 3 */}
+          <section className="bg-white p-6 rounded-xl shadow-lg">
+            <BannerSlider />
+          </section>
+
+          {/* Section 4 */}
+          <section className="bg-white p-6 rounded-xl shadow-lg">
+            {/* <h2 className="text-xl font-bold mb-4 text-gray-800">
+              Kategori Produk
+            </h2> */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/${category.name}`}
+                  className="block text-center"
+                >
+                  <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
+                    <img
+                      src={category.image ? `/storage/${category.image}` : "/storage/categories/default.png"}
+                      alt={category.name}
+                      className="w-20 h-20 mx-auto rounded-full object-cover border border-gray-300"
+                    />
+                    <p className="mt-2 text-sm font-semibold">{category.name}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        <Footer />
+      </div >
+    </>
+  );
 }
+
+export default Dashboard;

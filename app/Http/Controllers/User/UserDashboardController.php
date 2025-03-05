@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 use App\Models\TransactionsHistory;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class UserDashboardController extends Controller
@@ -28,8 +30,13 @@ class UserDashboardController extends Controller
             'depositHistory' => optional($user)->depositHistory ?? [],
         ];
 
+        $categories = DB::table('categories')
+            ->select('id', 'name', 'image')
+            ->get();
+
         // Kirimkan data user dengan jumlah transaksi sukses ke komponen React
         return Inertia::render('User/Dashboard', [
+            'categories' => $categories,
             'user' => $userData, // Kirim data user dengan jumlah transaksi sukses
         ]);
     }

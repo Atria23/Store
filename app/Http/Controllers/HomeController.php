@@ -16,7 +16,7 @@ class HomeController extends Controller
             ->groupBy('categories.id', 'categories.name', 'categories.image')
             ->get();
 
-        return Inertia::render('Home', [
+        return Inertia::render('User/Home', [
             'categories' => $categories
         ]);
     }
