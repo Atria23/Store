@@ -14,9 +14,15 @@ use Inertia\Response;
 
 class BarangController extends Controller
 {
+
     public function index()
     {
-        $barangs = Barang::with(['category', 'brand', 'type']) // Eager load relationships
+        $barangs = Barang::with(['category', 'brand', 'type'])
+            ->leftJoin('products', 'barangs.buyer_sku_code', '=', 'products.buyer_sku_code')
+            ->select(
+                'barangs.*',
+                'products.price as product_price' // Ambil harga dari tabel products
+            )
             ->get()
             ->map(function ($barang) {
                 $isUsed = PriceList::where('category', $barang->category?->name)
@@ -32,13 +38,14 @@ class BarangController extends Controller
                     'category_id' => $barang->category_id,
                     'category_name' => $barang->category?->name,
                     'brand_id' => $barang->brand_id,
-                    'brand_name' => $barang->brand?->name,
+                    'brand_name' => explode(' - ', $barang->brand?->name ?? '')[0],
                     'brand_image' => $barang->brand?->image,
                     'type_id' => $barang->type_id,
-                    'type_name' => $barang->type?->name,
+                    'type_name' => explode(' - ', $barang->type?->name ?? '')[0],
                     'input_type_id' => $barang->input_type_id,
                     'seller_name' => $barang->seller_name,
-                    'price' => $barang->price,
+                    'price' => $barang->price, // Harga dari tabel barangs
+                    'sell_price' => $barang->product_price, // Harga dari tabel products
                     'buyer_product_status' => $barang->buyer_product_status,
                     'seller_product_status' => $barang->seller_product_status,
                     'unlimited_stock' => $barang->unlimited_stock,
@@ -50,16 +57,17 @@ class BarangController extends Controller
                     'image' => $barang->image,
                     'created_at' => $barang->created_at,
                     'updated_at' => $barang->updated_at,
-                    'is_used' => $isUsed, // Status apakah digunakan di PriceList
+                    'is_used' => $isUsed,
                 ];
             });
 
+    
         // Ambil semua kategori, brand, type, dan input type
         $categories = Category::all(['id', 'name', 'image']);
         $brands = Brand::all(['id', 'name', 'category_id', 'image']);
         $types = Type::all(['id', 'name', 'brand_id']);
         $inputTypes = InputType::all(['id', 'name']);
-
+    
         return Inertia::render('ManageBarangs', [
             'barangs' => $barangs,
             'categories' => $categories,
@@ -69,6 +77,7 @@ class BarangController extends Controller
         ]);
     }
 
+    
     public function syncBarangs()
     {
         $priceListItems = PriceList::select(
@@ -96,12 +105,29 @@ class BarangController extends Controller
             ->get();
 
         foreach ($priceListItems as $item) {
-            $category = Category::where('name', trim($item->category))->first();
-            $brand = Brand::where('name', trim($item->brand))->first();
-            $type = Type::where('name', trim($item->type))->first();
+            $categoryName = trim($item->category);
+            $brandFullName = trim($item->brand);
+            $typeFullName = trim($item->type);
+
+            // Ambil bagian pertama dari nama brand dan type sebelum " - "
+            $brandBaseName = explode(' - ', $brandFullName)[0];
+            $typeBaseName = explode(' - ', $typeFullName)[0];
+
+            // Cari kategori berdasarkan nama
+            $category = Category::where('name', $categoryName)->first();
+
+            // Cari brand berdasarkan nama depannya
+            $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandBaseName, $brandBaseName])
+                ->where('category_id', optional($category)->id)
+                ->first();
+
+            // Cari type berdasarkan nama depannya
+            $type = Type::whereRaw("LEFT(name, LENGTH(?)) = ?", [$typeBaseName, $typeBaseName])
+                ->where('brand_id', optional($brand)->id)
+                ->first();
 
             if (!$category || !$brand || !$type) {
-                continue; // Lewati jika salah satu kategori, brand, atau type tidak ditemukan
+                continue; // Lewati jika salah satu tidak ditemukan
             }
 
             Barang::updateOrCreate(
@@ -130,6 +156,5 @@ class BarangController extends Controller
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil disinkronisasi.');
     }
-
 
 }

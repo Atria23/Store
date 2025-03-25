@@ -35,7 +35,14 @@ class Type extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'brand_id', 'category_id', 'input_type_id'];
+    protected $fillable = [
+        'name', 
+        'brand_id', 
+        'category_id', 
+        'input_type_id',
+        'example_id_product',
+        'example_image',
+    ];
 
     public function brand()
     {

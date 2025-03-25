@@ -14,6 +14,8 @@ class CreateTypesTable extends Migration
             $table->foreignId('brand_id')->constrained('brands')->onDelete('cascade');
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
             $table->foreignId('input_type_id')->nullable()->constrained('input_types')->onDelete('set null');
+            $table->string('example_id_product')->nullable();
+            $table->string('example_image')->nullable();
             $table->timestamps();
         });
     }

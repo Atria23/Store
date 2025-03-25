@@ -86,8 +86,6 @@ export default function FreeFirePriceList() {
                 setLoading(false);
             });
     };
-    
-    
 
     return (
         <div className="p-4">
@@ -179,3 +177,29 @@ export default function FreeFirePriceList() {
         </div>
     );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -192,8 +192,9 @@ export default function ManageBarangs({ barangs = [] }) {
                                     <div className="w-max h-full flex flex-col items-center space-y-2">
                                         {/* Harga Produk */}
                                         <div className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center">
-                                            {formatRupiah(barang.price)}
+                                            {formatRupiah(Math.round(barang.sell_price))}
                                         </div>
+
 
                                         {/* Status Produk */}
                                         <div

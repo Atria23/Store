@@ -13,8 +13,13 @@ return new class extends Migration {
             $table->string('name');
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('cascade');
             $table->foreignId('input_type_id')->nullable()->default(1)->constrained('input_types')->onDelete('set null');
-            $table->decimal('profit_persen', 8, 2)->nullable()->default(0);
-            $table->decimal('profit_tetap', 10, 2)->nullable()->default(0);
+            $table->string('example_id_product')->nullable();
+            $table->string('example_image')->nullable();
+
+            // Gunakan DECIMAL(10,4) untuk angka dengan 4 desimal
+            $table->decimal('profit_persen', 10, 4)->nullable()->default(1.0000);
+            $table->decimal('profit_tetap', 10, 4)->nullable()->default(0.0000);
+
             $table->timestamps();
         });
     }

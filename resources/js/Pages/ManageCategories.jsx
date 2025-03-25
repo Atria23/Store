@@ -32,14 +32,14 @@ export default function CategoryList() {
     const handleSubmit = (e) => {
         e.preventDefault();
         setErrors({}); // Reset error
-    
+
         if (editCategory) {
             // Jika ada gambar, gunakan FormData
             if (form.image) {
                 const formData = new FormData();
                 formData.append("name", form.name);
                 formData.append("image", form.image);
-    
+
                 router.post(`/manage-categories/${editCategory.id}`, formData, {
                     onSuccess: () => {
                         setModal(false);
@@ -66,7 +66,7 @@ export default function CategoryList() {
             const formData = new FormData();
             formData.append("name", form.name);
             if (form.image) formData.append("image", form.image);
-    
+
             router.post("/manage-categories", formData, {
                 onSuccess: () => {
                     setModal(false);
@@ -76,7 +76,7 @@ export default function CategoryList() {
             });
         }
     };
-    
+
 
     const openEditModal = (category) => {
         setEditCategory(category);
@@ -109,17 +109,17 @@ export default function CategoryList() {
                 : b.name.localeCompare(a.name)
         );
 
-        const handleSync = () => {
-            router.get(route("categories.sync"), {}, {
-                onSuccess: (page) => {
-                    alert(page.props.flash.message || "Sinkronisasi berhasil!");
-                },
-                onError: (errors) => {
-                    console.error("Gagal sinkronisasi:", errors);
-                    alert("Gagal melakukan sinkronisasi.");
-                }
-            });
-        };
+    const handleSync = () => {
+        router.get(route("categories.sync"), {}, {
+            onSuccess: (page) => {
+                alert(page.props.flash.message || "Sinkronisasi berhasil!");
+            },
+            onError: (errors) => {
+                console.error("Gagal sinkronisasi:", errors);
+                alert("Gagal melakukan sinkronisasi.");
+            }
+        });
+    };
 
     return (
         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
@@ -317,8 +317,8 @@ export default function CategoryList() {
                     <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
                         <div className="w-full h-max flex flex-col">
                             {/* Ikon silang di kanan atas */}
-                            <button 
-                                className="w-full flex items-end justify-end" 
+                            <button
+                                className="w-full flex items-end justify-end"
                                 onClick={() => {
                                     setModal(false);
                                     setErrors({});

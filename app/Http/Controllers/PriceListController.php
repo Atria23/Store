@@ -79,73 +79,203 @@ class PriceListController extends Controller
                 };
 
                 // Update brand jika ada
+                // if (!empty($item['brand']) && !empty($item['category'])) {
+                //     $category = Category::where('name', $item['category'])->first();
+
+                //     if ($category) {
+                //         Brand::updateOrCreate(
+                //             [
+                //                 'name' => $item['brand'],
+                //                 'category_id' => $category->id, // Pastikan category_id selalu ada
+                //             ],
+                //             [
+                //                 'updated_at' => now(),
+                //             ]
+                //         );
+                //     }
+                // };
+
                 if (!empty($item['brand']) && !empty($item['category'])) {
                     $category = Category::where('name', $item['category'])->first();
-
+                
                     if ($category) {
+                        // Gabungkan nama brand dengan kategori (Brand - Category)
+                        $brandName = "{$item['brand']} - {$item['category']}";
+                
                         Brand::updateOrCreate(
                             [
-                                'name' => $item['brand'],
-                                'category_id' => $category->id, // Pastikan category_id selalu ada
+                                'name' => $brandName, // Nama brand harus mengikuti format "Brand - Category"
                             ],
                             [
+                                'category_id' => $category->id, // Pastikan category_id sesuai
                                 'updated_at' => now(),
                             ]
                         );
                     }
-                };
+                }
+                
+
+                // if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
+                //     $brand = Brand::where('name', $item['brand'])->first();
+                //     $category = Category::where('name', $item['category'])->first();
+                
+                //     if ($brand && $category) {
+                //         Type::updateOrCreate(
+                //             [
+                //                 'name' => $item['type'],
+                //                 'brand_id' => $brand->id,
+                //                 'category_id' => $category->id,
+                //             ],
+                //             [
+                //                 'updated_at' => now(),
+                //             ]
+                //         );
+                //     }
+                // };
+
+                // if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
+                //     $category = Category::where('name', trim($item['category']))->first();
+                
+                //     // Pisahkan brand sebelum tanda " - "
+                //     $brandNameOnly = explode(' - ', trim($item['brand']))[0];
+                
+                //     // Cari brand berdasarkan nama bagian pertama saja
+                //     $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandNameOnly, $brandNameOnly])
+                //         ->where('category_id', optional($category)->id) // Pastikan kategori cocok
+                //         ->first();
+                
+                //     if ($brand && $category) {
+                //         // Format nama type menjadi "Type - Brand - Category"
+                //         $typeName = trim($item['type']) . ' - ' . $brand->name . ' - ' . $category->name;
+                
+                //         Type::updateOrCreate(
+                //             [
+                //                 'name' => $typeName, // Simpan dalam format "Type - Brand - Category"
+                //             ],
+                //             [
+                //                 'brand_id' => $brand->id,
+                //                 'category_id' => $category->id,
+                //                 'updated_at' => now(),
+                //             ]
+                //         );
+                //     }
+                // }
 
                 if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
-                    $brand = Brand::where('name', $item['brand'])->first();
-                    $category = Category::where('name', $item['category'])->first();
+                    $categoryName = trim($item['category']);
+                    $brandFullName = trim($item['brand']);
+                    $typeNameOnly = trim($item['type']);
+                
+                    // Ambil bagian pertama dari nama brand sebelum " - "
+                    $brandBaseName = explode(' - ', $brandFullName)[0];
+                
+                    // Cari kategori berdasarkan nama
+                    $category = Category::where('name', $categoryName)->first();
+                
+                    // Cari brand berdasarkan bagian pertama dari nama
+                    $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandBaseName, $brandBaseName])
+                        ->where('category_id', optional($category)->id) // Pastikan kategori cocok
+                        ->first();
                 
                     if ($brand && $category) {
+                        // Format nama type menjadi "Type - Brand - Category"
+                        $typeFullName = "{$typeNameOnly} - {$brand->name} - {$category->name}";
+                
                         Type::updateOrCreate(
                             [
-                                'name' => $item['type'],
-                                'brand_id' => $brand->id,
-                                'category_id' => $category->id,
+                                'name' => $typeFullName, // Simpan dalam format "Type - Brand - Category"
                             ],
                             [
+                                'brand_id' => $brand->id,
+                                'category_id' => $category->id,
                                 'updated_at' => now(),
                             ]
                         );
                     }
-                };
+                }
                 
-                if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category']) && !empty($item['buyer_sku_code'])) {
-                    $brand = Brand::where('name', $item['brand'])->first();
-                    $category = Category::where('name', $item['category'])->first();
-                    $type = Type::where('name', $item['type'])->first();
+                
+                
+                // if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category']) && !empty($item['buyer_sku_code'])) {
+                //     $brand = Brand::where('name', $item['brand'])->first();
+                //     $category = Category::where('name', $item['category'])->first();
+                //     $type = Type::where('name', $item['type'])->first();
                     
-                    // Ambil data dari PriceList menggunakan Eloquent
-                    PriceList::all();
+                //     // Ambil data dari PriceList menggunakan Eloquent
+                //     PriceList::all();
 
+                //     if ($brand && $category && $type) {
+                //         Barang::updateOrCreate(
+                //             [
+                //                 'buyer_sku_code' => $item['buyer_sku_code'], // Identifikasi unik
+                //             ],
+                //             [
+                //                 'product_name' => $item['product_name'], // Menggunakan type sebagai nama barang
+                //                 'brand_id' => $brand->id,
+                //                 'category_id' => $category->id,
+                //                 'type_id' => $type->id,
+                //                 'input_type_id' => $inputType->id ?? null, // InputType opsional
+                //                 'price' => $item['price'], // Harga sebagai string
+                //                 'buyer_product_status' => $item['buyer_product_status'], // Boolean
+                //                 'seller_product_status' => $item['seller_product_status'], // Boolean
+                //                 'unlimited_stock' => !empty($item['unlimited_stock']) ? (bool) $item['unlimited_stock'] : false, // Boolean
+                //                 'stock' => !empty($item['stock']) ? (string) $item['stock'] : null, // Stok sebagai string atau null
+                //                 'multi' => !empty($item['multi']) ? (bool) $item['multi'] : false, // Boolean
+                //                 'start_cut_off' => $item['start_cut_off'], // Ambil dari item atau PriceList
+                //                 'end_cut_off' => $item['end_cut_off'], // Ambil dari item atau PriceList
+                //                 'desc' => $item['desc'] ?? null, // Deskripsi
+                //                 'updated_at' => now(),
+                //             ]
+                //         );
+                //     }
+                // };               
+                if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category']) && !empty($item['buyer_sku_code'])) {
+                    $categoryName = trim($item['category']);
+                    $brandFullName = trim($item['brand']);
+                    $typeFullName = trim($item['type']);
+                
+                    // Ambil bagian pertama dari nama brand dan type sebelum " - "
+                    $brandBaseName = explode(' - ', $brandFullName)[0];
+                    $typeBaseName = explode(' - ', $typeFullName)[0];
+                
+                    // Cari kategori berdasarkan nama
+                    $category = Category::where('name', $categoryName)->first();
+                
+                    // Cari brand berdasarkan nama depannya dan kategori terkait
+                    $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandBaseName, $brandBaseName])
+                        ->where('category_id', optional($category)->id)
+                        ->first();
+                
+                    // Cari type berdasarkan nama depannya dan brand terkait
+                    $type = Type::whereRaw("LEFT(name, LENGTH(?)) = ?", [$typeBaseName, $typeBaseName])
+                        ->where('brand_id', optional($brand)->id)
+                        ->first();
+                
                     if ($brand && $category && $type) {
                         Barang::updateOrCreate(
                             [
-                                'buyer_sku_code' => $item['buyer_sku_code'], // Identifikasi unik
+                                'buyer_sku_code' => trim($item['buyer_sku_code']),
                             ],
                             [
-                                'product_name' => $item['product_name'], // Menggunakan type sebagai nama barang
+                                'product_name' => trim($item['product_name']),
                                 'brand_id' => $brand->id,
                                 'category_id' => $category->id,
                                 'type_id' => $type->id,
                                 'input_type_id' => $inputType->id ?? null, // InputType opsional
-                                'price' => $item['price'], // Harga sebagai string
-                                'buyer_product_status' => $item['buyer_product_status'], // Boolean
-                                'seller_product_status' => $item['seller_product_status'], // Boolean
-                                'unlimited_stock' => !empty($item['unlimited_stock']) ? (bool) $item['unlimited_stock'] : false, // Boolean
-                                'stock' => !empty($item['stock']) ? (string) $item['stock'] : null, // Stok sebagai string atau null
-                                'multi' => !empty($item['multi']) ? (bool) $item['multi'] : false, // Boolean
-                                'start_cut_off' => $item['start_cut_off'], // Ambil dari item atau PriceList
-                                'end_cut_off' => $item['end_cut_off'], // Ambil dari item atau PriceList
-                                'desc' => $item['desc'] ?? null, // Deskripsi
+                                'price' => $item['price'] ?? 0,
+                                'buyer_product_status' => $item['buyer_product_status'],
+                                'seller_product_status' => $item['seller_product_status'],
+                                'unlimited_stock' => !empty($item['unlimited_stock']) ? (bool) $item['unlimited_stock'] : false,
+                                'stock' => !empty($item['stock']) ? (string) $item['stock'] : null,
+                                'multi' => !empty($item['multi']) ? (bool) $item['multi'] : false,
+                                'start_cut_off' => $item['start_cut_off'],
+                                'end_cut_off' => $item['end_cut_off'],
+                                'desc' => trim($item['desc']) ?? '',
                                 'updated_at' => now(),
                             ]
                         );
                     }
-                };               
+                }
             }
 
             Log::info("Data berhasil diperbarui pada " . now()->toDateTimeString() . ".");

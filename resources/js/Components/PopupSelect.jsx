@@ -41,7 +41,7 @@ export default function PopupSelect({ show, setShow, title, options, selectedId,
                                 alt={option.name}
                                 className="w-8 h-8 border border-gray-300 rounded-full object-cover"
                             />
-                            <p className="text-utama text-sm text-left align-middle">{option.name}</p>
+                            <p className="text-utama text-sm text-left align-middle">{option.name.split(" - ")[0]} {/* Tampilkan hanya bagian sebelum "-" */}</p>
                         </div>
                     ))}
 

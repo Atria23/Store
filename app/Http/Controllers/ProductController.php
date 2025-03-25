@@ -19,10 +19,15 @@ class ProductController extends Controller
     
         return Inertia::location('/manage-products'); // 🔥 Redirect setelah menghapus
     }
-    
+
     public function index($id = null)
     {
-        $product = $id ? Barang::findOrFail($id) : null;
+        // Jika ada ID, ambil data barang beserta harga jual (sell_price)
+        $product = $id ? Barang::with('category', 'brand', 'type')
+            ->leftJoin('products', 'barangs.buyer_sku_code', '=', 'products.buyer_sku_code')
+            ->select('barangs.*', 'products.price as sell_price') // Ambil harga jual dari tabel products
+            ->where('barangs.id', $id)
+            ->first() : null;
 
         return Inertia::render('Products/AddProduct', [
             'product' => $product,
@@ -32,7 +37,6 @@ class ProductController extends Controller
             'input_types' => InputType::all(['id', 'name']),
         ]);
     }
-
 
     public function store(Request $request)
     {

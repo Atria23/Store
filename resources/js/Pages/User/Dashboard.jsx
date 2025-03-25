@@ -116,7 +116,7 @@ function Dashboard({ user, categories }) {
                         <path d="M10.5 14.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
                       </svg>
                     </div>
-                    <p className="text-center text-xs">Riwayat<br/>Deposit</p>
+                    <p className="text-center text-xs">Riwayat<br />Deposit</p>
                   </div>
                 </a>
                 <a href="/history">
@@ -126,7 +126,7 @@ function Dashboard({ user, categories }) {
                         <path fillRule="evenodd" d="M5.617 2.076a1 1 0 0 1 1.09.217L8 3.586l1.293-1.293a1 1 0 0 1 1.414 0L12 3.586l1.293-1.293a1 1 0 0 1 1.414 0L16 3.586l1.293-1.293A1 1 0 0 1 19 3v18a1 1 0 0 1-1.707.707L16 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L12 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L8 20.414l-1.293 1.293A1 1 0 0 1 5 21V3a1 1 0 0 1 .617-.924ZM9 7a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <p className="text-center text-xs">Riwayat<br/>Transaksi</p>
+                    <p className="text-center text-xs">Riwayat<br />Transaksi</p>
                   </div>
                 </a>
               </div>
@@ -143,7 +143,7 @@ function Dashboard({ user, categories }) {
               {categories.map((category) => (
                 <Link
                   key={category.id}
-                  href={`/${category.name}`}
+                  href={`/c=${category.name}`}
                   className="w-full h-full flex flex-col space-y-1 items-center justify-start"
                 >
                   <div className="relative w-12 h-12 mx-auto">
@@ -159,7 +159,6 @@ function Dashboard({ user, categories }) {
                 </Link>
               ))}
             </div>
-            
           </div>
         </section>
 

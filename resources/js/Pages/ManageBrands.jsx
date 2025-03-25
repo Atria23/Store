@@ -5,6 +5,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
     const [showModal, setShowModal] = useState(false);
     const [editBrand, setEditBrand] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
+    const [previewExampleImage, setPreviewExampleImage] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("asc");
     const [errors, setErrors] = useState({});
@@ -27,33 +28,27 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
         type.name.toLowerCase().includes(searchInputType.toLowerCase())
     );
 
-    const { data, setData, post, put, processing, reset, delete: destroy } = useForm({
+    const { data, setData, post, processing, reset, delete: destroy } = useForm({
         id: "",
         name: "",
         image: null,
+        example_image: null,
         category_id: "",
         input_type_id: "",
         profit_persen: "",
         profit_tetap: "",
+        example_id_product: ""
     });
 
     // 🔹 Handle Submit (Tambah & Edit)
     const handleSubmit = (e) => {
         e.preventDefault();
-        setErrors({}); // Reset error
-
+        setErrors({});
 
         const formData = new FormData();
-        formData.append("name", data.name);
-        formData.append("category_id", data.category_id);
-        formData.append("input_type_id", data.input_type_id);
-        formData.append("profit_persen", data.profit_persen);
-        formData.append("profit_tetap", data.profit_tetap);
-
-
-        if (data.image) {
-            formData.append("image", data.image);
-        }
+        Object.keys(data).forEach((key) => {
+            if (data[key]) formData.append(key, data[key]);
+        });
 
         if (editBrand) {
             post(route("brands.update", data.id), {
@@ -61,12 +56,11 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                 onSuccess: () => {
                     reset();
                     setPreviewImage(null);
+                    setPreviewExampleImage(null);
                     setEditBrand(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after update
+                    setTimeout(() => setShowModal(false), 300);
                 },
-                onError: (err) => {
-                    setErrors(err); // Menyimpan error ke state
-                },
+                onError: (err) => setErrors(err)
             });
         } else {
             post(route("brands.store"), {
@@ -74,14 +68,12 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                 onSuccess: () => {
                     reset();
                     setPreviewImage(null);
-                    setTimeout(() => setShowModal(false), 300); // Auto-close modal after insert
+                    setPreviewExampleImage(null);
+                    setTimeout(() => setShowModal(false), 300);
                 },
-                onError: (err) => {
-                    setErrors(err); // Menyimpan error ke state
-                },
+                onError: (err) => setErrors(err)
             });
         }
-
     };
 
 
@@ -90,14 +82,15 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
         setEditBrand(brand);
         setData({
             id: brand.id,
-            name: brand.name,
-            image: null,
+            name: brand.name.split(" - ")[0],
             category_id: brand.category_id,
             input_type_id: brand.input_type_id,
             profit_persen: brand.profit_persen,
             profit_tetap: brand.profit_tetap,
+            example_id_product: brand.example_id_product,
         });
         setPreviewImage(brand.image);
+        setPreviewExampleImage(brand.example_image);
         setShowModal(true);
     };
 
@@ -107,6 +100,14 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
         if (file) {
             setData("image", file);
             setPreviewImage(URL.createObjectURL(file));
+        }
+    };
+
+    const handleExampleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData("example_image", file);
+            setPreviewExampleImage(URL.createObjectURL(file));
         }
     };
 
@@ -306,10 +307,10 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                         </button>
                                         <button
                                             onClick={() => confirmDelete(brand.id)}
-                                            disabled={brand.is_used}
-                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${brand.is_used
-                                                ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
-                                                : "text-red-600 bg-red-50 border border-red-600"
+                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center 
+                                                ${brand.is_used
+                                                    ? "text-yellow-600 bg-yellow-50 border border-yellow-600"
+                                                    : "text-red-600 bg-red-50 border border-red-600"
                                                 }`}
                                         >
                                             Hapus
@@ -356,7 +357,9 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
             {/* 🔹 MODAL FORM */}
             {showModal && (
                 <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                    {/* <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white"> */}
+                    <div className="w-[328px] h-[643px] overflow-y-auto flex flex-col space-y-2 p-4 rounded-lg bg-white">
+
                         <div className="w-full h-max flex flex-col">
                             {/* Ikon silang di kanan atas */}
                             <button
@@ -414,7 +417,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                         <input
                                             type="text"
                                             name="name"
-                                            value={data.name}
+                                            value={data.name.split(" - ")[0]}
                                             onChange={(e) => setData("name", e.target.value)}
                                             className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                             placeholder="Contoh: Mobile Legends"
@@ -613,6 +616,50 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                     {errors.name && (
                                         <p className="text-red-600 text-sm">{errors.name}</p>
                                     )}
+
+                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Contoh ID Pelanggan</p>
+                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                        {/* Search Bar */}
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={data.example_id_product || ""} // Ini mencegah undefined
+                                            onChange={(e) => setData("example_id_product", e.target.value)}
+                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                            placeholder="input 1= 24434, input 2=Ms24"
+                                        />
+                                    </div>
+                                    {errors.name && (
+                                        <p className="text-red-600 text-sm">{errors.name}</p>
+                                    )}
+
+                                </div>
+                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
+                                    <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
+                                        {/* Input file transparan di atas lingkaran */}
+                                        <input
+                                            type="file"
+                                            name="image"
+                                            accept="image/*"
+                                            onChange={handleExampleImageChange}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        {/* Preview gambar atau placeholder */}
+                                        {previewExampleImage ? (
+                                            <img
+                                                src={previewExampleImage}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                                                Pilih Gambar
+                                            </span>
+                                        )}
+                                    </label>
+                                    {/* Error message */}
+                                    {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
+                                    <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Contoh ID Pel</p>
                                 </div>
                             </div>
 

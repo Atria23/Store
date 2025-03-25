@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Category;
+use Illuminate\Http\Requeuse; 
 use App\Models\PriceList;
+use App\Models\Category;
+use App\Models\Brand;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -113,22 +114,23 @@ class CategoryController extends Controller
      * Menghapus kategori.
      */
     public function destroy(Category $category)
-{
-    // Periksa apakah kategori masih digunakan di tabel price_list
-    $isUsed = PriceList::where('category', $category->name)->exists();
+    {
+        // Periksa apakah kategori masih digunakan di tabel price_list
+        $isUsed = PriceList::where('category', $category->name)->exists();
 
-    if ($isUsed) {
-        return redirect()->route('categories.index')->with('error', 'Kategori masih digunakan dan tidak dapat dihapus.');
+        if ($isUsed) {
+            return redirect()->route('categories.index')->with('error', 'Kategori masih digunakan dan tidak dapat dihapus.');
+        }
+
+        // Hapus gambar jika ada
+        if ($category->image) {
+            Storage::disk('public')->delete($category->image);
+        }
+
+        $category->delete();
+
+        return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
     }
 
-    // Hapus gambar jika ada
-    if ($category->image) {
-        Storage::disk('public')->delete($category->image);
-    }
-
-    $category->delete();
-
-    return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
-}
 
 }

@@ -32,7 +32,72 @@ use App\Http\Controllers\BrandCategoryController;
 use App\Http\Controllers\TypeController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\User\AffiliatorController;
+use App\Http\Controllers\AffiliateProductController;
+use App\Http\Controllers\User\AffiliateHistoryController;
+use App\Http\Controllers\User\AffiliateDashboardController;
+use App\Http\Controllers\User\PoinmuHistoryController;
+use App\Http\Controllers\User\PoinmuController;
+use App\Http\Controllers\User\BalanceMutationController;
+use App\Http\Controllers\User\UserProductController;
 
+Route::post('/auth/verify-password', [TransactionController ::class, 'verifyPassword'])->middleware('auth');
+
+Route::get('/checkout', [UserProductController::class, 'checkout'])->name('checkout');
+
+Route::post('/c={category}/detect-operator', [UserProductController::class, 'detectOperator'])
+    ->name('category.detect.operator');
+
+Route::get('/c={category}', [UserProductController::class, 'showBrand'])
+    ->name('category.show.brand');
+    
+Route::get('/c={categoryName}/b={brandName}', [UserProductController::class, 'showTypeOrProducts'])
+    ->name('user.showType');
+
+Route::get('/c={categoryName}/b={brandName}/t={typeName}', [UserProductController::class, 'showTypeOrProducts'])
+    ->name('category.brand.type.products');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('balance-mutation', [BalanceMutationController::class, 'index'])->name('user.balance-mutation.index');
+    Route::get('balance-mutation/{id}', [BalanceMutationController::class, 'show'])->name('user.balance-mutation.show');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/poinmu', [PoinmuController::class, 'index'])->name('poinmu.dashboard');
+    Route::post('/poinmu/redeem', [PoinmuController::class, 'redeem'])->name('poinmu.redeem');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/poinmu-history', [PoinmuHistoryController::class, 'index'])->name('poinmu.history');
+    Route::get('/poinmu-history/{id}', [PoinmuHistoryController::class, 'show'])->name('poinmu.history.detail');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index'])
+        ->name('affiliate.dashboard');
+});
+
+Route::middleware(['auth'])->group(function () {
+    // Untuk user biasa, hanya berdasarkan user yang login
+    Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
+        ->name('affiliate.history');
+
+    // Untuk admin & super-admin, bisa akses dengan affiliator_id
+    Route::middleware(['super-admin'])->group(function () {
+        Route::get('/affiliate-history/{affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
+            ->name('affiliate.history.admin');
+    });
+});
+
+Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
+Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/affiliator', [AffiliatorController::class, 'index'])->name('affiliator.index');
+    Route::post('/affiliator/save', [AffiliatorController::class, 'save'])->name('affiliator.save');
+});
 
 Route::middleware(['auth'])->group(function () {
     // Menampilkan halaman verifikasi email

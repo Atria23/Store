@@ -9,17 +9,16 @@ use App\Models\InputType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log; // Tambahkan ini di atas
+use Illuminate\Support\Facades\Log;
 
 class BrandController extends Controller
 {
-        /**
+    /**
      * Sinkronisasi brand dari price_list ke tabel brands.
      */
-
     public function syncBrands()
     {
-        $priceListBrands = PriceList::select('category', 'brand')
+        $priceListBrands = PriceList::select('category', 'brand', 'id')
             ->whereNotNull('category')
             ->whereNotNull('brand')
             ->distinct()
@@ -27,15 +26,14 @@ class BrandController extends Controller
 
         foreach ($priceListBrands as $item) {
             $category = Category::where('name', trim($item->category))->first();
+            if (!$category) continue; // Lewati jika kategori tidak ditemukan
 
-            if (!$category) {
-                continue; // Lewati jika kategori tidak ada
-            }
+            $brandName = trim($item->brand) . ' - ' . trim($category->name);
 
             Brand::updateOrCreate(
                 [
-                    'name' => trim($item->brand),
-                    'category_id' => $category->id
+                    'name' => $brandName,
+                    'category_id' => $category->id,
                 ]
             );
         }
@@ -49,7 +47,9 @@ class BrandController extends Controller
 
         return Inertia::render('ManageBrands', [
             'brands' => $brands->map(function ($brand) {
-                $isUsed = PriceList::where('brand', $brand->name)->exists();
+                $brandNameOnly = explode(' - ', $brand->name)[0];
+                $isUsed = PriceList::where('brand', $brandNameOnly)->exists();
+
                 return [
                     'id' => $brand->id,
                     'name' => $brand->name,
@@ -58,6 +58,8 @@ class BrandController extends Controller
                     'input_type_id' => $brand->input_type_id,
                     'profit_persen' => number_format($brand->profit_persen, ($brand->profit_persen == floor($brand->profit_persen) ? 0 : 2), ',', '.'),
                     'profit_tetap' => number_format($brand->profit_tetap, ($brand->profit_tetap == floor($brand->profit_tetap) ? 0 : 2), ',', '.'),
+                    'example_id_product' => $brand->example_id_product,
+                    'example_image' => $brand->example_image ? url('storage/' . $brand->example_image) : null,
                     'created_at' => $brand->created_at,
                     'updated_at' => $brand->updated_at,
                     'is_used' => $isUsed
@@ -72,38 +74,35 @@ class BrandController extends Controller
     {
         $request->validate([
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'name' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) use ($request) {
-                    $exists = Brand::where('name', $value)
-                        ->where('category_id', $request->category_id)
-                        ->where('input_type_id', $request->input_type_id)
-                        ->exists();
-                    if ($exists) {
-                        $fail('Brand dengan kategori dan input type yang sama sudah ada.');
-                    }
-                },
-            ],            
-            'category_id' => 'nullable|exists:categories,id',
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'input_type_id' => 'nullable|exists:input_types,id',
             'profit_persen' => 'nullable|numeric|min:0',
             'profit_tetap' => 'nullable|numeric|min:0',
+            'example_id_product' => 'nullable|string|max:255',
+            'example_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('brands', 'public');
-        }
+        $category = Category::find($request->category_id);
+        if (!$category) return redirect()->route('brands.index')->with('error', 'Kategori tidak ditemukan.');
+
+        $brandName = trim($request->name) . ' - ' . trim($category->name);
+
+        $exists = Brand::where('name', $brandName)->exists();
+        if ($exists) return redirect()->route('brands.index')->with('error', 'Brand dengan kategori ini sudah ada.');
+
+        $imagePath = $request->hasFile('image') ? $request->file('image')->store('brands', 'public') : null;
+        $exampleImagePath = $request->hasFile('example_image') ? $request->file('example_image')->store('brands/examples', 'public') : null;
 
         Brand::create([
-            'name' => $request->name,
+            'name' => $brandName,
             'image' => $imagePath,
             'category_id' => $request->category_id,
             'input_type_id' => $request->input_type_id,
             'profit_persen' => $request->profit_persen,
             'profit_tetap' => $request->profit_tetap,
+            'example_id_product' => $request->example_id_product,
+            'example_image' => $exampleImagePath,
         ]);
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil ditambahkan.');
@@ -113,43 +112,48 @@ class BrandController extends Controller
     {
         $request->validate([
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'name' => [
-                'nullable',
-                'string',
-                'max:255',
-                function ($attribute, $value, $fail) use ($request, $brand) {
-                    $exists = Brand::where('name', $value)
-                        ->where('category_id', $request->category_id)
-                        ->where('input_type_id', $request->input_type_id)
-                        ->where('id', '!=', $brand->id) // Mengecualikan ID yang sedang diedit
-                        ->exists();
-                    if ($exists) {
-                        $fail('Brand dengan kategori dan input type yang sama sudah ada.');
-                    }
-                },
-            ],
-            'category_id' => 'nullable|exists:categories,id',
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'input_type_id' => 'nullable|exists:input_types,id',
             'profit_persen' => 'nullable|numeric|min:0',
             'profit_tetap' => 'nullable|numeric|min:0',
+            'example_id_product' => 'nullable|string|max:255',
+            'example_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
+        $category = Category::find($request->category_id);
+        if (!$category) return redirect()->route('brands.index')->with('error', 'Kategori tidak ditemukan.');
+
+        $brandName = trim($request->name) . ' - ' . trim($category->name);
+
+        $exists = Brand::where('name', $brandName)
+            ->where('id', '!=', $brand->id)
+            ->exists();
+        if ($exists) return redirect()->route('brands.index')->with('error', 'Brand dengan kategori ini sudah ada.');
+
         if ($request->hasFile('image')) {
-            if ($brand->image) {
-                Storage::disk('public')->delete($brand->image);
-            }
+            if ($brand->image) Storage::disk('public')->delete($brand->image);
             $imagePath = $request->file('image')->store('brands', 'public');
         } else {
             $imagePath = $brand->image;
         }
 
+        if ($request->hasFile('example_image')) {
+            if ($brand->example_image) Storage::disk('public')->delete($brand->example_image);
+            $exampleImagePath = $request->file('example_image')->store('brands/examples', 'public');
+        } else {
+            $exampleImagePath = $brand->example_image;
+        }
+
         $brand->update([
-            'name' => $request->name,
+            'name' => $brandName,
             'image' => $imagePath,
             'category_id' => $request->category_id,
             'input_type_id' => $request->input_type_id,
             'profit_persen' => $request->profit_persen,
             'profit_tetap' => $request->profit_tetap,
+            'example_id_product' => $request->example_id_product,
+            'example_image' => $exampleImagePath,
         ]);
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
@@ -157,11 +161,14 @@ class BrandController extends Controller
 
     public function destroy(Brand $brand)
     {
-        // Periksa apakah brand masih digunakan di tabel price_list
-        $isUsed = PriceList::where('brand', $brand->name)->exists();
+        // Ambil hanya bagian pertama dari nama brand sebelum " - "
+        $brandNameOnly = explode(' - ', $brand->name)[0];
+
+        // Periksa apakah brand masih digunakan dalam PriceList
+        $isUsed = PriceList::where('brand', $brandNameOnly)->exists();
 
         if ($isUsed) {
-            return redirect()->route('brands.index')->with('error', 'Brand masih digunakan dan tidak dapat dihapus.');
+            session()->flash('warning', 'Brand masih digunakan dalam PriceList, tetapi telah dihapus.');
         }
 
         // Hapus gambar jika ada
@@ -174,6 +181,4 @@ class BrandController extends Controller
 
         return redirect()->route('brands.index')->with('success', 'Brand berhasil dihapus.');
     }
-
-
-    }
+}

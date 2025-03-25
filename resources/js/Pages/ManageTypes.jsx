@@ -15,17 +15,23 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
     const [searchBrand, setSearchBrand] = useState("");
     const [searchCategory, setSearchCategory] = useState("");
     const [searchInputType, setSearchInputType] = useState("");
+    const [previewExampleImage, setPreviewExampleImage] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+
+
 
     const filteredTypes = types.filter(type =>
         type.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const { data, setData, post, put, processing, reset, delete: destroy } = useForm({
+    const { data, setData, post, processing, reset, delete: destroy } = useForm({
         id: "",
         name: "",
         brand_id: "",
         category_id: "",
         input_type_id: "",
+        example_id_product: "",
+        example_image: null,
     });
 
     const handleSubmit = (e) => {
@@ -37,6 +43,10 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
         formData.append("brand_id", data.brand_id);
         formData.append("category_id", data.category_id ?? "");
         formData.append("input_type_id", data.input_type_id ?? "");
+        formData.append("example_id_product", data.example_id_product);
+        if (data.example_image) {
+            formData.append("example_image", data.example_image);
+        }
 
         if (editType) {
             post(route("types.update", data.id), {
@@ -49,7 +59,6 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                 onError: (err) => setErrors(err),
             });
         } else {
-            // Jika tambah
             post(route("types.store"), {
                 data: formData,
                 onSuccess: () => {
@@ -62,17 +71,28 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
         }
     };
 
+    const handleExampleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData("example_image", file);
+            setPreviewExampleImage(URL.createObjectURL(file));
+        }
+    };
 
     // 🔹 Handle Edit
     const handleEdit = (type) => {
         setEditType(type);
         setData({
             id: type.id,
-            name: type.name,
+            name: type.name.split(" - ")[0],
             brand_id: type.brand_id,
             category_id: type.category_id,
             input_type_id: type.input_type_id,
+            example_id_product: type.example_id_product,
+            example_image: type.example_image,
         });
+        setPreviewImage(type.image);
+        setPreviewExampleImage(type.example_image);
         setShowModal(true);
     };
 
@@ -105,7 +125,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
             }
         });
     };
-    
+
     return (
         <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
             <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
@@ -276,10 +296,10 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                         </button>
                                         <button
                                             onClick={() => confirmDelete(type.id)}
-                                            disabled={type.is_used}
-                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${type.is_used
-                                                ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
-                                                : "text-red-600 bg-red-50 border border-red-600"
+                                            className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center 
+                                            ${type.is_used
+                                                    ? "text-yellow-600 bg-yellow-50 border border-yellow-600"
+                                                    : "text-red-600 bg-red-50 border border-red-600"
                                                 }`}
                                         >
                                             Hapus
@@ -354,7 +374,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                         <input
                                             type="text"
                                             placeholder="Contoh: Pulsa Transfer"
-                                            value={data.name}
+                                            value={data.name.split(" - ")[0]}
                                             onChange={(e) => setData("name", e.target.value)}
                                             className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                             required
@@ -625,6 +645,49 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                             </div>
                                         )}
                                     </div>
+
+
+                                    <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Contoh ID Pelanggan</p>
+                                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                        <input
+                                            type="text"
+                                            name="example_id_product"
+                                            value={data.example_id_product || ""}
+                                            onChange={(e) => setData("example_id_product", e.target.value)}
+                                            className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                            placeholder="input 1= 24434, input 2=Ms24"
+                                        />
+                                    </div>
+                                    {errors.example_id_product && (
+                                        <p className="text-red-600 text-sm">{errors.example_id_product}</p>
+                                    )}
+                                </div>
+                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
+                                    <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
+                                        {/* Input file transparan di atas lingkaran */}
+                                        <input
+                                            type="file"
+                                            name="image"
+                                            accept="image/*"
+                                            onChange={handleExampleImageChange}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        {/* Preview gambar atau placeholder */}
+                                        {previewExampleImage ? (
+                                            <img
+                                                src={previewExampleImage}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                                                Pilih Gambar
+                                            </span>
+                                        )}
+                                    </label>
+                                    {/* Error message */}
+                                    {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
+                                    <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Contoh ID Pel</p>
                                 </div>
                             </div>
 

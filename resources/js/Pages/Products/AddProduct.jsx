@@ -31,6 +31,7 @@ export default function AddProduct({ product, categories, brands, types, input_t
         type_id: product?.type_id || "",
         input_type_id: product?.input_type_id || "",
         price: product?.price || "",
+        sell_price: product?.sell_price || "",
         buyer_product_status: product?.buyer_product_status ?? true,
         seller_product_status: product?.seller_product_status ?? true,
         unlimited_stock: product?.unlimited_stock ?? true,
@@ -43,14 +44,17 @@ export default function AddProduct({ product, categories, brands, types, input_t
     });
 
     useEffect(() => {
-        // Reset brand dan type jika kategori berubah
-        setData(prev => ({ ...prev, brand_id: null, type_id: null }));
+        if (data.category_id !== product?.category_id) {
+            setData(prev => ({ ...prev, brand_id: null, type_id: null }));
+        }
     }, [data.category_id]);
-
+    
     useEffect(() => {
-        // Reset type jika brand berubah
-        setData(prev => ({ ...prev, type_id: null }));
+        if (data.brand_id !== product?.brand_id) {
+            setData(prev => ({ ...prev, type_id: null }));
+        }
     }, [data.brand_id]);
+    
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -172,7 +176,9 @@ export default function AddProduct({ product, categories, brands, types, input_t
                                 >
 
                                     <span>
-                                        {data.brand_id ? brands.find(brand => brand.id === data.brand_id)?.name : "Pilih Brand"}
+                                        {data.brand_id 
+                                            ? brands.find(brand => brand.id === data.brand_id)?.name.split(" - ")[0] 
+                                            : "Pilih Brand"}
                                     </span>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -198,7 +204,9 @@ export default function AddProduct({ product, categories, brands, types, input_t
                                     onClick={() => data.brand_id && setShowTypePopup(true)}
                                 >
                                     <span>
-                                        {data.type_id ? types.find(type => type.id === data.type_id)?.name : "Pilih Type"}
+                                        {data.type_id 
+                                            ? types.find(type => type.id === data.type_id)?.name.split(" - ")[0] 
+                                            : "Pilih Type"}
                                     </span>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -250,6 +258,20 @@ export default function AddProduct({ product, categories, brands, types, input_t
                                         onChange={handleChange} // Tetap pakai ini
                                         className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                         required
+                                    />
+                                    {errors.price && <p className="text-red-500">{errors.price}</p>}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="w-full h-max text-gray-700 text-left align-middle">Harga Jual (Hanya Lihat)</label>
+                                <div className="flex items-center justify-between w-full h-10 bg-white border border-gray-300 rounded-md">
+                                    <input
+                                        type="text"
+                                        placeholder="Contoh: xl100"
+                                        value={`Rp${Math.ceil(data.sell_price || 0).toLocaleString('id-ID')}`}
+                                        readOnly
+                                        className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                     />
                                     {errors.price && <p className="text-red-500">{errors.price}</p>}
                                 </div>
