@@ -9,22 +9,27 @@ return new class extends Migration {
         Schema::create('poinmu_history', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
-                ->constrained('users') // Relasi ke tabel users (kolom id)
-                ->onDelete('cascade'); // Hapus history jika user dihapus
-
+                ->constrained('users')
+                ->onDelete('cascade');
+    
             $table->foreignId('transaction_id')
                 ->nullable()
                 ->constrained('transactions')
                 ->onDelete('cascade');
+    
+            $table->foreignId('affiliate_history_id')
+                ->nullable()
+                ->constrained('affiliate_histories')
+                ->onDelete('cascade');
             
-            $table->string('type'); // Jenis transaksi (misal: reward, penalty, dll.)
-            $table->integer('points'); // Poin yang ditambahkan/dikurangi (mendukung negatif)
-            $table->integer('previous_points'); // Poin sebelum transaksi
-            $table->integer('new_points'); // Poin setelah transaksi
-            $table->text('description')->nullable(); // Deskripsi transaksi
-            $table->timestamps(); // created_at & updated_at
+            $table->string('type');
+            $table->double('points', 22, 2); // Ubah dari integer ke double(22,2)
+            $table->double('previous_points', 22, 2); // Ubah dari integer ke double(22,2)
+            $table->double('new_points', 22, 2); // Ubah dari integer ke double(22,2)
+            $table->text('description')->nullable();
+            $table->timestamps();
         });
-    }
+    }    
 
     public function down() {
         Schema::dropIfExists('poinmu_history');

@@ -11,7 +11,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory }) => {
             <div className="p-4 bg-blue-100 rounded-lg mb-6">
                 <h2 className="text-xl font-semibold">Informasi Affiliator</h2>
                 <p><strong>Referral Code:</strong> {affiliator.referral_code}</p>
-                <p><strong>Total Komisi:</strong> Rp {affiliator.total_commission.toLocaleString()}</p>
+                <p><strong>Total Komisi:</strong> Rp{affiliator.total_commission.toLocaleString()}</p>
             </div>
 
             {/* Daftar Referral */}
@@ -21,7 +21,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory }) => {
                     <ul className="list-disc list-inside bg-gray-100 p-4 rounded-lg">
                         {referrals.map((referral) => (
                             <li key={referral.id}>
-                                {referral.user.name} ({referral.user.email})
+                                {referral.user.name}
                             </li>
                         ))}
                     </ul>

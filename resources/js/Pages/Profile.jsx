@@ -142,14 +142,16 @@ function Profile({ user }) {
                                     </span>
                                 </div>
                             </a>
-                            <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                <p className="text-gray-900 font-medium">Option 2</p>
-                                <span className="text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </span>
-                            </div>
+                            <a href="/affiliate-dashboard">
+                                <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
+                                    <p className="text-gray-900 font-medium">Program Afiliasi</p>
+                                    <span className="text-gray-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </a>
                             <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
                                 <p className="text-gray-900 font-medium">Option 3</p>
                                 <span className="text-gray-500">

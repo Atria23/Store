@@ -11,9 +11,7 @@ use App\Models\AffiliateProduct;
 class AffiliateHistory extends Model
 {
     use HasFactory;
-
-    protected $table = 'affiliate_history';
-    protected $fillable = ['affiliator_id', 'transaction_id', 'affiliate_product_id', 'commission', 'created_at', 'updated_at'];
+    protected $fillable = ['affiliator_id', 'transaction_id', 'affiliate_product_id','status' , 'commission', 'created_at', 'updated_at'];
     protected $dates = ['created_at', 'updated_at']; // Pastikan Laravel mengenali ini sebagai tanggal
 
     public function affiliator()
@@ -31,3 +29,46 @@ class AffiliateHistory extends Model
         return $this->belongsTo(AffiliateProduct::class, 'affiliate_product_id');
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Illuminate\Database\Eloquent\Model;
+// use App\Models\Transaction;
+// use App\Models\User\Affiliator;
+// use App\Models\AffiliateProduct;
+
+// class AffiliateHistory extends Model
+// {
+//     use HasFactory;
+
+//     protected $fillable = [
+//         'affiliator_id',
+//         'transaction_id',
+//         'commission',
+//         'status',
+//     ];
+
+//     public function affiliator()
+//     {
+//         return $this->belongsTo(Affiliator::class);
+//     }
+
+//     public function transaction()
+//     {
+//         return $this->belongsTo(Transaction::class);
+//     }
+// }

@@ -9,7 +9,7 @@ export default function AffiliateProductDetail({ affiliateProduct }) {
                 <p><strong>Kategori:</strong> {affiliateProduct.category}</p>
                 <p><strong>Brand:</strong> {affiliateProduct.brand}</p>
                 <p><strong>Tipe:</strong> {affiliateProduct.type}</p>
-                <p><strong>Komisi:</strong> Rp {affiliateProduct.komisi.toLocaleString()}</p>
+                <p><strong>Komisi:</strong> Rp{affiliateProduct.commission.toLocaleString()}</p>
             </div>
 
             <Link href={route("affiliate.products.index")} className="text-blue-500 hover:underline">

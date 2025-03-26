@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Models\Transaction;
+use App\Models\User\AffiliateHistory; 
 
 class PoinmuHistory extends Model
 {
@@ -16,6 +17,7 @@ class PoinmuHistory extends Model
     protected $fillable = [
         'user_id',
         'transaction_id',
+        'affiliate_history_id', // Tambahkan ini ke fillable
         'type',
         'points',
         'previous_points',
@@ -31,5 +33,10 @@ class PoinmuHistory extends Model
     public function transaction()
     {
         return $this->belongsTo(Transaction::class, 'transaction_id');
+    }
+
+    public function affiliateHistory()
+    {
+        return $this->belongsTo(AffiliateHistory::class, 'affiliate_history_id');
     }
 }

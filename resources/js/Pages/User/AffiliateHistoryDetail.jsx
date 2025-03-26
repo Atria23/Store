@@ -34,36 +34,41 @@ export default function AffiliateHistoryDetail() {
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border rounded-lg">
-                    <thead>
-                        <tr className="bg-gray-200 text-gray-700">
-                            <th className="p-2 border">ID</th>
-                            <th className="p-2 border">Product</th>
-                            <th className="p-2 border">Commission</th>
-                            <th className="p-2 border">ID Transaction</th>
-                            <th className="p-2 border">Created At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {transactions.map((item) => (
-                            <tr key={item.id} className="text-center">
-                                <td className="p-2 border">{item.id}</td>
-                                <td className="p-2 border">
-                                    {item.affiliate_product ? (
-                                        <Link href={`/affiliate-products/${item.affiliate_product.id}`} className="text-blue-500 hover:underline">
-                                            {item.affiliate_product.product_name}
-                                        </Link>
-                                    ) : "N/A"}
-                                </td>
-                                <td className="p-2 border">Rp {item.commission}</td>
-                                <td className="p-2 border">{item.transaction?.id || "N/A"}</td>
-                                <td className="p-2 border">{formatDate(item.created_at)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+<div className="overflow-x-auto">
+    <table className="min-w-full bg-white border rounded-lg">
+        <thead>
+            <tr className="bg-gray-200 text-gray-700">
+                <th className="p-2 border">ID</th>
+                <th className="p-2 border">User Name</th> {/* Ubah dari User ID ke Nama */}
+                <th className="p-2 border">Product</th>
+                <th className="p-2 border">Commission</th>
+                <th className="p-2 border">ID Transaction</th>
+                <th className="p-2 border">Status</th>
+                <th className="p-2 border">Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {transactions.map((item) => (
+                <tr key={item.id} className="text-center">
+                    <td className="p-2 border">{item.id}</td>
+                    <td className="p-2 border">{item.transaction?.user?.name || "N/A"}</td> {/* Ambil Nama User */}
+                    <td className="p-2 border">
+                        {item.affiliate_product ? (
+                            <Link href={`/affiliate-products/${item.affiliate_product.id}`} className="text-blue-500 hover:underline">
+                                {item.affiliate_product.product_name}
+                            </Link>
+                        ) : "N/A"}
+                    </td>
+                    <td className="p-2 border">Rp{item.commission.toLocaleString()}</td>
+                    <td className="p-2 border">{item.transaction?.id || "N/A"}</td>
+                    <td className="p-2 border">{item.status}</td>
+                    <td className="p-2 border">{formatDate(item.created_at)}</td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
+
         </div>
     );
 }

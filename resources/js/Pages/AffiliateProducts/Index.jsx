@@ -23,7 +23,7 @@ export default function AffiliateProducts({ affiliateProducts }) {
                             <td className="border px-4 py-2">{product.category}</td>
                             <td className="border px-4 py-2">{product.brand}</td>
                             <td className="border px-4 py-2">{product.type}</td>
-                            <td className="border px-4 py-2">Rp {product.komisi.toLocaleString()}</td>
+                            <td className="border px-4 py-2">Rp{product.commission.toLocaleString()}</td>
                             <td className="border px-4 py-2">
                                 <Link
                                     href={route("affiliate.products.show", product.id)}

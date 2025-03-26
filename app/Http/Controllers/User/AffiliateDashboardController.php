@@ -20,8 +20,8 @@ class AffiliateDashboardController extends Controller
 
         // Jika user tidak memiliki affiliator, tampilkan pesan error
         if (!$affiliator) {
-            abort(403, 'Anda belum terdaftar sebagai affiliator.');
-        }
+            return redirect()->route('affiliator.index');
+        }        
 
         // Ambil semua referral (orang yang direferensikan user ini)
         $referrals = $affiliator->referrals()->with('user')->get();

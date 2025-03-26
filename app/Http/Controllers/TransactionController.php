@@ -4,43 +4,20 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Auth; // Untuk autentikasi
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User; // Model User untuk memanipulasi data user
-use App\Models\Transaction; // Pastikan Model Transaction sudah ada
-use App\Models\Product; // Model untuk mengambil data produk
+use App\Models\User;
+use App\Models\Transaction;
+use App\Models\Product;
+use App\Models\User\AffiliateHistory;
+use App\Models\AffiliateProduct; // Pastikan ini ditambahkan
+use App\Models\User\Affiliator; // Pastikan ini ditambahkan
 use Inertia\Inertia;
 
 class TransactionController extends Controller
-{
+{   
 
-    public function verifyPassword(Request $request)
-{
-    $request->validate([
-        'password' => 'required|string',
-    ]);
-
-    $user = Auth::user();
-
-    if (!$user || !Hash::check($request->password, $user->password)) {
-        return response()->json(["success" => false, "message" => "Password salah"], 401);
-    }
-
-    return response()->json(["success" => true]);
-}
-
-    public function getBalance()
-    {
-        $user = Auth::user();
-    
-        if (!$user) {
-            return response()->json(['message' => 'User not authenticated'], 401);
-        }
-    
-        return response()->json(['balance' => $user->balance], 200);
-    }
-    
     public function makeTransaction(Request $request)
     {
         $user = Auth::user();
@@ -70,22 +47,12 @@ class TransactionController extends Controller
         ])->post('https://api.digiflazz.com/v1/transaction', $data);
 
         $responseData = $response->json();
-
-        // Ambil data produk dari tabel products berdasarkan buyer_sku_code
+        
         $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
-
         if (!$product) {
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // Ambil data produk
-        $product_name = $product->product_name;
-        $price_product = $product->price;
-        $category = $product->category;  // Ambil category dari tabel products
-        $brand = $product->brand;        // Ambil brand dari tabel products
-        $type = $product->type;          // Ambil type dari tabel products
-
-        // Simpan transaksi ke database
         $transaction = Transaction::create([
             'user_id' => $user->id,
             'ref_id' => $ref_id,
@@ -93,23 +60,61 @@ class TransactionController extends Controller
             'customer_no' => $customer_no,
             'status' => $responseData['data']['status'] ?? 'Failed',
             'price' => $price,
-            'price_product' => $price_product,
-            'product_name' => $product_name,
-            'category' => $category,  // Menambahkan category
-            'brand' => $brand,        // Menambahkan brand
-            'type' => $type,          // Menambahkan type
+            'price_product' => $product->price,
+            'product_name' => $product->product_name,
+            'category' => $product->category,
+            'brand' => $product->brand,
+            'type' => $product->type,
             'rc' => $responseData['data']['rc'] ?? 'UNKNOWN_ERROR',
             'sn' => $responseData['data']['sn'] ?? null,
             'buyer_last_saldo' => $user->balance,
             'message' => $responseData['data']['message'] ?? 'Transaction failed',
         ]);
 
-        if ($responseData['data']['status'] !== 'Gagal') {
-            // Kurangi saldo hanya jika status tidak gagal
-            $user->balance -= $price_product;
-            $user->save();
+        $affiliator = Affiliator::where('user_id', $user->id)->first();
+        $affiliateProduct = AffiliateProduct::where('buyer_sku_code', $buyer_sku_code)->first();
 
-            // Perbarui saldo transaksi
+        if (!$affiliateProduct) {
+            Log::error('AffiliateProduct not found for buyer_sku_code: ' . $buyer_sku_code);
+            return response()->json(['error' => 'Affiliate product not found'], 404);
+        }
+
+        if (is_null($affiliateProduct->commission)) {
+            Log::error('Commission is NULL for buyer_sku_code: ' . $buyer_sku_code);
+            return response()->json(['error' => 'Commission value is NULL'], 400);
+        }
+
+        // Ambil nilai tanpa default
+        $affiliator_id = $affiliator->affiliate_by ?? null;
+        $transaction_id = $transaction->id ?? null;
+        $commission = $affiliateProduct->commission;
+        $status = $transaction->status ?? 'Pending';
+        $affiliate_product_id = $affiliateProduct->id ?? null;
+
+        // Debugging log untuk memastikan data tersedia sebelum insert
+        Log::info('Affiliate History Data:', [
+            'affiliator_id' => $affiliator_id,
+            'transaction_id' => $transaction_id,
+            'commission' => $commission,
+            'status' => $status,
+            'affiliate_product_id' => $affiliate_product_id
+        ]);
+
+        if ($affiliator_id !== null && $transaction_id !== null && $affiliate_product_id !== null) {
+            AffiliateHistory::create([
+                'affiliator_id' => $affiliator_id,
+                'transaction_id' => $transaction_id,
+                'affiliate_product_id' => $affiliate_product_id, // Ditambahkan kolom ini
+                'commission' => $commission, 
+                'status' => $status,
+            ]);
+        } else {
+            Log::error('AffiliateHistory insert failed: Missing affiliator_id, transaction_id, or affiliate_product_id');
+        }
+
+        if ($responseData['data']['status'] !== 'Gagal') {
+            $user->balance -= $product->price;
+            $user->save();
             $transaction->buyer_last_saldo = $user->balance;
             $transaction->save();
 
@@ -127,15 +132,38 @@ class TransactionController extends Controller
         }
     }
 
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(["success" => false, "message" => "Password salah"], 401);
+        }
+
+        return response()->json(["success" => true]);
+    }
+
+    public function getBalance()
+    {
+        $user = Auth::user();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
+    
+        return response()->json(['balance' => $user->balance], 200);
+    }
 
     public function getCompletedTransactions()
     {
         $transactions = Transaction::all(['ref_id', 'product_name', 'customer_no', 'price', 'status', 'created_at', 'category', 'brand', 'type']);
-
-return Inertia::render('Transactions/Completed', [
-    'transactions' => $transactions,
-]);
-
+        return Inertia::render('Transactions/Completed', [
+            'transactions' => $transactions,
+        ]);
     }
 
     public function historyPage()
@@ -193,7 +221,6 @@ return Inertia::render('Transactions/Completed', [
             ], 500);
         }
         
-
         // Periksa apakah respons API valid
         $apiData = $responseData['data'] ?? null;
 
@@ -226,83 +253,83 @@ return Inertia::render('Transactions/Completed', [
     }
     
     public function webhookHandler(Request $request)
-{
-    Log::info('Webhook function triggered');
+    {
+        Log::info('Webhook function triggered');
 
-    try {
-        $secret = env('DIGIFLAZZ_WEBHOOK_SECRET');
+        try {
+            $secret = env('DIGIFLAZZ_WEBHOOK_SECRET');
 
-        if (!$secret) {
-            Log::error('Webhook secret is not set');
-            return response()->json(['message' => 'Webhook secret missing'], 500);
-        }
-
-        $payload = $request->getContent();
-        $headers = $request->headers->all();
-
-        Log::info('Webhook Received', ['headers' => $headers, 'payload' => json_decode($payload, true)]);
-
-        if (!$request->hasHeader('x-signature')) {
-            Log::warning('Missing x-signature header');
-            return response()->json(['message' => 'Missing signature'], 403);
-        }
-
-        $calculatedSignature = hash_hmac('sha256', $payload, $secret);
-        $receivedSignature = $request->header('x-signature');
-
-        if (!hash_equals($calculatedSignature, $receivedSignature)) {
-            Log::warning('Invalid signature', ['calculated' => $calculatedSignature, 'received' => $receivedSignature]);
-            return response()->json(['message' => 'Invalid signature'], 403);
-        }
-
-        $data = json_decode($payload, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::warning('Invalid JSON payload', ['error' => json_last_error_msg()]);
-            return response()->json(['message' => 'Invalid JSON'], 400);
-        }
-
-        if (!isset($data['event'], $data['ref_id'], $data['status']) || empty($data['ref_id'])) {
-            Log::warning('Invalid payload format', ['payload' => $data]);
-            return response()->json(['message' => 'Invalid payload'], 400);
-        }
-
-        $transaction = Transaction::where('ref_id', $data['ref_id'])->first();
-
-        if (!$transaction) {
-            Log::warning('Transaction not found', ['ref_id' => $data['ref_id']]);
-            return response()->json(['message' => 'Transaction not found'], 404);
-        }
-
-        if (in_array($transaction->status, ['Sukses', 'Gagal'])) {
-            Log::info('Transaction already processed', ['ref_id' => $transaction->ref_id, 'status' => $transaction->status]);
-            return response()->json(['message' => 'Transaction already processed'], 200);
-        }
-
-        DB::transaction(function () use ($transaction, $data) {
-            $transaction->update([
-                'status' => $data['status'],
-                'rc' => $data['rc'] ?? $transaction->rc,
-                'sn' => $data['sn'] ?? $transaction->sn,
-                'message' => $data['message'] ?? $transaction->message,
-            ]);
-
-            if ($data['status'] === 'Gagal') {
-                $user = $transaction->user;
-                if ($user) {
-                    $user->increment('balance', $transaction->price_product);
-                    Log::info('Balance refunded', ['user_id' => $user->id, 'amount' => $transaction->price_product]);
-                }
+            if (!$secret) {
+                Log::error('Webhook secret is not set');
+                return response()->json(['message' => 'Webhook secret missing'], 500);
             }
-        });
 
-        Log::info('Transaction updated', ['ref_id' => $transaction->ref_id, 'status' => $data['status']]);
+            $payload = $request->getContent();
+            $headers = $request->headers->all();
 
-        return response()->json(['message' => 'Webhook processed successfully'], 200);
-    } catch (\Exception $e) {
-        Log::error('Webhook processing error', ['error' => $e->getMessage()]);
-        return response()->json(['message' => 'Internal Server Error'], 500);
+            Log::info('Webhook Received', ['headers' => $headers, 'payload' => json_decode($payload, true)]);
+
+            if (!$request->hasHeader('x-signature')) {
+                Log::warning('Missing x-signature header');
+                return response()->json(['message' => 'Missing signature'], 403);
+            }
+
+            $calculatedSignature = hash_hmac('sha256', $payload, $secret);
+            $receivedSignature = $request->header('x-signature');
+
+            if (!hash_equals($calculatedSignature, $receivedSignature)) {
+                Log::warning('Invalid signature', ['calculated' => $calculatedSignature, 'received' => $receivedSignature]);
+                return response()->json(['message' => 'Invalid signature'], 403);
+            }
+
+            $data = json_decode($payload, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('Invalid JSON payload', ['error' => json_last_error_msg()]);
+                return response()->json(['message' => 'Invalid JSON'], 400);
+            }
+
+            if (!isset($data['event'], $data['ref_id'], $data['status']) || empty($data['ref_id'])) {
+                Log::warning('Invalid payload format', ['payload' => $data]);
+                return response()->json(['message' => 'Invalid payload'], 400);
+            }
+
+            $transaction = Transaction::where('ref_id', $data['ref_id'])->first();
+
+            if (!$transaction) {
+                Log::warning('Transaction not found', ['ref_id' => $data['ref_id']]);
+                return response()->json(['message' => 'Transaction not found'], 404);
+            }
+
+            if (in_array($transaction->status, ['Sukses', 'Gagal'])) {
+                Log::info('Transaction already processed', ['ref_id' => $transaction->ref_id, 'status' => $transaction->status]);
+                return response()->json(['message' => 'Transaction already processed'], 200);
+            }
+
+            DB::transaction(function () use ($transaction, $data) {
+                $transaction->update([
+                    'status' => $data['status'],
+                    'rc' => $data['rc'] ?? $transaction->rc,
+                    'sn' => $data['sn'] ?? $transaction->sn,
+                    'message' => $data['message'] ?? $transaction->message,
+                ]);
+
+                if ($data['status'] === 'Gagal') {
+                    $user = $transaction->user;
+                    if ($user) {
+                        $user->increment('balance', $transaction->price_product);
+                        Log::info('Balance refunded', ['user_id' => $user->id, 'amount' => $transaction->price_product]);
+                    }
+                }
+            });
+
+            Log::info('Transaction updated', ['ref_id' => $transaction->ref_id, 'status' => $data['status']]);
+
+            return response()->json(['message' => 'Webhook processed successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error('Webhook processing error', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Internal Server Error'], 500);
+        }
     }
-}
 
 }

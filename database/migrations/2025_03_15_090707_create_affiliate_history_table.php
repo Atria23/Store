@@ -9,12 +9,17 @@
 //         Schema::create('affiliate_history', function (Blueprint $table) {
 //             $table->id();
 //             $table->foreignId('affiliator_id')
-//                 ->constrained('affiliators') // Menghubungkan ke tabel affiliators (default ke id)
-//                 ->onDelete('cascade'); // Jika affiliator dihapus, riwayatnya juga ikut terhapus
-//             $table->foreignId('transaction_id')
-//                 ->constrained('transactions') // Secara default mengacu ke kolom 'id'
+//                 ->constrained('affiliators')
 //                 ->onDelete('cascade');
-//             $table->decimal('commission', 10, 2); // Komisi dari affiliate_products tanpa foreign key
+
+//             $table->foreignId('transaction_id')
+//                 ->constrained('transactions')
+//                 ->onDelete('cascade');
+
+//             $table->unsignedBigInteger('affiliate_product_id'); // Menyimpan ID dari affiliate_products
+//             // Tidak ada FOREIGN KEY karena affiliate_products adalah VIEW
+
+//             $table->decimal('commission', 10, 2);
 //             $table->timestamps();
 //         });
 //     }
@@ -30,26 +35,22 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up() {
-        Schema::create('affiliate_history', function (Blueprint $table) {
+    public function up()
+    {
+        Schema::create('affiliate_histories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('affiliator_id')
-                ->constrained('affiliators')
-                ->onDelete('cascade');
-
-            $table->foreignId('transaction_id')
-                ->constrained('transactions')
-                ->onDelete('cascade');
-
+            $table->foreignId('affiliator_id')->constrained('affiliators')->onDelete('cascade');
             $table->unsignedBigInteger('affiliate_product_id'); // Menyimpan ID dari affiliate_products
-            // Tidak ada FOREIGN KEY karena affiliate_products adalah VIEW
-
-            $table->decimal('commission', 10, 2);
+            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
+            $table->double('commission', 22, 2);
+            $table->string('status')->default('Pending');
             $table->timestamps();
         });
     }
 
-    public function down() {
-        Schema::dropIfExists('affiliate_history');
+    public function down()
+    {
+        Schema::dropIfExists('affiliate_histories');
     }
 };
+

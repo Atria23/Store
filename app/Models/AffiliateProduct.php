@@ -76,7 +76,7 @@ class AffiliateProduct extends Model
 //     br.name AS brand,
 //     t.name AS type,
 //     -- Komisi dihitung sebagai (price_products - price_barangs) * 20%
-//     ROUND((p.price - b.price) * 0.2) AS komisi
+//     ROUND((p.price - b.price) * 0.2) AS commission
 // FROM barangs b
 // LEFT JOIN products p ON b.buyer_sku_code = p.buyer_sku_code
 // LEFT JOIN categories c ON b.category_id = c.id

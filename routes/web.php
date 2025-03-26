@@ -121,7 +121,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
     Route::get('/balance', [TransactionController::class, 'getBalance']);
-    Route::get('/transactions/completed', [TransactionController::class, 'getCompletedTransactions'])
+    Route::post('/transactions/completed', [TransactionController::class, 'getCompletedTransactions'])
         ->name('transactions.completed');
 
     Route::get('/history', [TransactionController::class, 'historyPage']);
@@ -145,10 +145,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 });
 
-Route::middleware(['auth', 'admin-or-super-admin'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/history/{ref_id}', function ($ref_id) {
-        $transactions = \App\Models\TransactionsHistory::all(); // Atau query untuk mengambil data transaksi
-        $store = App\Models\Store::first();
+        $user = auth()->user();
+
+        // Cek apakah user adalah admin atau super admin
+        $isAdmin = $user->hasRole('admin') || $user->hasRole('super-admin');
+
+        // Jika admin, ambil semua transaksi, jika bukan, hanya ambil transaksi miliknya
+        $transactions = $isAdmin
+            ? \App\Models\TransactionsHistory::all()
+            : \App\Models\TransactionsHistory::where('user_id', $user->id)->get();
+
+        // Ambil informasi toko
+        $store = \App\Models\Store::first();
+
         return Inertia::render('HistoryDetail', [
             'transactions' => $transactions,
             'params' => ['ref_id' => $ref_id],
@@ -157,10 +168,11 @@ Route::middleware(['auth', 'admin-or-super-admin'])->group(function () {
                 'address' => $store->address,
                 'phone_number' => $store->phone_number,
                 'image' => $store->image ? asset('storage/' . $store->image) : null,
-            ] : null, // Mengirimkan null jika tidak ada data toko
+            ] : null,
         ]);
     });
 });
+
 
 Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::get('/admin/deposits', [KelolaDepositController::class, 'index'])->name('admin.deposit');

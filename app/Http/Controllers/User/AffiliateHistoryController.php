@@ -83,12 +83,13 @@ class AffiliateHistoryController extends Controller
     private function getAffiliateHistory($affiliator_id)
     {
         $transactions = AffiliateHistory::where('affiliator_id', $affiliator_id)
-            ->with(['transaction'])
-            ->get()
-            ->map(function ($record) {
-                $record->affiliate_product = DB::table('affiliate_products')->where('id', $record->affiliate_product_id)->first();
-                return $record;
-            });
+    ->with(['transaction.user']) // Tambahkan 'user' di dalam relasi transaction
+    ->get()
+    ->map(function ($record) {
+        $record->affiliate_product = DB::table('affiliate_products')->where('id', $record->affiliate_product_id)->first();
+        return $record;
+    });
+
 
         // Ambil store berdasarkan user_id dari affiliator
         $affiliator = Affiliator::where('id', $affiliator_id)->first();
