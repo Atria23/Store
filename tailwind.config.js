@@ -27,7 +27,16 @@ export default {
         },
     },
 
-    plugins: [forms],
+    plugins: [
+        forms,
+        function ({ addBase, theme }) {
+            addBase({
+                ':root': {
+                    '--color-main': theme('colors.main'),
+                },
+            });
+        },
+    ],
 };
 
 

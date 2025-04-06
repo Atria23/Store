@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Menu, Transition  } from '@headlessui/react'
+import { Menu, Transition } from '@headlessui/react'
 import { Link, usePage } from '@inertiajs/react'
 import { IconLogout, IconUserCog } from '@tabler/icons-react'
 import { useForm } from '@inertiajs/react'
 import MenuLink from '@/Utils/Menu'
 import LinkItem from './LinkItem'
 import LinkItemDropdown from './LinkItemDropdown'
-export default function AuthDropdown({auth, isMobile}) {
+export default function AuthDropdown({ auth, isMobile }) {
 
     // define usefrom
     const { post } = useForm();
@@ -53,7 +53,7 @@ export default function AuthDropdown({auth, isMobile}) {
             {isMobile === false ?
                 <Menu className='relative z-10' as="div">
                     <Menu.Button className='flex items-center rounded-full'>
-                        <img src={auth.user.avatar} alt={auth.user.name} className='w-10 h-10 rounded-full'/>
+                        <img src={auth.user.avatar} alt={auth.user.name} className='w-10 h-10 rounded-full' />
                     </Menu.Button>
                     <Transition
                         enter="transition duration-100 ease-out"
@@ -67,12 +67,12 @@ export default function AuthDropdown({auth, isMobile}) {
                             <div className='flex flex-col gap-1.5 divide-y divide-gray-100 dark:divide-gray-900'>
                                 <Menu.Item>
                                     <Link href="/apps/profile" className='px-3 py-1.5 text-sm flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'>
-                                        <IconUserCog strokeWidth={'1.5'} size={'20'}/> Profile
+                                        <IconUserCog strokeWidth={'1.5'} size={'20'} /> Profile
                                     </Link>
                                 </Menu.Item>
                                 <Menu.Item>
                                     <button onClick={logout} className='px-3 py-1.5 text-sm flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'>
-                                        <IconLogout strokeWidth={'1.5'} size={'20'}/>
+                                        <IconLogout strokeWidth={'1.5'} size={'20'} />
                                         Logout
                                     </button>
                                 </Menu.Item>
@@ -83,9 +83,9 @@ export default function AuthDropdown({auth, isMobile}) {
                 :
                 <div ref={dropdownRef}>
                     <button className="flex items-center group" onClick={() => setIsToggle(!isToggle)}>
-                        <img src={auth.user.avatar} alt={auth.user.name} className='w-10 h-10 rounded-full'/>
+                        <img src={auth.user.avatar} alt={auth.user.name} className='w-10 h-10 rounded-full' />
                     </button>
-                    <div className={`${isToggle ?'translate-x-0 opacity-100' : '-translate-x-full'} fixed top-0 left-0 z-50 w-[300px] h-full transition-all duration-300 transform border-r bg-white dark:bg-gray-950 dark:border-gray-900`}>
+                    <div className={`${isToggle ? 'translate-x-0 opacity-100' : '-translate-x-full'} fixed top-0 left-0 z-50 w-[300px] h-full transition-all duration-300 transform border-r bg-white dark:bg-gray-950 dark:border-gray-900`}>
                         <div className="flex justify-center items-center px-6 py-2 h-16">
                             <div className="text-2xl font-bold text-center leading-loose tracking-wider text-gray-900 dark:text-gray-200">
                                 STARTER KIT
@@ -113,28 +113,57 @@ export default function AuthDropdown({auth, isMobile}) {
                                     </div>
                                     {item.details.map((detail, indexDetail) => (
                                         detail.hasOwnProperty('subdetails') ?
-                                        <LinkItemDropdown
-                                            key={indexDetail}
-                                            title={detail.title}
-                                            icon={detail.icon}
-                                            data={detail.subdetails}
-                                            access={detail.permissions}
-                                            sidebarOpen={true}
-                                            onClick={() => setIsToggle(!isToggle)}
-                                        />
-                                        :
-                                        <LinkItem
-                                            key={indexDetail}
-                                            title={detail.title}
-                                            icon={detail.icon}
-                                            href={detail.href}
-                                            access={detail.permissions}
-                                            sidebarOpen={true}
-                                            onClick={() => setIsToggle(!isToggle)}
-                                        />
+                                            <LinkItemDropdown
+                                                key={indexDetail}
+                                                title={detail.title}
+                                                icon={detail.icon}
+                                                data={detail.subdetails}
+                                                access={detail.permissions}
+                                                sidebarOpen={true}
+                                                onClick={() => setIsToggle(!isToggle)}
+                                            />
+                                            :
+                                            <LinkItem
+                                                key={indexDetail}
+                                                title={detail.title}
+                                                icon={detail.icon}
+                                                href={detail.href}
+                                                access={detail.permissions}
+                                                sidebarOpen={true}
+                                                onClick={() => setIsToggle(!isToggle)}
+                                            />
                                     ))}
                                 </div>
                             ))}
+
+                            {/* Link ke User Dashboard */}
+                            <div className="mt-4 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                                <a
+                                    href="/user/dashboard"
+                                    className="px-3 py-1.5 text-sm flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={1.5}
+                                        stroke="currentColor"
+                                        className="w-5 h-5"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M4.5 10.5v8.25a1.5 1.5 0 001.5 1.5h12a1.5 1.5 0 001.5-1.5v-8.25" />
+                                    </svg>                                    Dashboard
+                                </a>
+                            </div>
+
+                            <div className="mt-4 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                                <button
+                                    onClick={logout}
+                                    className="px-3 py-1.5 text-sm flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    <IconLogout strokeWidth={'1.5'} size={'20'} />
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

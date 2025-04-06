@@ -25,7 +25,7 @@ export default function Sidebar({ sidebarOpen }) {
                     </div>
                     <div className="w-full p-3 flex items-center gap-4 border-b border-t dark:bg-gray-950/50 dark:border-gray-900">
                         <img
-                            src={auth.user.avatar}
+                            src="/storage/logo.webp"
                             className="w-12 h-12 rounded-full"
                         />
                         <div className="flex flex-col gap-0.5">

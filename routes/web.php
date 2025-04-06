@@ -40,6 +40,16 @@ use App\Http\Controllers\User\PoinmuHistoryController;
 use App\Http\Controllers\User\PoinmuController;
 use App\Http\Controllers\User\BalanceMutationController;
 use App\Http\Controllers\User\UserProductController;
+use App\Http\Controllers\PrivacyPolicyController;
+use App\Http\Controllers\WelcomeController;
+
+Route::get('/reset-password-success', function () {
+    return Inertia::render('Auth/ResetPasswordSuccess');
+})->name('reset.password.success');
+
+Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/privacy-policy', [PrivacyPolicyController::class, 'index'])->name('privacy');
 
 Route::post('/auth/verify-password', [TransactionController ::class, 'verifyPassword'])->middleware('auth');
 
@@ -102,7 +112,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
-        ->name('verification.notice');
+        ->name('verification.email');
     // Mengirim ulang link verifikasi
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
         ->name('verification.send');
@@ -136,8 +146,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
-
-Route::get('/beranda', [HomeController::class, 'index'])->name('home');
 
 Route::get('/products', [PriceListController::class, 'showAllProducts']);
 
@@ -214,36 +222,6 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/manage-product-detail/{id?}', [ProductController::class, 'index'])->name('product.index');
     Route::delete('/manage-product-detail/{id}', [ProductController::class, 'destroy'])->name('product.destroy');;
 
-});
-
-Route::get('/', function () {
-    // Cek apakah pengguna sudah login
-    if (Auth::check()) {
-        $user = Auth::user(); // Ambil data pengguna yang sedang login
-
-        // Cek apakah pengguna memiliki role dengan role_id 4
-        if ($user->roles()->where('role_id', 4)->exists()) {
-            // Jika ada role dengan role_id 4, arahkan ke /apps/dashboard
-            return redirect()->route('apps.dashboard');
-        }
-
-        // Cek apakah pengguna memiliki role dengan role_id 6
-        if ($user->roles()->where('role_id', 6)->exists()) {
-            // Jika ada role dengan role_id 6, arahkan ke /admin/dashboard
-            return redirect()->route('admin.dashboard');
-        }
-
-        // Jika tidak memiliki role_id 4 atau 6, arahkan ke /user/dashboard
-        return redirect()->route('user.dashboard');
-    }
-
-    // Jika belum login, tampilkan halaman welcome
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
 });
 
 // Rute untuk aplikasi admin

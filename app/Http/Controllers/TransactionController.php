@@ -87,7 +87,7 @@ class TransactionController extends Controller
         // Ambil nilai tanpa default
         $affiliator_id = $affiliator->affiliate_by ?? null;
         $transaction_id = $transaction->id ?? null;
-        $commission = $affiliateProduct->commission;
+        $commission = $affiliateProduct->commission ?? 0.00;
         $status = $transaction->status ?? 'Pending';
         $affiliate_product_id = $affiliateProduct->id ?? null;
 
