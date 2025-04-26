@@ -4,7 +4,8 @@ import '../css/app.css';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { ThemeSwitcherProvider } from './Context/ThemeSwitcherContext';
+import LoadingScreen from './Components/LoadingScreen';
+
 const appName = import.meta.env.VITE_APP_NAME || 'Muvausa Store';
 
 createInertiaApp({
@@ -28,9 +29,10 @@ createInertiaApp({
         }
 
         root.render(
-            <ThemeSwitcherProvider>
-                <App {...props} />
-            </ThemeSwitcherProvider>
+            <>
+                <LoadingScreen />
+            <App {...props} />
+            </>
         );
     },
     progress: {

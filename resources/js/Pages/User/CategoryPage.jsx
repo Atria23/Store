@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 
 const operatorPrefixes = {
     "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
@@ -69,11 +69,14 @@ const CategoryPage = ({ category, brands, brand }) => {
     };
 
     return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
+        <>
+        <Head title="Category Page" />
+
+        <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
             {/* fixed position */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
                 {/* Header */}
-                <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                <section className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
                     <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
                         <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
@@ -84,7 +87,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                             List {category.name}
                         </div>
                     </div>
-                </div>
+                </section>
                 {/* Search & Filter */}
                 <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
                     <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
@@ -123,7 +126,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                 </div>
             </div>
 
-            <section className="w-[412px] min-h-[828px] flex flex-col space-y-7 items-start justify-start pt-32 pb-4">
+            <section className="w-full max-w-[500px] min-h-[828px] flex flex-col space-y-7 items-start justify-start pt-32 pb-4">
                 <div className="w-full flex flex-col space-y-4 items-center justify-start">
                     <div className="w-full px-4 grid grid-cols-4 gap-x-5 gap-y-4 flex items-start justify-center">
                         {!(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") && !brand ? (
@@ -135,12 +138,12 @@ const CategoryPage = ({ category, brands, brand }) => {
                                         href={`/c=${category.name}/b=${brandItem.name}?phone=${phoneNumber}`}
                                         className="w-full h-full flex flex-col space-y-1 items-center justify-start"
                                     >
-                                        <img 
-                                            src={brandItem.image ? `storage/${brandItem.image}` : "storage/brands/default.webp"} 
-                                            alt={brandItem.name} 
+                                        <img
+                                            src={brandItem.image ? `storage/${brandItem.image}` : "storage/brands/default.webp"}
+                                            alt={brandItem.name}
                                             className="w-14 h-14 rounded-full object-cover"
                                         />
-                                        <p className="text-center text-xs">{formatBrandName(brandItem.name)}</p>
+                                        <p className="text-center text-xs line-clamp-2">{formatBrandName(brandItem.name)}</p>
                                     </Link>
                                 ))
                         ) : null}
@@ -148,6 +151,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                 </div>
             </section>
         </div>
+        </>
     );
 };
 

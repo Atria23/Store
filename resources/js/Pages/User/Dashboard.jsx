@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import BannerSlider from "@/Components/BannerSlider";
 import Footer from "../../Components/Footer";
-import { Link } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 
 function Dashboard({ user, categories }) {
   const [showBalance, setShowBalance] = useState(false);
@@ -12,9 +12,10 @@ function Dashboard({ user, categories }) {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
+      <Head title="Dashboard" />
+      <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
         {/* Header */}
-        <section className="fixed top-0 left-1/2 -translate-x-1/2 w-[412px] z-10 h-max flex flex-row space-x-4 items-center justify-center p-4 bg-main">
+        <section className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] z-10 h-max flex flex-row space-x-4 items-center justify-center p-4 bg-main">
           <div className="w-full h-full flex flex-col my-auto items-start">
             <div className="font-utama text-white font-bold text-lg">
               Halo,
@@ -29,31 +30,36 @@ function Dashboard({ user, categories }) {
         </section>
 
         {/* scroll */}
-        <section className="w-[412px] min-h-[828px] flex flex-col space-y-7 items-start justify-center pb-20">
-          {/* menu saldo */}
-          <div className="w-full h-max flex flex-col space-y-4 items-center justify-center px-4 pt-[105px] pb-4 rounded-b-[20px] bg-white">
+
+        <div className="w-full max-w-[500px] min-h-[828px] flex flex-col space-y-7 items-start justify-center pb-20">
+
+          {/* section saldo */}
+          <section className="w-full h-max flex flex-col space-y-4 items-center justify-center px-4 pt-[105px] pb-4 rounded-b-[20px] bg-white">
             {/* card */}
-            <div className="w-[375px] h-[258px] flex flex-col space-y-3 items-start justify-start p-4 rounded-[20px] bg-main-white">
+            <div className="w-full max-w-[450px] h-max max-h-[450px] flex flex-col space-y-3 items-start justify-start p-4 rounded-[20px] bg-main-white">
               {/* saldo */}
               <div className="w-max h-max flex flex-col">
-                <p className="w-full h-max font-utama font-semibold text-sm text-left flex items-center">Saldo</p>
+                <p className="w-full h-max font-utama font-semibold text-sm text-left flex items-center">DompetMu</p>
                 <div className="w-max h-max flex flex-row space-x-4 items-center justify-start">
                   <p className="font-utama text-xl font-bold">
-                    {showBalance ? `Rp${user.balance.toLocaleString('id-ID')}` : "••••••••"}
+                    {/* {showBalance ? `Rp${user.balance.toLocaleString('id-ID')}` : "••••••••"} */}
+                    {/* {showBalance ? `Rp${parseFloat(user.balance).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••••••"} */}
+
+                    {showBalance ? `Rp${parseFloat(user.balance).toLocaleString('id-ID')}` : "••••••••"}
                   </p>
                   <button
                     onClick={toggleBalanceVisibility}
                     className="text-main hover:text-blue-700"
                   >
                     {showBalance ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" className="bi bi-eye-fill text-main" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
-                        <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" />
-                      </svg>
-                    ) : (
                       <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" className="bi bi-eye-slash-fill text-main" fill="currentColor" viewBox="0 0 16 16">
                         <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" />
                         <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" className="bi bi-eye-fill text-main" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
+                        <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" />
                       </svg>
                     )}
                   </button>
@@ -85,61 +91,58 @@ function Dashboard({ user, categories }) {
               <div className="w-full h-px bg-gray-200"></div>
 
               {/* menu saldo */}
-              <div className="w-full h-max flex flex-row justify-between px-4 items-start">
-                <a href="/deposit/create">
-                  <div className="w-full h-full flex flex-col space-y-1 items-center justify-center">
-                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
-                      <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
-                        <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <p className="text-center text-xs">Deposit</p>
+              <div className="w-full grid grid-cols-2 min-[350px]:grid-cols-4 gap-4 justify-between px-4">
+                {/* Item Menu 1 */}
+                <a href="/deposit/create" className="flex flex-col items-center space-y-1">
+                  <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                    <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
+                    </svg>
                   </div>
+                  <p className="text-center text-xs">Deposit</p>
                 </a>
-                <a href="#">
-                  <div className="w-full h-full flex flex-col space-y-1 items-center justify-center">
-                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
-                      <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 20V7m0 13-4-4m4 4 4-4m4-12v13m0-13 4 4m-4-4-4 4" />
-                      </svg>
-                    </div>
-                    <p className="text-center text-xs">Mutasi</p>
+                {/* Item Menu 2 */}
+                <a href="#" className="flex flex-col items-center space-y-1">
+                  <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                    <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 20V7m0 13-4-4m4 4 4-4m4-12v13m0-13 4 4m-4-4-4 4" />
+                    </svg>
                   </div>
+                  <p className="text-center text-xs">Mutasi</p>
                 </a>
-                <a href="/deposit">
-                  <div className="w-full h-full flex flex-col space-y-1 items-center justify-center">
-                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
-                      <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" d="M7 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2v-4a3 3 0 0 0-3-3H7V6Z" clipRule="evenodd" />
-                        <path fillRule="evenodd" d="M2 11a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm7.5 1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" clipRule="evenodd" />
-                        <path d="M10.5 14.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
-                      </svg>
-                    </div>
-                    <p className="text-center text-xs">Riwayat<br />Deposit</p>
+                {/* Item Menu 3 */}
+                <a href="/deposit" className="flex flex-col items-center space-y-1">
+                  <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                    <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M7 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2v-4a3 3 0 0 0-3-3H7V6Z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M2 11a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm7.5 1a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" clipRule="evenodd" />
+                      <path d="M10.5 14.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+                    </svg>
                   </div>
+                  <p className="text-center text-xs">Riwayat<br />Deposit</p>
                 </a>
-                <a href="/history">
-                  <div className="w-full h-full flex flex-col space-y-1 items-center justify-center">
-                    <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
-                      <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.617 2.076a1 1 0 0 1 1.09.217L8 3.586l1.293-1.293a1 1 0 0 1 1.414 0L12 3.586l1.293-1.293a1 1 0 0 1 1.414 0L16 3.586l1.293-1.293A1 1 0 0 1 19 3v18a1 1 0 0 1-1.707.707L16 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L12 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L8 20.414l-1.293 1.293A1 1 0 0 1 5 21V3a1 1 0 0 1 .617-.924ZM9 7a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <p className="text-center text-xs">Riwayat<br />Transaksi</p>
+                {/* Item Menu 4 */}
+                <a href="/history" className="flex flex-col items-center space-y-1">
+                  <div className="w-14 h-14 bg-white flex items-center justify-center rounded-full shadow">
+                    <svg className="w-6 h-6 text-main" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.617 2.076a1 1 0 0 1 1.09.217L8 3.586l1.293-1.293a1 1 0 0 1 1.414 0L12 3.586l1.293-1.293a1 1 0 0 1 1.414 0L16 3.586l1.293-1.293A1 1 0 0 1 19 3v18a1 1 0 0 1-1.707.707L16 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L12 20.414l-1.293 1.293a1 1 0 0 1-1.414 0L8 20.414l-1.293 1.293A1 1 0 0 1 5 21V3a1 1 0 0 1 .617-.924ZM9 7a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Zm0 4a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" clipRule="evenodd" />
+                    </svg>
                   </div>
+                  <p className="text-center text-xs">Riwayat<br />Transaksi</p>
                 </a>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* banner */}
-          <BannerSlider />
+          <section className="w-full px-6">
+            <BannerSlider />
+          </section>
 
-
-          {/* list kategori */}
-          <div className="w-full flex flex-col space-y-4 items-center justify-start">
-            <div className="w-[343px] grid grid-cols-4 gap-x-2 gap-y-4 flex items-start justify-center">
+          {/* section kategori */}
+          <section className="w-full flex flex-col space-y-4 items-center justify-start">
+            <div className="w-full px-4 max-w-[450px] grid grid-cols-4 gap-x-2 gap-y-4 flex items-start justify-between">
               {categories.map((category) => (
                 <Link
                   key={category.id}
@@ -159,8 +162,8 @@ function Dashboard({ user, categories }) {
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <Footer />
       </div >

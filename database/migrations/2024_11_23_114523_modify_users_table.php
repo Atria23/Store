@@ -18,7 +18,7 @@ class ModifyUsersTable extends Migration
             $table->string('phone_number')->nullable();
             $table->text('profile_image')->nullable();
             $table->string('pin')->nullable();
-            $table->float('balance', 10, 2)->default(0); // Ganti saldo dengan balance
+            $table->decimal('balance', 10, 2)->default(0); // Ganti saldo dengan balance
             $table->enum('membership_status', ['reguler', 'bronze', 'silver', 'gold', 'reseller'])->default('reguler');
             $table->integer('points')->default(0);
             $table->string('referral_code')->nullable()->unique();

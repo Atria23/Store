@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { usePage } from '@inertiajs/react';
 import { IconAlignLeft, IconMoon, IconSun } from '@tabler/icons-react'
-import AuthDropdown from '@/Components/AuthDropdown';
 import Menu from '@/Utils/Menu';
 import Notification from '@/Components/Notification';
 
@@ -63,7 +62,6 @@ export default function Navbar({ toggleSidebar, themeSwitcher, darkMode }) {
                         <Notification/>
                     </div>
                 </div>
-                <AuthDropdown auth={auth} isMobile={isMobile}/>
             </div>
         </div>
     )

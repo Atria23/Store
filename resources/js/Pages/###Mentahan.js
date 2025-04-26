@@ -1,298 +1,704 @@
-import { Link, Head, useForm } from '@inertiajs/react';
-import React from "react";
-import { useEffect, useState } from 'react';
+import { Head, usePage, Link, router } from "@inertiajs/react";
+import { useRef, useState, useEffect } from "react";
+import React from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
-export default function MobilelandingPage() {
-    const { data, setData, post } = useForm({
-        email: '',
-        password: '',
-        remember: false,
-    });
+const DynamicInput = ({ formula, onChange }) => {
 
-    const [isGuestLogin, setIsGuestLogin] = useState(false);
-    const loginAsGuest = () => {
-        setData({
-            email: 'guest@muvausa.com',
-            password: 'guest',
-            remember: false,
-        });
-        setIsGuestLogin(true);
-    };
+    const [inputs, setInputs] = useState([]);
+    const [values, setValues] = useState({});
+    const [finalResult, setFinalResult] = useState("");
 
-    // Saat state `data` berubah dan `isGuestLogin` aktif, kirimkan request login
     useEffect(() => {
-        if (isGuestLogin && data.email === 'guest@muvausa.com') {
-            post(route('login'));
-            setIsGuestLogin(false); // Reset flag agar tidak infinite loop
-        }
-    }, [data, isGuestLogin]);
+        if (!formula) return;
 
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('login'));
+        const inputFields = [];
+        let match;
+        const regex = /\{(i\d+a?)\}/g;
+
+        while ((match = regex.exec(formula)) !== null) {
+            if (!inputFields.includes(match[1])) {
+                inputFields.push(match[1]);
+            }
+        }
+
+        setInputs(inputFields);
+        setValues(inputFields.reduce((acc, key) => ({ ...acc, [key]: "" }), {}));
+    }, [formula]);
+
+    useEffect(() => {
+        if (!formula || inputs.length === 0) return;
+
+        let result = formula;
+        for (const key of inputs) {
+            result = result.replaceAll(`{${key}}`, values[key] || "");
+        }
+        setFinalResult(result);
+    }, [values, formula, inputs]);
+
+    useEffect(() => {
+        if (onChange) {
+            onChange(finalResult);
+        }
+    }, [finalResult]);
+
+    const handleInputChange = (key, value) => {
+        const isNumeric = key.includes("a");
+        const sanitizedValue = isNumeric ? value.replace(/\D/g, "") : value;
+
+        setValues((prev) => ({ ...prev, [key]: sanitizedValue }));
     };
 
-    const benefits = [
-        {
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
-                </svg>
-            ),
-            title: "Transaksi Otomatis",
-            description: "Tersedia fitur validasi pembayaran dan pengiriman pesanan secara otomatis.",
-        },
-        {
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                    <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4" />
-                    <path d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2z" />
-                </svg>
-            ),
-            title: "Pembayaran Beragam",
-            description: "Tersedia pembayaran QRIS, BRI, Dana, Shopeepay, Ovo, dan Gopay.",
-        },
-        {
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
-                </svg>
-            ),
-            title: "Program Afiliasi",
-            description: "Dapatkan komisi untuk setiap transaksi dari user yang kamu undang.",
-        },
-        {
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z" />
-                </svg>
-            ),
-            title: "Layanan 24/7",
-            description: "Siap melayani transaksimu setiap hari selama 24 jam.",
-        },
-    ];
+    const inputCount = inputs.length;
 
-    const statsData = [
-        {
-            value: "2.600+",
-            label: "Pembeli",
-        },
-        {
-            value: "11.216",
-            label: "Transaksi",
-        },
-        {
-            value: "0",
-            label: "Affiliator",
-        },
-        {
-            value: "1.100+",
-            label: "Produk",
-        },
-    ];
+    return (
+        <div className={`flex ${inputCount === 1 ? "flex-col" : "flex-row gap-2"}`}>
+            {inputs.map((key, index) => (
+                <input
+                    key={index}
+                    type="text"
+                    className={`rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400 ${inputCount > 1 ? "flex-1" : ""}`}
+                    placeholder={`Input ${index + 1}`}
+                    value={values[key] || ""}
+                    onChange={(e) => handleInputChange(key, e.target.value)}
+                />
+            ))}
+        </div>
+    );
+};
+
+export default function TypePage() {
+    const { category, brand, brands = [], type, types: typeList = [], isPulsaOrData, products = [], inputTypes, commission } = usePage().props;
+    const [phone, setPhone] = useState("");
+    const [typingTimeout, setTypingTimeout] = useState(null);
+    const [detectedBrand, setDetectedBrand] = useState("");
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [customerNo, setCustomerNo] = useState("");
+    const [exampleImage, setExampleImage] = useState(null);
+    const [exampleIdProduct, setExampleIdProduct] = useState(null);
+    const [showPopup, setShowPopup] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [errors, setErrors] = useState({});
+    const [showExamplePopup, setShowExamplePopup] = useState(false);
+    const [showSharePopup, setShowSharePopup] = useState(false);
+    const [productSearch, setProductSearch] = useState("");
+    const shareRef = useRef(null);
+    const [selectedCommission, setSelectedCommission] = useState(0);
+
+    const [showLottie, setShowLottie] = useState(false);
+
+    const handleCopyLink = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url)
+            .then(() => {
+                setShowLottie(true);
+                setTimeout(() => setShowLottie(false), 2000); // Sembunyikan animasi setelah 2 detik
+            })
+            .catch((err) => {
+                console.error("Gagal menyalin URL: ", err);
+            });
+    };
+
+    const handleShare = (product) => {
+        setSelectedCommission(product.commission ?? 0);
+        setSelectedProduct(null)
+        setShowSharePopup(true);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (shareRef.current && !shareRef.current.contains(event.target)) {
+                setShowSharePopup(false);
+            }
+        };
+
+        if (showSharePopup) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showSharePopup]);
+
+
+    const filteredTypes = typeList.filter((type) =>
+        type.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const goToCheckout = (product) => {
+        if (!customerNo && !phone) {
+            alert("Masukkan ID Tujuan terlebih dahulu!");
+            return;
+        }
+
+        router.get(`/checkout`, {
+            id: product.id,
+            customerNo,
+            phone
+        });
+    };
+
+    const brandPrefixes = {
+        "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
+        "Indosat": ["0814", "0815", "0816", "0855", "0856", "0857", "0858"],
+        "XL": ["0817", "0818", "0819", "0859", "0877", "0878"],
+        "Tri": ["0895", "0896", "0897", "0898", "0899"],
+        "Axis": ["0831", "0832", "0833", "0838"],
+        "Smartfren": ["0881", "0882", "0883", "0884", "0885", "0886", "0887", "0888", "0889"],
+        "By.U": ["0851"]
+    };
+
+    useEffect(() => {
+        if (isPulsaOrData) {
+            const params = new URLSearchParams(window.location.search);
+            const phoneFromUrl = params.get("phone") || "";
+            const cleanedPhone = normalizePhoneNumber(phoneFromUrl);
+            setPhone(cleanedPhone);
+            detectBrandByPrefix(cleanedPhone);
+        }
+    }, []);
+
+    const handlePhoneChange = (e) => {
+        const rawNumber = e.target.value;
+        const cleanedNumber = normalizePhoneNumber(rawNumber);
+        setPhone(cleanedNumber);
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        setTypingTimeout(setTimeout(() => {
+            detectBrandByPrefix(cleanedNumber);
+            updateUrl({ phone: cleanedNumber });
+        }, 2000));
+    };
+
+    const normalizePhoneNumber = (number) => {
+        if (!number) return "";
+        let cleaned = number.replace(/[^0-9]/g, ""); // Hapus semua karakter kecuali angka
+
+        if (cleaned.startsWith("62")) {
+            cleaned = "0" + cleaned.substring(2); // Ubah "62" menjadi "0"
+        } else if (cleaned.startsWith("+62")) {
+            cleaned = "0" + cleaned.substring(3); // Ubah "+62" menjadi "0"
+        }
+
+        return cleaned;
+    };
+
+    const detectBrandByPrefix = (number) => {
+        if (!number || number.length < 4) {
+            setDetectedBrand("");
+            return;
+        }
+
+        const prefix = number.substring(0, 4);
+        let detected = null;
+
+        Object.entries(brandPrefixes).forEach(([brandName, prefixes]) => {
+            if (prefixes.includes(prefix)) {
+                detected = brandName;
+            }
+        });
+
+        if (!detected) {
+            setDetectedBrand("Tidak Diketahui");
+            return;
+        }
+
+        const matchedBrand = brands.find(b => b.name.toLowerCase().includes(detected.toLowerCase()));
+
+        const finalBrand = matchedBrand ? matchedBrand.name : detected;
+        setDetectedBrand(finalBrand);
+
+        if (finalBrand !== brand?.name) {
+            updateUrl({ phone: number, brand: finalBrand });
+        }
+    };
+
+    const updateUrl = (updatedValues) => {
+        const params = new URLSearchParams(window.location.search);
+        Object.entries(updatedValues).forEach(([key, value]) => {
+            if (value) {
+                params.set(key, value);
+            } else {
+                params.delete(key);
+            }
+        });
+
+        const newUrl = `/c=${category?.name}/b=${updatedValues.brand || brand?.name}` +
+            (updatedValues.type || type?.name ? `/t=${updatedValues.type || type?.name}` : '') +
+            `?${params.toString()}`;
+
+        router.get(newUrl, {}, { replace: true });
+    };
+
+    const openExamplePopup = () => {
+        const exampleImage = type?.example_image || brand?.example_image;
+        const exampleId = type?.example_id_product || brand?.example_id_product;
+
+        setExampleImage(exampleImage);
+        setExampleIdProduct(exampleId);
+        setShowExamplePopup(true);
+    };
+
+
+    const [dragOffset, setDragOffset] = useState(0);
+    const [startY, setStartY] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleMouseDown = (e) => {
+        setStartY(e.clientY);
+        setIsDragging(true);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isDragging) {
+                const currentY = e.clientY;
+                const offset = Math.max(0, currentY - startY);
+                setDragOffset(offset);
+            }
+        };
+
+        const handleMouseUp = () => {
+            if (isDragging) {
+                if (dragOffset > 100) {
+                    setSelectedProduct(null);
+                } else {
+                    setDragOffset(0);
+                }
+                setStartY(null);
+                setIsDragging(false);
+            }
+        };
+
+        if (isDragging) {
+            window.addEventListener("mousemove", handleMouseMove);
+            window.addEventListener("mouseup", handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, [isDragging, dragOffset]);
+
+    useEffect(() => {
+        setDragOffset(0);
+    }, [selectedProduct]);
+
+
+    const handleTouchStart = (e) => {
+        setStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchMove = (e) => {
+        if (startY !== null) {
+            const currentY = e.touches[0].clientY;
+            const offset = Math.max(0, currentY - startY);
+            setDragOffset(offset);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (dragOffset > 100) {
+            setSelectedProduct(null);
+        } else {
+            // reset ke posisi semula
+            setDragOffset(0);
+        }
+        setStartY(null);
+    };
+
+    useEffect(() => {
+        setDragOffset(0);
+    }, [selectedProduct]);
+
+    const modalRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (modalRef.current && !modalRef.current.contains(event.target)) {
+                setSelectedProduct(null); // Tutup modal
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     return (
         <>
-            <Head title="Welcome" />
-            <div className="bg-[#ffffff] flex flex-row justify-center w-full">
-                <div className="bg-neutralwhite w-full max-w-[412px] relative">
-                    <header className="flex items-center justify-between p-6 bg-neutralsilver">
-                        {/* Logo */}
-                        <img className="w-16 h-16" alt="Company logo" src="/storage/logo.webp" />
+            <Head title="Product Page" />
 
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-6">
-                            <Link
-                                href={route('login')}
-                                className="px-5 py-[15px] rounded-xl border border-[#2c2c5b] text-[#2c2c5b] font-button text-[12px] font-[800]"
-                            >
-                                Log in
-                            </Link>
-                            <Link
-                                href={route('register')}
-                                className="px-5 py-[15px] rounded-xl bg-[#2c2c5b] text-white font-button text-[12px] font-[800]">
-                                Register
-                            </Link>
-                        </div>
-                    </header>
-
-                    {/* Hero Section */}
-                    <div className="w-full">
-                        <div className="flex flex-col w-full items-start justify-center">
-                            <div className="flex flex-col justify-center gap-[50px] px-[30px] py-12 w-full bg-neutralsilver items-center">
-                                <div className="flex flex-col items-start gap-5 w-full">
-                                    <div className="w-full [font-family:'Lato-SemiBold',Helvetica] text-[#a8d5ba] text-3xl text-center leading-[45px]">
-                                        <span className="font-bold text-main text-4xl leading-[24px] block">
-                                            Muvausa Store
-                                            <br />
-                                        </span>
-                                        <span className="font-semibold text-[21px] leading-[24px] text-main">
-                                            Top up Murah, transaksi mudah
-                                        </span>
-                                    </div>
-
-                                    <div className="w-full [font-family:'Lato-Regular',Helvetica] font-normal text-[#333333] text-xs text-center leading-[18px]">
-                                        Muvausa Store hadir sebagai solusi pembelian pulsa, top-up game, paket data, serta produk digital lainnya yang dilengkapi fitur transaksi otomatis dan program afiliasi.
-                                    </div>
-                                </div>
-
-                                <Link
-                                    href={route('login')}
-                                >
-                                    <button
-                                        onClick={loginAsGuest}
-                                        className="flex items-center justify-center gap-2.5 px-10 py-5 bg-main rounded-xl text-white font-extrabold text-xs">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="25"
-                                            height="25"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="w-[25px] h-[25px]"
-                                        >
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                            <circle cx="12" cy="7" r="4" />
-                                        </svg>
-                                        <span>Login Sebagai Tamu</span>
-                                    </button>
+            <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
+                {/* fixed position */}
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
+                    {/* Header */}
+                    <section className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
+                            {isPulsaOrData ? (
+                                <Link href={route('user.dashboard')} className="shrink-0 w-6 h-6">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
+                                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                                    </svg>
                                 </Link>
-
-
-                            </div>
-
-                            <div className="relative w-full h-[323px] overflow-hidden">
-                                <div className="relative w-full h-full">
-                                    <img
-                                        className="absolute w-full h-full top-0 left-0 object-center"
-                                        alt="Waste collection image"
-                                        src="/storage/banner.png"
-                                    />
-
-                                    <div className="absolute w-full h-full bottom-0 left-0">
-                                        <div className="relative w-full h-full bg-gradient-to-t from-white to-white/0" />
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <section className="flex flex-col w-full max-w-[412px] items-center gap-5 px-[30px] py-12 relative bg-neutralwhite">
-                        <header className="flex flex-col items-start gap-5 relative self-stretch w-full">
-                            <div className="flex flex-col items-center gap-12 relative self-stretch w-full">
-                                <div className="flex flex-col items-center gap-2.5 relative self-stretch w-full">
-                                    <div className="flex flex-col items-start gap-2 relative self-stretch w-full">
-                                        <h3 className="text-main w-full text-base text-center font-semibold">KENAPA PILIH MUVAUSA STORE?</h3>
-                                        <h2 className="text-gray-900 w-full text-3xl text-center font-semibold">Keuntungan Bergabung</h2>
-                                    </div>
-                                </div>
-                            </div>
-                        </header>
-
-                        <div className="flex flex-col items-start gap-5 relative self-stretch w-full">
-                            {benefits.map((benefit, index) => (
-                                <div
-                                    key={index}
-                                    className="flex flex-col items-center gap-5 px-5 py-[35px] relative self-stretch w-full border-2 border-gray-200 shadow-md rounded-xl"
+                            ) : (
+                                <button
+                                    className="shrink-0 w-6 h-6"
+                                    onClick={() => window.history.back()}
                                 >
-                                    <div className="relative w-12 h-12 bg-main rounded-full flex items-center justify-center">
-                                        {benefit.icon}
-                                    </div>
-                                    <div className="flex flex-col items-center gap-2 p-0 w-full">
-                                        <h4 className="text-gray-900 text-xl text-center font-bold">{benefit.title}</h4>
-                                        <p className="text-gray-600 text-sm text-center">{benefit.description}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
+                                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                                    </svg>
+                                </button>
+                            )}
+                            <div className="font-utama text-white font-bold text-lg">
+                                {category.name}
+                            </div>
                         </div>
                     </section>
 
-                    {/* Stats Section */}
-                    <div className="w-full">
-                        <div className="flex flex-col w-full items-center gap-5 px-[30px] py-12 bg-[#F5F7FA]">
-                            <div className="flex flex-wrap items-center justify-center gap-[36.31px_36.31px] w-full rounded-[12.1px]">
-                                {statsData.map((stat, index) => (
-                                    <div key={index} className="w-[147.72px] h-[63px] relative">
-                                        <div className="absolute top-0 left-0 right-0 text-center [font-family:'Manrope-ExtraBold',Helvetica] font-extrabold text-main text-[36.3px] leading-[39.3px] whitespace-nowrap">
-                                            {stat.value}
-                                        </div>
+                    <section className="w-full h-max flex flex-col space-y-3 p-4 bg-white shadow-lg">
+                        <div className="w-full h-max flex flex-col space-y-3 items-center justify-start">
+                            <div className="w-full h-9 flex flex-row space-x-4 items-center justify-start">
+                                <img
+                                    src={brand?.image ? `/storage/${brand.image}` : "/storage/categories/default.png"}
+                                    alt={brand?.name}
+                                    className="w-9 h-9 rounded-full object-cover border border-gray-300"
+                                />
+                                <h1 className="text-utama text-lg font-medium text-center align-middle">
+                                    {brand?.name?.split(" - ")[0]}
+                                </h1>
+                            </div>
 
-                                        <div className="absolute w-36 top-11 left-0 right-0 [font-family:'Inter-SemiBold',Helvetica] font-semibold text-[#6d6d6d] text-xs text-center leading-[18.2px]">
-                                            {stat.label}
+                            <div className="w-full flex flex-row mx-auto items-center justify-center">
+                                {isPulsaOrData && (
+                                    <div className="flex-grow"
+                                    >
+                                        <input
+                                            type="tel"
+                                            className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
+                                            placeholder="Masukkan nomor HP"
+                                            value={phone}
+                                            onChange={handlePhoneChange}
+                                        />
+                                    </div>
+                                )}
+
+                                {!isPulsaOrData && inputTypes.length > 0 && (
+                                    <div className="relative w-full">
+                                        <DynamicInput
+                                            formula={inputTypes[0]?.formula}
+                                            onChange={(result) => setCustomerNo(result)}
+                                            className="w-full pr-12" // Beri padding kanan agar ikon tidak menutupi teks input
+                                        />
+                                        <button
+                                            onClick={openExamplePopup}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-white transition"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="bi bi-info-circle-fill w-5 h-5 text-main" viewBox="0 0 16 16">
+                                                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
+                                {showExamplePopup && (
+                                    <div className="fixed h-screen px-4 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                                        <div className="w-full max-w-[328px] p-4 bg-white rounded-lg shadow-lg">
+                                            <div className="w-full h-max flex flex-col">
+                                                <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
+                                                    Contoh Format Pengisian
+                                                </h2>
+                                            </div>
+
+                                            {exampleImage ? (
+                                                <img src={`/storage/${exampleImage}`} alt="Contoh ID Pelanggan" className="w-full" />
+                                            ) : (
+                                                <p className="text-gray-500 italic w-full text-center text-md">
+                                                    Gambar contoh ID pelanggan tidak tersedia.
+                                                </p>
+                                            )}
+
+                                            {exampleIdProduct ? (
+                                                <p className="text-gray-700 w-full text-center text-md font-medium">
+                                                    Contoh ID Pelanggan:<br />
+                                                    <span className="font-semibold">{exampleIdProduct}</span>
+                                                </p>
+                                            ) : (
+                                                <p className="text-gray-500 italic w-full text-center text-md">
+                                                    Contoh  ID pelanggan tidak tersedia.
+                                                </p>
+                                            )}
+
+
+                                            <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
+                                                <button
+                                                    onClick={() => {
+                                                        setShowExamplePopup(false);
+                                                        setErrors({});
+                                                    }}
+                                                    className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                                                >
+                                                    MENGERTI
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                ))}
+                                )}
+                            </div>
+                        </div>
+                        <div className="w-full h-px bg-gray-300 my-4" />
+
+                        <div className="w-full h-max flex flex-col space-y-3 items-center justify-center">
+                            <div className="w-full flex flex-row items-center justify-center py-2 rounded bg-main hover:bg-blue-700 text-white">
+                                <button
+                                    onClick={() => setShowPopup(true)}
+                                    type="button"
+                                    className="w-full flex flex-row space-x-2 items-center justify-center"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grid-fill" viewBox="0 0 16 16">
+                                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z" />
+                                    </svg>
+                                    <span className="text-sm font-medium">Kategori</span>
+                                </button>
+                                {/* Popup Pilihan Type */}
+
+                                {showPopup && (
+                                    <div className="fixed h-screen px-4 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                                        <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg p-4 bg-white rounded-lg shadow-lg">
+                                            <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                                <input
+                                                    type="text"
+                                                    className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400 text-black"
+                                                    placeholder="Cari type..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                />
+
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="currentColor"
+                                                    stroke="currentColor"
+                                                    strokeWidth="0.3"
+                                                    className="w-5 h-5 text-main"
+                                                >
+                                                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                                </svg>
+                                            </div>
+
+                                            <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
+                                                <Link
+                                                    href={`/c=${category?.name}/b=${detectedBrand || brand?.name}/t=all?phone=${phone}`}
+                                                    className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-main"
+                                                >
+                                                    <p className="text-utama text-sm text-left align-middle">Tampilkan Semua</p>
+                                                </Link>
+                                                {filteredTypes.length > 0 ? (
+                                                    filteredTypes.map((typeItem) => (
+                                                        <Link
+                                                            key={typeItem.id}
+                                                            href={`/c=${category?.name}/b=${detectedBrand || brand?.name}/t=${typeItem?.name}?phone=${phone}`}
+                                                            className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-black"
+                                                        >
+                                                            <p className="text-utama text-sm text-left align-middle">{typeItem?.name?.split(" - ")[0]}</p>
+                                                        </Link>
+                                                    ))
+                                                ) : (
+                                                    <div className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-main">
+                                                        <p className="text-gray-500 text-sm text-left align-middle">Tipe yang dicari tidak tersedia.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <button
+                                                onClick={() => setShowPopup(false)}
+                                                className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                                            >
+                                                Tutup
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                <input
+                                    id="searchInput"
+                                    type="text"
+                                    className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                    value={productSearch}
+                                    onChange={(e) => setProductSearch(e.target.value)}
+                                    placeholder="Cari produk..."
+                                />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    stroke="currentColor"
+                                    strokeWidth="0.3"
+                                    className="w-5 h-5 text-main"
+                                >
+                                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                </svg>
                             </div>
                         </div>
 
-                        <div className="flex flex-col w-full items-center gap-5 px-[30px] py-12 bg-neutralwhite">
-                            <div className="w-full [font-family:'Inter-SemiBold',Helvetica] font-semibold text-neutralblack text-xl text-center leading-[25.4px]">
-                                Mau hemat sebagai buyer, untung sebagai seller, atau dapat passive income sebagai afiliator?
+                    </section>
+                </div>
+
+                <section className="flex flex-col pt-[294px] gap-5 p-4">
+                    {products
+                        .sort((a, b) => a.price - b.price)
+                        .map((product) => (
+                            <div
+                                onClick={() => setSelectedProduct(product)}
+                                key={product.id}
+                                className="flex flex-col space-y-2 border py-3 px-4 bg-white rounded-lg shadow-md">
+                                <h3 className="w-full text-utama text-sm font-medium text-justify line-clamp-3">{product.product_name}</h3>
+                                <div className="flex flex-row justify-between items-center w-full mt-2">
+                                    <p className="text-main text-lg font-semibold">
+                                        Rp{new Intl.NumberFormat("id-ID").format(product.price)}
+                                    </p>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // <- ini penting: mencegah event bubbling ke card
+                                            handleShare(product); // <- pastikan fungsi ini ada
+                                        }}
+                                        className="text-blue-500 flex items-center gap-1"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-5 h-5" viewBox="0 0 16 16">
+                                            <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    }
+                </section>
+
+                {selectedProduct && (
+                    <div className="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-end justify-center">
+                        <div
+                            ref={modalRef}
+                            className="fixed left-1/2 bottom-0 transform -translate-x-1/2 w-full max-w-[500px] px-4 bg-white shadow-lg border-t max-h-[470px] flex flex-col justify-between rounded-t-xl transition-transform duration-200 ease-out z-50"
+                            style={{ transform: `translate(-50%, ${dragOffset}px)` }}
+                        >
+
+                            <div className="flex justify-center py-3">
+                                <div
+                                    className="w-12 h-1.5 rounded-full bg-gray-400 hover:bg-gray-500 transition touch-none cursor-pointer"
+                                    onTouchStart={handleTouchStart}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
+                                    onMouseDown={handleMouseDown} // 👈 versi desktop
+                                />
                             </div>
 
-                            <button className="w-[168px] px-7 py-2.5 bg-main rounded-xl font-semibold text-white text-xs">
-                                Gabung Sekarang
-                            </button>
+                            <div className="max-h-[420px] flex flex-col space-y-2 items-start justify-start pt-3 border-t border-b border-gray-300">
+                                <div className="w-full max-h-[150px] overflow-y-auto">
+                                    <p className="w-full text-utama font-medium text-md text-justify break-words pb-2 border-b border-gray-200">
+                                        {selectedProduct.product_name}
+                                    </p>
+                                    <p className="w-full text-gray-600 text-sm font-thin text-justify break-words my-2">
+                                        Deskripsi:<br />
+                                        {selectedProduct.description}
+                                    </p>
+                                </div>
+                            </div>
 
+                            <div className="flex flex-row items-center justify-between w-full py-3">
+                                <p className="text-lg text-utama text-main font-bold">Rp{new Intl.NumberFormat("id-ID").format(selectedProduct.price)}</p>
+                                <button
+                                    onClick={() => goToCheckout(selectedProduct)}
+                                    className="bg-main text-white px-4 py-2 rounded"
+                                >
+                                    Checkout
+                                </button>
+                            </div>
                         </div>
                     </div>
+                )}
 
-                    {/* Footer */}
-                    <footer className="flex flex-col w-full items-center justify-center gap-5 px-[30px] py-12 bg-[#2C2D5B]">
-                        <div className="flex flex-col w-[314px] items-center justify-center gap-6">
-                            <img
-                                className="w-[123px] h-auto object-contain"
-                                alt="Pusaka Logo"
-                                src="/storage/logoTulisanWhite_no_bg.png"
-                            />
+                {showSharePopup && (
+                    <div className="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-end justify-center">
+                        <div
+                            ref={shareRef}
+                            className="w-full max-w-[500px] px-4 pb-2 bg-white shadow-lg border-t flex flex-col justify-between rounded-t-xl z-50 transition-transform duration-200 ease-out">
 
-                            <div className="w-[314px] [font-family:'Inter-Regular',Helvetica] font-normal text-white text-lg text-center leading-[34px]">
-                                Jadikan setiap transaksi lebih praktis dan menguntungkan.
-                            </div>
-                        </div>
-
-                        <div className="border-t-2 border-white/40">
-                            <span className="invisible">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</span>
-                        </div>
-
-                        <div className="flex flex-col items-center justify-center gap-6 w-full">
-                            <div className="w-full [font-family:'Inter-Regular',Helvetica] font-normal text-white text-lg text-center leading-[34px]">
-                                Copyright © 2025 Muvausa Store. All rights reserved.
+                            {/* Tombol Tutup */}
+                            <div className="flex justify-center py-3">
+                                <button
+                                    onClick={() => setShowSharePopup(false)}
+                                    className="text-sm font-medium text-red-600 border border-red-600 px-4 py-1 rounded hover:bg-red-50 transition"
+                                >
+                                    Tutup
+                                </button>
                             </div>
 
-                            <div className="flex items-center gap-[30px]">
-                                <a href="wa.me/6288227397243">
-                                    <div className="flex w-[39.73px] h-[39.73px] items-center justify-center bg-white rounded-full overflow-hidden">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-whatsapp" viewBox="0 0 16 16">
-                                            <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232" />
-                                        </svg>
-                                    </div>
-                                </a>
+                            <p className="w-full text-utama font-medium text-xs text-center break-words py-2 border-b border-gray-200">
+                                BAGIKAN DAN RAIH KOMISI
+                            </p>
 
-                                <a href="https://www.instagram.com/muvausastore/">
-                                    <div className="flex w-[39.73px] h-[39.73px] items-center justify-center bg-white rounded-full overflow-hidden">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-instagram" viewBox="0 0 16 16">
-                                            <path d="M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444.048 3.297.04.852.174 1.433.372 1.942.205.526.478.972.923 1.417.444.445.89.719 1.416.923.51.198 1.09.333 1.942.372C5.555 15.99 5.827 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.9 3.9 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.942C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.851-.175-1.433-.372-1.941a3.9 3.9 0 0 0-.923-1.417A3.9 3.9 0 0 0 13.24.42c-.51-.198-1.092-.333-1.943-.372C10.443.01 10.172 0 7.998 0zm-.717 1.442h.718c2.136 0 2.389.007 3.232.046.78.035 1.204.166 1.486.275.373.145.64.319.92.599s.453.546.598.92c.11.281.24.705.275 1.485.039.843.047 1.096.047 3.231s-.008 2.389-.047 3.232c-.035.78-.166 1.203-.275 1.485a2.5 2.5 0 0 1-.599.919c-.28.28-.546.453-.92.598-.28.11-.704.24-1.485.276-.843.038-1.096.047-3.232.047s-2.39-.009-3.233-.047c-.78-.036-1.203-.166-1.485-.276a2.5 2.5 0 0 1-.92-.598 2.5 2.5 0 0 1-.6-.92c-.109-.281-.24-.705-.275-1.485-.038-.843-.046-1.096-.046-3.233s.008-2.388.046-3.231c.036-.78.166-1.204.276-1.486.145-.373.319-.64.599-.92s.546-.453.92-.598c.282-.11.705-.24 1.485-.276.738-.034 1.024-.044 2.515-.045zm4.988 1.328a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334" />
-                                        </svg>
+                            {/* Konten Share */}
+                            <div className="max-h-[420px] flex flex-col space-y-2 items-start justify-start py-2 border-t border-b border-gray-300">
+                                <div className="w-full max-h-[150px] overflow-y-auto">
+                                    <div>
+                                        <p className="text-gray-600 text-xs font-thin text-justify break-words my-2">
+                                            Komisi hanya didapatkan jika pesanan telah memenuhi syarat
+                                            dan penyebar link sudah terdaftar sebagai affiliator Muvausa
+                                            Store.{" "}
+                                            <a
+                                                href="/affiliator"
+                                                className="text-blue-600 hover:text-blue-800 transition"
+                                            >
+                                                DAFTAR AFFILIATOR
+                                            </a>
+                                        </p>
                                     </div>
-                                </a>
-
-                                <a href="https://x.com/muvausastore">
-                                    <div className="flex w-[39.73px] h-[39.73px] items-center justify-center bg-white rounded-full overflow-hidden">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-twitter-x" viewBox="0 0 16 16">
-                                            <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z" />
-                                        </svg>
-                                    </div>
-                                </a>
+                                </div>
                             </div>
 
+                            <div className="flex flex-row items-center justify-between w-full py-3">
+                                <div className="text-justify">
+                                    <p className="text-sm text-black font-medium">Komisi</p>
+                                    <p className="text-lg text-main font-bold">
+                                        Rp{new Intl.NumberFormat("id-ID").format(selectedCommission)}
+                                    </p>
+                                </div>
+                                {showLottie ? (
+                                    <div className="w-24">
+                                        <DotLottieReact
+                                            src="https://lottie.host/519fbc9d-1e9b-4ddf-ab6f-14423aabd845/MtxYOaYcV8.lottie"
+                                            autoplay
+                                            loop={false}
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleCopyLink}
+                                        className="bg-main text-white px-3 py-2 rounded flex items-center gap-2 hover:bg-blue-700 transition"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="currentColor"
+                                            className="w-5 h-5 font-bold text-white"
+                                            viewBox="0 0 16 16"
+                                        >
+                                            <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z" />
+                                            <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z" />
+                                        </svg>
+                                        <span className="font-semibold text-sm">Salin</span>
+                                    </button>
+                                )}
+
+                            </div>
                         </div>
-                    </footer>
-                </div>
+                    </div>
+                )}
             </div>
         </>
     );

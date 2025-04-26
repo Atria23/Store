@@ -177,7 +177,7 @@ class TransactionController extends Controller
             ->get(['ref_id', 'product_name', 'customer_no', 'price', 'status', 'sn', 'created_at']);
 
         // Kirim data ke Inertia
-        return Inertia::render('History', [
+        return Inertia::render('User/History', [
             'transactions' => $transactionsHistory,
         ]);
     }

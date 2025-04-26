@@ -24,20 +24,27 @@ class UserDashboardController extends Controller
         // Menyiapkan data user dengan nilai default jika kosong
         $userData = [
             'name' => optional($user)->name ?? 'Guest',
-            'transactions' => $transactionsCount, // Gunakan jumlah transaksi sukses
+            'transactions' => $transactionsCount,
             'balance' => optional($user)->balance ?? 0,
             'points' => optional($user)->points ?? 0,
             'depositHistory' => optional($user)->depositHistory ?? [],
         ];
 
-        $categories = DB::table('categories')
-            ->select('id', 'name', 'image')
-            ->get();
+        // Ambil semua kategori
+        $categoriesQuery = DB::table('categories')
+            ->select('id', 'name', 'image');
 
-        // Kirimkan data user dengan jumlah transaksi sukses ke komponen React
+        // Jika pengguna bukan admin atau super-admin, sembunyikan kategori "e-money"
+        if (!$user->hasRole('admin') && !$user->hasRole('super-admin')) {
+            $categoriesQuery->where('name', '!=', 'e-money');
+        }
+
+        $categories = $categoriesQuery->get();
+
+        // Kirimkan data ke komponen React
         return Inertia::render('User/Dashboard', [
             'categories' => $categories,
-            'user' => $userData, // Kirim data user dengan jumlah transaksi sukses
+            'user' => $userData,
         ]);
     }
 }

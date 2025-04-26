@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Requeuse; 
+use Illuminate\Http\Request; 
 use App\Models\PriceList;
 use App\Models\Category;
 use App\Models\Brand;

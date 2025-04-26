@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Admin extends Model
 {
@@ -29,6 +28,12 @@ class Admin extends Model
         'qris_status',
         'qris_manual',
         'qris_manual_status',
+        'qris_shopeepay',
+        'qris_shopeepay_status',
+        'qris_gopay',
+        'qris_gopay_status',
+        'qris_ovo',
+        'qris_ovo_status',
         'admin_status',
     ];
 

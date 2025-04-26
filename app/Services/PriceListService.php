@@ -12,6 +12,7 @@ use App\Models\Brand;
 use App\Models\Type;
 use App\Models\InputType;
 use App\Models\Barang;
+
 class PriceListService
 {
     /**
@@ -19,28 +20,19 @@ class PriceListService
      */
     public function fetchAndUpdatePriceList()
     {
-        // Ambil waktu pembaruan terakhir dari tabel produk
         $lastUpdated = Product::max('updated_at');
 
         if ($lastUpdated) {
-            // Konversi ke instance Carbon
             $lastUpdatedCarbon = Carbon::parse($lastUpdated);
-
-            // Hitung waktu pembaruan berikutnya (minimal 1 menit)
             $nextUpdateTime = $lastUpdatedCarbon->addMinutes(1);
 
-            // Jika sekarang kurang dari waktu pembaruan berikutnya, log pesan error
             if (now()->lt($nextUpdateTime)) {
                 $timeRemaining = now()->diffInSeconds($nextUpdateTime, false);
-
                 Log::info("Pembaruan data ditunda. Data baru bisa diperbarui dalam {$timeRemaining} detik. Waktu update berikutnya: {$nextUpdateTime->toDateTimeString()}.");
-
-                // Berhenti tanpa melanjutkan proses update
                 return false;
             }
         }
 
-        // Lakukan pembaruan data
         $username = env('P_U');
         $apiKey = env('P_AK');
         $sign = md5($username . $apiKey . "pricelist");
@@ -52,9 +44,13 @@ class PriceListService
         ]);
 
         if ($response->successful()) {
+            $apiSkuList = [];
+
             foreach ($response->json()['data'] as $item) {
+                $apiSkuList[] = $item['buyer_sku_code'];
+
                 PriceList::updateOrCreate(
-                    ['buyer_sku_code' => $item['buyer_sku_code']],  // Unik berdasarkan buyer_sku_code
+                    ['buyer_sku_code' => $item['buyer_sku_code']],
                     [
                         'product_name' => $item['product_name'],
                         'category' => $item['category'],
@@ -62,7 +58,6 @@ class PriceListService
                         'type' => $item['type'],
                         'seller_name' => $item['seller_name'],
                         'price' => $item['price'],
-                        'buyer_sku_code' => $item['buyer_sku_code'],
                         'buyer_product_status' => $item['buyer_product_status'],
                         'seller_product_status' => $item['seller_product_status'],
                         'unlimited_stock' => $item['unlimited_stock'],
@@ -70,95 +65,132 @@ class PriceListService
                         'multi' => $item['multi'],
                         'start_cut_off' => $item['start_cut_off'],
                         'end_cut_off' => $item['end_cut_off'],
-                        'desc' => $item['desc'],
+                        'desc' => $item['desc'] ?? null,
                         'updated_at' => now(),
                     ]
                 );
 
-                // Update kategori jika ada
+                // Update category
                 if (!empty($item['category'])) {
-                    Category::updateOrCreate(
-                        ['name' => $item['category']],
-                        ['updated_at' => now()]
-                    );
-                };
+                    Category::updateOrCreate(['name' => $item['category']], ['updated_at' => now()]);
+                }
 
-                // Update brand jika ada
+                // Update brand
                 if (!empty($item['brand']) && !empty($item['category'])) {
                     $category = Category::where('name', $item['category'])->first();
-
                     if ($category) {
                         Brand::updateOrCreate(
-                            [
-                                'name' => $item['brand'],
-                                'category_id' => $category->id, // Pastikan category_id selalu ada
-                            ],
-                            [
-                                'updated_at' => now(),
-                            ]
+                            ['name' => $item['brand'], 'category_id' => $category->id],
+                            ['updated_at' => now()]
                         );
                     }
-                };
+                }
 
+                // Update type
                 if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
                     $brand = Brand::where('name', $item['brand'])->first();
                     $category = Category::where('name', $item['category'])->first();
-                
                     if ($brand && $category) {
                         Type::updateOrCreate(
-                            [
-                                'name' => $item['type'],
-                                'brand_id' => $brand->id,
-                                'category_id' => $category->id,
-                            ],
-                            [
-                                'updated_at' => now(),
-                            ]
+                            ['name' => $item['type'], 'brand_id' => $brand->id, 'category_id' => $category->id],
+                            ['updated_at' => now()]
                         );
                     }
-                };
-                
-                if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category']) && !empty($item['buyer_sku_code'])) {
-                    $brand = Brand::where('name', $item['brand'])->first();
-                    $category = Category::where('name', $item['category'])->first();
-                    $type = Type::where('name', $item['type'])->first();
-                    
-                    // Ambil data dari PriceList menggunakan Eloquent
-                    PriceList::all();
-
-                    if ($brand && $category && $type) {
-                        Barang::updateOrCreate(
-                            [
-                                'buyer_sku_code' => $item['buyer_sku_code'], // Identifikasi unik
-                            ],
-                            [
-                                'product_name' => $item['product_name'], // Menggunakan type sebagai nama barang
-                                'brand_id' => $brand->id,
-                                'category_id' => $category->id,
-                                'type_id' => $type->id,
-                                'input_type_id' => $inputType->id ?? null, // InputType opsional
-                                'price' => $item['price'], // Harga sebagai string
-                                'buyer_product_status' => $item['buyer_product_status'], // Boolean
-                                'seller_product_status' => $item['seller_product_status'], // Boolean
-                                'unlimited_stock' => !empty($item['unlimited_stock']) ? (bool) $item['unlimited_stock'] : false, // Boolean
-                                'stock' => !empty($item['stock']) ? (string) $item['stock'] : null, // Stok sebagai string atau null
-                                'multi' => !empty($item['multi']) ? (bool) $item['multi'] : false, // Boolean
-                                'start_cut_off' => $item['start_cut_off'], // Ambil dari item atau PriceList
-                                'end_cut_off' => $item['end_cut_off'], // Ambil dari item atau PriceList
-                                'desc' => $item['desc'] ?? null, // Deskripsi
-                                'updated_at' => now(),
-                            ]
-                        );
-                    }
-                };               
+                }
             }
 
-            Log::info("Data berhasil diperbarui pada " . now()->toDateTimeString() . ".");
+            // Update produk lama yang SKU-nya tidak ada di API
+            PriceList::whereNotIn('buyer_sku_code', $apiSkuList)
+                ->chunkById(500, function ($priceLists) {
+                    foreach ($priceLists as $priceList) {
+                        $priceList->update([
+                            'seller_product_status' => 0,
+                            'updated_at' => now(),
+                        ]);
+                    }
+                });
+
+            // ✅ Setelah semua PriceList update, lanjut sync Barang dari PriceList
+            $this->syncBarangFromPriceList();
+
+            Log::info("Data berhasil diperbarui dan Barang disinkronkan pada " . now()->toDateTimeString() . ".");
             return true;
         }
 
-        // Jika API tidak berhasil, log pesan error
         Log::error("Gagal memperbarui data dari API.");
         return false;
+    }
+
+    /**
+     * Private: Sinkronisasi Barang berdasarkan PriceList.
+     */
+    private function syncBarangFromPriceList()
+    {
+        $priceListItems = PriceList::select(
+            'buyer_sku_code', 
+            'product_name', 
+            'category', 
+            'brand', 
+            'type', 
+            'seller_name', 
+            'price', 
+            'buyer_product_status', 
+            'seller_product_status', 
+            'unlimited_stock', 
+            'stock', 
+            'multi', 
+            'start_cut_off', 
+            'end_cut_off', 
+            'desc'
+        )
+        ->whereNotNull('buyer_sku_code')
+        ->whereNotNull('category')
+        ->whereNotNull('brand')
+        ->whereNotNull('type')
+        ->distinct()
+        ->get();
+
+        foreach ($priceListItems as $item) {
+            $categoryName = trim($item->category);
+            $brandFullName = trim($item->brand);
+            $typeFullName = trim($item->type);
+
+            $brandBaseName = explode(' - ', $brandFullName)[0];
+            $typeBaseName = explode(' - ', $typeFullName)[0];
+
+            $category = Category::where('name', $categoryName)->first();
+            $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandBaseName, $brandBaseName])
+                ->where('category_id', optional($category)->id)
+                ->first();
+            $type = Type::whereRaw("LEFT(name, LENGTH(?)) = ?", [$typeBaseName, $typeBaseName])
+                ->where('brand_id', optional($brand)->id)
+                ->first();
+
+            if (!$category || !$brand || !$type) {
+                continue; // Lewati jika salah satu tidak ditemukan
+            }
+
+            Barang::updateOrCreate(
+                [
+                    'buyer_sku_code' => trim($item->buyer_sku_code),
+                ],
+                [
+                    'product_name' => trim($item->product_name),
+                    'category_id' => $category->id,
+                    'brand_id' => $brand->id,
+                    'type_id' => $type->id,
+                    'price' => $item->price ?? 0,
+                    'buyer_product_status' => $item->buyer_product_status,
+                    'seller_product_status' => $item->seller_product_status,
+                    'unlimited_stock' => $item->unlimited_stock,
+                    'stock' => $item->stock,
+                    'multi' => $item->multi,
+                    'start_cut_off' => $item->start_cut_off,
+                    'end_cut_off' => $item->end_cut_off,
+                    'desc' => trim($item->desc) ?? '',
+                    'updated_at' => now(),
+                ]
+            );
+        }
     }
 }

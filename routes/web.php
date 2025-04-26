@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Apps\DashboardController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Apps\PermissionController;
 use App\Http\Controllers\Apps\RoleController;
-use App\Http\Controllers\Apps\UserController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\User\UserDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 use Illuminate\Foundation\Application;
@@ -42,6 +42,20 @@ use App\Http\Controllers\User\BalanceMutationController;
 use App\Http\Controllers\User\UserProductController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
+use Illuminate\Http\Request;
+
+Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    
+Route::post('/deposit/check-expired', [\App\Http\Controllers\DepositController::class, 'checkAndExpire']);
+
+Route::post('/check-referral', function (Request $request) {
+    $request->validate(['referral_code' => 'required|string']);
+
+    $code = strtolower($request->referral_code);
+    $exists = \App\Models\User\Affiliator::whereRaw('LOWER(referral_code) = ?', [$code])->exists();
+
+    return response()->json(['valid' => $exists]);
+});
 
 Route::get('/reset-password-success', function () {
     return Inertia::render('Auth/ResetPasswordSuccess');
@@ -93,14 +107,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
         ->name('affiliate.history');
 
+        Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
+
+
     // Untuk admin & super-admin, bisa akses dengan affiliator_id
     Route::middleware(['super-admin'])->group(function () {
-        Route::get('/affiliate-history/{affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
+        Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
             ->name('affiliate.history.admin');
     });
 });
 
-Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
+// Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
 Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
 
 
@@ -126,7 +143,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/deposit/confirm/{id}', [DepositController::class, 'confirm'])->name('deposit-confirm');
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
-    
+    Route::get('/deposit/{id}', [DepositController::class, 'show'])->name('deposit.show')->middleware('auth');
+
     Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
 
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
@@ -140,7 +158,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/store/edit', [StoreController::class, 'edit'])->name('store.edit');
     Route::post('/store/update', [StoreController::class, 'update'])->name('store.update');
 
-    Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
 });
@@ -149,9 +167,10 @@ Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
 Route::get('/products', [PriceListController::class, 'showAllProducts']);
 
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+Route::middleware("super-admin")->group(function () {
+    Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
 });
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/history/{ref_id}', function ($ref_id) {
@@ -168,7 +187,7 @@ Route::middleware(['auth'])->group(function () {
         // Ambil informasi toko
         $store = \App\Models\Store::first();
 
-        return Inertia::render('HistoryDetail', [
+        return Inertia::render('User/HistoryDetail', [
             'transactions' => $transactions,
             'params' => ['ref_id' => $ref_id],
             'store' => $store ? [
@@ -222,18 +241,18 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/manage-product-detail/{id?}', [ProductController::class, 'index'])->name('product.index');
     Route::delete('/manage-product-detail/{id}', [ProductController::class, 'destroy'])->name('product.destroy');;
 
-});
+        Route::resource('/manage-users', UserController::class)
+    ->parameters(['manage-users' => 'user']) // <- ubah parameter jadi 'user'
+    ->except('show')
+    ->names([
+        'index'   => 'manage-users.index',
+        'create'  => 'manage-users.create',
+        'store'   => 'manage-users.store',
+        'edit'    => 'manage-users.edit',
+        'update'  => 'manage-users.update',
+        'destroy' => 'manage-users.destroy',
+    ]);
 
-// Rute untuk aplikasi admin
-Route::group(['prefix' => 'apps', 'as' => 'apps.' , 'middleware' => ['auth']], function(){
-    // dashboard route
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    // permissions route
-    Route::get('/permissions', PermissionController::class)->name('permissions.index');
-    // roles route
-    Route::resource('/roles', RoleController::class)->except(['create', 'edit', 'show']);
-    // users route
-    Route::resource('/users', UserController::class)->except('show');
 });
 
 require __DIR__.'/auth.php';

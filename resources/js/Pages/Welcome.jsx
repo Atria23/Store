@@ -18,7 +18,6 @@ export default function Welcome(props) {
         setIsGuestLogin(true);
     };
 
-    // Saat state `data` berubah dan `isGuestLogin` aktif, kirimkan request login
     useEffect(() => {
         if (isGuestLogin && data.email === 'guest@muvausa.com') {
             post(route('login'));
@@ -71,30 +70,29 @@ export default function Welcome(props) {
         },
     ];
 
-
     console.log("📦 props:", props);
     const { statsData = [] } = props;
 
     return (
         <>
-            <Head title="Welcome" />
+            <Head title="Selamat Datang" />
             <div className="bg-[#ffffff] flex flex-row justify-center w-full">
-                <div className="bg-neutralwhite w-full max-w-[412px] relative">
-                    <header className="flex items-center justify-between p-6 bg-neutralsilver">
+                <div className="bg-neutralwhite w-full max-w-[500px] relative">
+                    <header className="flex items-center justify-between flex-wrap p-3 sm:p-6 bg-neutralsilver">
                         {/* Logo */}
-                        <img className="w-16 h-16" alt="Company logo" src="/storage/logo.webp" />
-
+                        <img className="w-10 h-10 sm:w-16 sm:h-16" alt="Company logo" src="/storage/logo.webp" />
                         {/* Action buttons */}
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2 sm:gap-6">
                             <Link
                                 href={route('login')}
-                                className="px-5 py-[15px] rounded-xl border border-[#2c2c5b] text-[#2c2c5b] font-button text-[12px] font-[800]"
+                                className="px-3 py-2 sm:px-5 sm:py-[15px] rounded-lg border border-[#2c2c5b] text-[#2c2c5b] text-[10px] sm:text-[12px] font-[800]"
                             >
                                 Log in
                             </Link>
                             <Link
                                 href={route('register')}
-                                className="px-5 py-[15px] rounded-xl bg-[#2c2c5b] text-white font-button text-[12px] font-[800]">
+                                className="px-3 py-2 sm:px-5 sm:py-[15px] rounded-lg bg-[#2c2c5b] text-white text-[10px] sm:text-[12px] font-[800]"
+                            >
                                 Register
                             </Link>
                         </div>
@@ -103,80 +101,83 @@ export default function Welcome(props) {
                     {/* Hero Section */}
                     <div className="w-full">
                         <div className="flex flex-col w-full items-start justify-center">
-                            <div className="flex flex-col justify-center gap-[50px] px-[30px] py-12 w-full bg-neutralsilver items-center">
-                                <div className="flex flex-col items-start gap-5 w-full">
-                                    <div className="w-full [font-family:'Lato-SemiBold',Helvetica] text-[#a8d5ba] text-3xl text-center leading-[45px]">
-                                        <span className="font-bold text-main text-4xl leading-[24px] block">
+                            <div className="flex flex-col justify-center gap-8 sm:gap-[50px] px-4 sm:px-[30px] py-8 sm:py-12 w-full bg-neutralsilver items-center">
+                                <div className="flex flex-col items-start gap-4 sm:gap-5 w-full max-w-[100%]">
+                                    <div className="w-full font-semibold text-[#a8d5ba] text-2xl sm:text-3xl text-center leading-snug sm:leading-[45px]">
+                                        <span className="font-bold text-main text-3xl sm:text-4xl leading-6 sm:leading-[24px] block">
                                             Muvausa Store
-                                            <br />
                                         </span>
-                                        <span className="font-semibold text-[21px] leading-[24px] text-main">
+                                        <span className="font-semibold text-[16px] sm:text-[21px] leading-5 sm:leading-[24px] text-main block mt-1">
                                             Top up Murah, transaksi mudah
                                         </span>
                                     </div>
 
-                                    <div className="w-full [font-family:'Lato-Regular',Helvetica] font-normal text-[#333333] text-xs text-center leading-[18px]">
-                                        Muvausa Store hadir sebagai solusi pembelian pulsa, top-up game, paket data, serta produk digital lainnya yang dilengkapi fitur transaksi otomatis dan program afiliasi.
+                                    <div className="w-full text-[#333333] text-xs sm:text-sm text-center leading-snug">
+                                        Muvausa Store hadir sebagai solusi pembelian pulsa, top-up game, paket data, serta produk digital lainnya
+                                        yang dilengkapi fitur transaksi otomatis dan program afiliasi.
                                     </div>
                                 </div>
 
                                 <Link href={route('login')}>
                                     <button
                                         onClick={loginAsGuest}
-                                        className="flex items-center justify-center gap-2.5 px-8 py-4 bg-transparent border-2 border-main text-main font-extrabold text-sm rounded-xl hover:bg-main hover:text-white transition-all duration-300"
+                                        className="flex items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-transparent border-2 border-main text-main font-extrabold text-xs sm:text-sm rounded-lg sm:rounded-xl hover:bg-main hover:text-white transition-all duration-300"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-person-badge-fill" viewBox="0 0 16 16">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 16 16">
                                             <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm4.5 0a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m5 2.755C12.146 12.825 10.623 12 8 12s-4.146.826-5 1.755V14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1z" />
                                         </svg>
                                         <span>Login Sebagai Tamu</span>
                                     </button>
                                 </Link>
-
-
-
                             </div>
 
-                            <div className="relative w-full h-[323px] overflow-hidden">
+                            {/* Banner */}
+                            <div className="relative w-full h-[200px] sm:h-[323px] overflow-hidden">
                                 <div className="relative w-full h-full">
                                     <img
-                                        className="absolute w-full h-full top-0 left-0 object-center"
-                                        alt="Waste collection image"
+                                        className="absolute w-full h-full top-0 left-0 object-cover"
+                                        alt="banner welcome"
                                         src="/storage/banner.png"
                                     />
-
                                     <div className="absolute w-full h-full bottom-0 left-0">
                                         <div className="relative w-full h-full bg-gradient-to-t from-white to-white/0" />
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
 
-                    <section className="flex flex-col w-full max-w-[412px] items-center gap-5 px-[30px] py-12 relative bg-neutralwhite">
-                        <header className="flex flex-col items-start gap-5 relative self-stretch w-full">
-                            <div className="flex flex-col items-center gap-12 relative self-stretch w-full">
-                                <div className="flex flex-col items-center gap-2.5 relative self-stretch w-full">
-                                    <div className="flex flex-col items-start gap-2 relative self-stretch w-full">
-                                        <h3 className="text-main w-full text-base text-center font-semibold">KENAPA PILIH MUVAUSA STORE?</h3>
-                                        <h2 className="text-gray-900 w-full text-3xl text-center font-semibold">Keuntungan Bergabung</h2>
-                                    </div>
+                    {/* Benefit Section */}
+                    <section className="flex flex-col w-full max-w-[500px] items-center gap-5 px-4 sm:px-[30px] py-8 sm:py-12 relative bg-neutralwhite">
+                        <header className="flex flex-col items-start gap-4 sm:gap-5 w-full">
+                            <div className="flex flex-col items-center gap-8 sm:gap-12 w-full">
+                                <div className="flex flex-col items-start gap-2 w-full">
+                                    <h3 className="text-main w-full text-sm sm:text-base text-center font-semibold">
+                                        KENAPA PILIH MUVAUSA STORE?
+                                    </h3>
+                                    <h2 className="text-gray-900 w-full text-2xl sm:text-3xl text-center font-semibold">
+                                        Keuntungan Bergabung
+                                    </h2>
                                 </div>
                             </div>
                         </header>
 
-                        <div className="flex flex-col items-start gap-5 relative self-stretch w-full">
+                        <div className="flex flex-col items-start gap-5 w-full">
                             {benefits.map((benefit, index) => (
                                 <div
                                     key={index}
-                                    className="flex flex-col items-center gap-5 px-5 py-[35px] relative self-stretch w-full border-2 border-gray-200 shadow-md rounded-xl"
+                                    className="flex flex-col items-center gap-4 sm:gap-5 px-4 sm:px-5 py-6 sm:py-[35px] w-full border-2 border-gray-200 shadow-md rounded-xl"
                                 >
-                                    <div className="relative w-12 h-12 bg-main rounded-full flex items-center justify-center">
+                                    <div className="w-11 h-11 sm:w-12 sm:h-12 bg-main rounded-full flex items-center justify-center">
                                         {benefit.icon}
                                     </div>
-                                    <div className="flex flex-col items-center gap-2 p-0 w-full">
-                                        <h4 className="text-gray-900 text-xl text-center font-bold">{benefit.title}</h4>
-                                        <p className="text-gray-600 text-sm text-center">{benefit.description}</p>
+                                    <div className="flex flex-col items-center gap-1 sm:gap-2 w-full">
+                                        <h4 className="text-gray-900 text-lg sm:text-xl text-center font-bold">
+                                            {benefit.title}
+                                        </h4>
+                                        <p className="text-gray-600 text-xs sm:text-sm text-center leading-snug">
+                                            {benefit.description}
+                                        </p>
                                     </div>
                                 </div>
                             ))}
@@ -184,61 +185,68 @@ export default function Welcome(props) {
                     </section>
 
                     {/* Stats Section */}
-                    <div className="w-full">
-                        <div className="flex flex-col w-full items-center gap-5 px-[30px] py-12 bg-[#F5F7FA]">
-                            <div className="flex flex-wrap items-center justify-center gap-[36.31px_36.31px] w-full rounded-[12.1px]">
+                    <section className="w-full">
+                        <div className="flex flex-col w-full items-center gap-5 px-4 sm:px-[30px] py-8 sm:py-12 bg-[#F5F7FA]">
+                            <div className="flex flex-wrap justify-center gap-y-6 sm:gap-[36.31px_36.31px] w-full rounded-[12.1px]">
                                 {statsData.map((stat, index) => (
-                                    <div key={index} className="w-[147.72px] h-[63px] relative">
-                                        <div className="absolute top-0 left-0 right-0 text-center [font-family:'Manrope-ExtraBold',Helvetica] font-extrabold text-main text-[36.3px] leading-[39.3px] whitespace-nowrap">
+                                    <div
+                                        key={index}
+                                        className="w-1/2 max-w-[50%] sm:w-[147.72px] sm:max-w-none h-[63px] relative"
+                                    >
+                                        <div className="absolute top-0 left-0 right-0 text-center font-extrabold text-main text-xl sm:text-[36.3px] leading-[39.3px] whitespace-nowrap">
                                             {stat.value}
                                         </div>
 
-                                        <div className="absolute w-36 top-11 left-0 right-0 [font-family:'Inter-SemiBold',Helvetica] font-semibold text-[#6d6d6d] text-xs text-center leading-[18.2px]">
+                                        <div className="absolute w-full top-9 left-0 right-0 font-semibold text-[#6d6d6d] text-md sm:text-lg text-center leading-[18.2px]">
                                             {stat.label}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
+                    </section>
 
-                        <div className="flex flex-col w-full items-center gap-5 px-[30px] py-12 bg-neutralwhite">
-                            <div className="w-full [font-family:'Inter-SemiBold',Helvetica] font-semibold text-neutralblack text-xl text-center leading-[25.4px]">
+
+                    {/* CTA Section */}
+                    <section className="w-full">
+                        <div className="flex flex-col w-full items-center gap-4 sm:gap-5 px-4 sm:px-[30px] py-8 sm:py-12 bg-neutralwhite">
+                            <div className="w-full font-semibold text-neutralblack text-sm sm:text-xl text-center leading-snug sm:leading-[25.4px]">
                                 Mau hemat sebagai buyer, untung sebagai seller, atau dapat passive income sebagai afiliator?
                             </div>
 
                             <Link
                                 href={route('register')}
-                                className="w-[168px] px-7 py-2.5 bg-main rounded-xl text-center font-semibold text-white text-xs">
+                                className="w-full max-w-[180px] px-6 py-2.5 bg-main rounded-xl text-center font-semibold text-white text-xs sm:text-sm"
+                            >
                                 Gabung Sekarang
                             </Link>
-
                         </div>
-                    </div>
+                    </section>
 
                     {/* Footer */}
-                    <footer className="flex flex-col w-full items-center justify-center gap-5 px-[30px] py-12 bg-[#2C2D5B]">
-                        <div className="flex flex-col w-[314px] items-center justify-center gap-6">
+                    <footer className="flex flex-col w-full items-center justify-center gap-6 px-4 py-8 bg-[#2C2D5B]">
+                        <div className="flex flex-col items-center justify-center gap-4 max-w-xs w-full text-center">
                             <img
-                                className="w-[123px] h-auto object-contain"
-                                alt="Pusaka Logo"
+                                className="w-28 h-auto object-contain"
+                                alt="Muvausa Store Text White Logo"
                                 src="/storage/logoTulisanWhite_no_bg.png"
                             />
 
-                            <div className="w-[314px] [font-family:'Inter-Regular',Helvetica] font-normal text-white text-lg text-center leading-[34px]">
+                            <p className=" [font-family:'Inter-Regular',Helvetica] font-normal text-white text-base leading-relaxed break-words">
                                 Jadikan setiap transaksi lebih praktis dan menguntungkan.
-                            </div>
+                            </p>
                         </div>
 
-                        <div className="border-t-2 border-white/40">
-                            <span className="invisible">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</span>
+                        <div className="w-full border-t-2 border-white/40">
+                            <span className="block h-2 invisible">spacer</span>
                         </div>
 
-                        <div className="flex flex-col items-center justify-center gap-6 w-full">
-                            <div className="w-full [font-family:'Inter-Regular',Helvetica] font-normal text-white text-lg text-center leading-[34px]">
+                        <div className="flex flex-col items-center justify-center gap-4 w-full text-center">
+                            <p className="text-white text-sm sm:text-base leading-snug px-2">
                                 Copyright © 2025 Muvausa Store. All rights reserved.
-                            </div>
+                            </p>
 
-                            <div className="flex items-center gap-[30px]">
+                            <div className="flex items-center gap-4">
                                 <a href="wa.me/6288227397243">
                                     <div className="flex w-[39.73px] h-[39.73px] items-center justify-center bg-white rounded-full overflow-hidden">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-whatsapp" viewBox="0 0 16 16">
@@ -263,9 +271,9 @@ export default function Welcome(props) {
                                     </div>
                                 </a>
                             </div>
-
                         </div>
                     </footer>
+
                 </div>
             </div>
         </>

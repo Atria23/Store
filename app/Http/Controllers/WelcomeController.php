@@ -19,7 +19,7 @@ class WelcomeController extends Controller
             $user = Auth::user();
     
             if ($user->roles()->where('role_id', 4)->exists()) {
-                return redirect()->route('apps.dashboard');
+                return redirect()->route('mimin.dashboard');
             }
     
             if ($user->roles()->where('role_id', 6)->exists()) {
@@ -31,11 +31,11 @@ class WelcomeController extends Controller
 
         $statsData = [
             [
-                'value' => number_format(User::count() + 1998, 0, ',', '.'),
-                'label' => 'Pembeli',
+                'value' => number_format(User::count() + 51, 0, ',', '.'),
+                'label' => 'Pelanggan',
             ],
             [
-                'value' => number_format(Transaction::count() + 10115, 0, ',', '.'),
+                'value' => number_format(Transaction::count() + 322, 0, ',', '.'),
                 'label' => 'Transaksi',
             ],
             [

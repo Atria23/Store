@@ -11,6 +11,7 @@ use Inertia\Inertia;
 
 class AffiliateDashboardController extends Controller
 {
+
     public function index()
     {
         $user = Auth::user();
@@ -21,7 +22,7 @@ class AffiliateDashboardController extends Controller
         // Jika user tidak memiliki affiliator, tampilkan pesan error
         if (!$affiliator) {
             return redirect()->route('affiliator.index');
-        }        
+        }
 
         // Ambil semua referral (orang yang direferensikan user ini)
         $referrals = $affiliator->referrals()->with('user')->get();
@@ -32,10 +33,21 @@ class AffiliateDashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return Inertia::render('User/AffiliateDashboard', [
-            'affiliator' => $affiliator,
-            'referrals' => $referrals,
-            'affiliateHistory' => $affiliateHistory,
-        ]);
+        // Hitung total komisi dari status "Sukses"
+        $totalCommission = AffiliateHistory::where('affiliator_id', $affiliator->id)
+            ->where('status', 'Sukses')
+            ->sum('commission');
+
+            return Inertia::render('User/AffiliateDashboard', [
+                'affiliator' => [
+                    ...$affiliator->toArray(),
+                    'total_commission' => $totalCommission,
+                    'avatar' => $user->avatar ? '/storage/avatars/' . basename($user->avatar) : null,
+                ],
+                'referrals' => $referrals,
+                'affiliateHistory' => $affiliateHistory,
+            ]);
+            
     }
+
 }
