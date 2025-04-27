@@ -16,19 +16,19 @@ class CreateAdminsTable extends Migration
             $table->boolean('wallet_is_active')->default(true);
 
             // Dompet Digital
-            $table->unsignedBigInteger('shopeepay')->nullable();
+            $table->string('shopeepay')->nullable();
             $table->boolean('shopeepay_status')->default(true);
 
-            $table->unsignedBigInteger('dana')->nullable();
+            $table->string('dana')->nullable();
             $table->boolean('dana_status')->default(true);
 
-            $table->unsignedBigInteger('gopay')->nullable();
+            $table->string('gopay')->nullable();
             $table->boolean('gopay_status')->default(true);
 
-            $table->unsignedBigInteger('ovo')->nullable();
+            $table->string('ovo')->nullable();
             $table->boolean('ovo_status')->default(true);
 
-            $table->unsignedBigInteger('linkaja')->nullable();
+            $table->string('linkaja')->nullable();
             $table->boolean('linkaja_status')->default(true);
 
             // QRIS dan Manual

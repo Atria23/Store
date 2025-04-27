@@ -297,11 +297,11 @@ export default function CategoryList() {
                                     setSelectedCategoryId(category.id);
                                     setIsPopupOpen(true);
                                 }}
-                                disabled={category.is_used}
-                                className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center ${category.is_used
-                                    ? "text-gray-400 bg-gray-50 border border-gray-400 cursor-not-allowed"
-                                    : "text-red-600 bg-red-50 border border-red-600"
-                                    }`}
+                                className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center 
+                                                ${category.is_used
+                                                    ? "text-yellow-600 bg-yellow-50 border border-yellow-600"
+                                                    : "text-red-600 bg-red-50 border border-red-600"
+                                                }`}
                             >
                                 Hapus
                             </button>

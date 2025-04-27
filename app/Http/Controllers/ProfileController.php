@@ -24,15 +24,15 @@ class ProfileController extends Controller
             'name' => optional($user)->name ?? 'Guest',
             'avatar' => $user->avatar ? '/storage/avatars/' . basename($user->avatar) : null,
             'email' => optional($user)->email ?? '@gmail.com', 
-            'transactions' => $transactionsCount, // Gunakan jumlah transaksi sukses
+            'transactions' => $transactionsCount,
             'balance' => optional($user)->balance ?? 0,
             'points' => optional($user)->points ?? 0,
             'depositHistory' => optional($user)->depositHistory ?? [],
+            'isSuperAdmin' => $user->hasRole('super-admin'),
         ];
 
-        // Kirimkan data user dengan jumlah transaksi sukses ke komponen React
         return Inertia::render('Profile', [
-            'user' => $userData, // Kirim data user dengan jumlah transaksi sukses
+            'user' => $userData,
         ]);
     }
 }

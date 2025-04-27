@@ -119,7 +119,7 @@ class CategoryController extends Controller
         $isUsed = PriceList::where('category', $category->name)->exists();
 
         if ($isUsed) {
-            return redirect()->route('categories.index')->with('error', 'Kategori masih digunakan dan tidak dapat dihapus.');
+            session()->flash('warning', 'Kategori masih digunakan dalam PriceList, tetapi telah dihapus.');
         }
 
         // Hapus gambar jika ada

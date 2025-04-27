@@ -306,7 +306,7 @@ const DepositHistory = ({ deposits }) => {
                   {/* Kiri: Logo metode bayar + info deposit */}
                   <div className="flex items-center gap-3 w-full">
                     {/* Ikon Metode Pembayaran */}
-                    <div className="aspect-square w-14 bg-white rounded-xl shadow hidden min-[406px]:flex items-center justify-center overflow-hidden">
+                    <div className="aspect-square w-14 bg-white rounded-xl shadow hidden min-[350px]:flex items-center justify-center overflow-hidden">
                       {[
                         'ovo',
                         'gopay',

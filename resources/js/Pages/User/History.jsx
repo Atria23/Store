@@ -41,7 +41,7 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
             {/* Kiri: Logo dan Informasi Produk */}
             <div className="flex items-center gap-2 w-full">
                 {/* Logo */}
-                <div className="w-14 bg-white shadow hidden min-[406px]:flex items-center justify-center rounded-xl">
+                <div className="w-14 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
                     <img
                         src="/storage/logo.webp"
                         alt="Company Logo"
@@ -51,7 +51,7 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
 
                 {/* Informasi Produk */}
                 <div className="flex flex-col items-start w-max space-y-[2px]">
-                    <p className="font-utama font-semibold text-sm truncate w-full max-w-[200px] [@media(max-width:350px)]:max-w-[215px]">
+                    <p className="font-utama font-semibold text-sm truncate w-full max-w-[180px] [@media(max-width:350px)]:max-w-[215px]">
                         {product_name}
                     </p>
                     <p className="w-full font-utama text-sm">
