@@ -26,11 +26,11 @@ const PrivacyPolicy = () => {
 
                 <section className="w-full flex flex-col space-y-2 pt-[51px] p-4">
                     <div className="w-full flex flex-col space-y-2 items-start justify-start">
-                        <p className="font-utama text-xs text-justify text-gray-500">
+                        <p className="font-utama text-sm text-justify text-gray-500">
                             Dengan bertransaksi di Muvausa Store, anda telah dianggap menyetujui semua kebijakan yang berlaku di sini.
                         </p>
 
-                        <ol className="list-[upper-alpha] list-outside pl-4 space-y-3 text-xs font-utama text-gray-500">
+                        <ol className="list-[upper-alpha] list-outside pl-4 space-y-3 text-sm font-utama text-gray-500">
                             {[
                                 ['Keterangan Umum', 'Muvausa Store berperan dalam menjembatani pembeli dengan penyedia layanan, dan tidak termasuk bagian dari penyedia layanan itu sendiri. Kendala seperti sinyal internet lemah ataupun masalah terkait operator di luar kendali Muvausa Store.'],
                                 ['Pembelian Produk', 'Informasi produk yang tertera di situs merupakan informasi dari operator penyedia layanan. Jika ada ketidaksesuaian terhadap produk yang dibeli, anda bisa langsung menghubungi operator penyedia layanan ataupun customer service Muvausa Store. Harga dapat berubah tanpa pemberitahuan, tergantung kebijakan penyedia layanan. Data pesanan diperoleh dari form input yang diisi pelanggan. Kesalahan data input bukan tanggung jawab Muvausa Store.'],
@@ -49,8 +49,8 @@ const PrivacyPolicy = () => {
 
                                     {/* Isi konten */}
                                     <div className="pl-1">
-                                        <p className="font-utama text-xs font-bold text-justify">{title}</p>
-                                        <p className="font-utama text-xs text-justify text-gray-500">{desc}</p>
+                                        <p className="font-utama text-sm font-bold text-justify">{title}</p>
+                                        <p className="font-utama text-sm text-justify text-gray-500">{desc}</p>
                                     </div>
                                 </li>
                             ))}

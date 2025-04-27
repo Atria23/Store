@@ -24,7 +24,7 @@ class DepositController extends Controller
     // Menampilkan halaman pembuatan deposit
     public function create()
     {
-        return Inertia::render('RequestDeposit');
+        return Inertia::render('User/RequestDeposit');
     }
 
     public function store(Request $request)
@@ -90,7 +90,7 @@ class DepositController extends Controller
             'admin_account' => $admin->{$validated['payment_method']} ?? null,
         ]);
 
-        return redirect()->route('deposit-history')
+        return redirect()->route('deposit.history')
             ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
     }
 
@@ -100,7 +100,7 @@ class DepositController extends Controller
         $syncMessage = $this->syncMutasiQrisData();
         $deposits = Deposit::where('user_id', Auth::id())->get();
 
-        return Inertia::render('DepositHistory', [
+        return Inertia::render('User/DepositHistory', [
             'deposits' => $deposits->map(function ($deposit) {
                 return [
                     'id' => $deposit->id,
@@ -267,7 +267,7 @@ class DepositController extends Controller
         }
 
         // Siapkan data untuk tampilan detail deposit
-        return Inertia::render('DepositDetail', [
+        return Inertia::render('User/DepositDetail', [
             'deposit' => [
                 'id' => $deposit->id,
                 'amount' => $deposit->amount,

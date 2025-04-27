@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Head, Link } from "@inertiajs/react";
 
 const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar }) => {
-    // const [imagePreview, setImagePreview] = useState(
-    //     user?.avatar ? `${user.avatar}` : "/storage/logo.webp"
-    // );
 
     const [imagePreview, setImagePreview] = useState(
         affiliator?.avatar ?? "/storage/logo.webp"
@@ -13,7 +10,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
     return (
         <>
 
-            <Head title="Dashboard Affiliator" />
+            <Head title="Dashboard Afiliator" />
             <div className="mx-auto w-full max-w-[500px] min-h-screen bg-white">
 
                 {/* Header dengan tombol kembali */}
@@ -25,7 +22,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                             </svg>
                         </button>
                         <div className="font-utama text-white font-bold text-lg">
-                            Dashboard Affiliator
+                            Dashboard Afiliator
                         </div>
                     </div>
                 </header>
@@ -55,12 +52,27 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                                     >
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l10-10zM11.207 3L13 4.793 14.293 3.5 12.5 1.707 11.207 3zM12 5.207 10.793 4 3 11.793V13h1.207L12 5.207z" />
                                     </svg>
-                                    <span className="text-md font-medium">Ubah Data Affiliator</span>
+                                    <span className="text-md font-medium">Ubah Data Afiliator</span>
                                 </div>
                             </Link>
-
-
                         </div>
+                    </section>
+
+                    <section className="w-full bg-white">
+                        <button
+                            onClick={() => {
+                                const link = `${window.location.origin}/register?ref=${affiliator.referral_code}`;
+                                navigator.clipboard.writeText(link);
+                                alert("Link referral berhasil disalin!");
+                            }}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-main text-white rounded-lg shadow hover:opacity-90 active:scale-95 transition"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+                                <path d="M16 1a2 2 0 0 1 2 2v2h-2V3H8v18h8v-2h2v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h8z" />
+                                <path d="M21 7H10a1 1 0 0 0-1 1v14h2V9h10v12h-4v2h5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z" />
+                            </svg>
+                            <span className="font-semibold text-sm">Salin Link Afiliasi</span>
+                        </button>
                     </section>
 
                     <section className="w-full flex justify-center items-center p-4 bg-white shadow-md rounded-xl">
@@ -135,9 +147,10 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                                 </Link>
                             ))
                         ) : (
-                            <p className="text-gray-500 px-4">Belum ada riwayat komisi.</p>
+                            <div className="flex justify-center items-center h-full mt-6">
+                                <p className="text-gray-500">Riwayat komisi tidak ditemukan.</p>
+                            </div>
                         )}
-
                     </section>
 
                 </main>

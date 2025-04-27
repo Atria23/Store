@@ -123,7 +123,7 @@ class UserController extends Controller implements HasMiddleware
             'username' => $request->username,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
-            'points' => $request->points,
+            'points' => $request->points ?? 0, // <= kasih default 0 kalau null
         ]);
 
         // update password jika diisi

@@ -13,7 +13,7 @@ class StoreController extends Controller
     {
         $store = auth()->user()->store;
 
-        return inertia('StoreEdit', [
+        return inertia('User/StoreEdit', [
             'store' => $store,
         ]);
     }

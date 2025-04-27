@@ -1,705 +1,181 @@
-import { Head, usePage, Link, router } from "@inertiajs/react";
-import { useRef, useState, useEffect } from "react";
-import React from 'react';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-
-const DynamicInput = ({ formula, onChange }) => {
-
-    const [inputs, setInputs] = useState([]);
-    const [values, setValues] = useState({});
-    const [finalResult, setFinalResult] = useState("");
-
-    useEffect(() => {
-        if (!formula) return;
-
-        const inputFields = [];
-        let match;
-        const regex = /\{(i\d+a?)\}/g;
-
-        while ((match = regex.exec(formula)) !== null) {
-            if (!inputFields.includes(match[1])) {
-                inputFields.push(match[1]);
-            }
-        }
-
-        setInputs(inputFields);
-        setValues(inputFields.reduce((acc, key) => ({ ...acc, [key]: "" }), {}));
-    }, [formula]);
-
-    useEffect(() => {
-        if (!formula || inputs.length === 0) return;
-
-        let result = formula;
-        for (const key of inputs) {
-            result = result.replaceAll(`{${key}}`, values[key] || "");
-        }
-        setFinalResult(result);
-    }, [values, formula, inputs]);
-
-    useEffect(() => {
-        if (onChange) {
-            onChange(finalResult);
-        }
-    }, [finalResult]);
-
-    const handleInputChange = (key, value) => {
-        const isNumeric = key.includes("a");
-        const sanitizedValue = isNumeric ? value.replace(/\D/g, "") : value;
-
-        setValues((prev) => ({ ...prev, [key]: sanitizedValue }));
-    };
-
-    const inputCount = inputs.length;
-
-    return (
-        <div className={`flex ${inputCount === 1 ? "flex-col" : "flex-row gap-2"}`}>
-            {inputs.map((key, index) => (
-                <input
-                    key={index}
-                    type="text"
-                    className={`rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400 ${inputCount > 1 ? "flex-1" : ""}`}
-                    placeholder={`Input ${index + 1}`}
-                    value={values[key] || ""}
-                    onChange={(e) => handleInputChange(key, e.target.value)}
-                />
-            ))}
-        </div>
-    );
-};
-
-export default function TypePage() {
-    const { category, brand, brands = [], type, types: typeList = [], isPulsaOrData, products = [], inputTypes, commission } = usePage().props;
-    const [phone, setPhone] = useState("");
-    const [typingTimeout, setTypingTimeout] = useState(null);
-    const [detectedBrand, setDetectedBrand] = useState("");
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [customerNo, setCustomerNo] = useState("");
-    const [exampleImage, setExampleImage] = useState(null);
-    const [exampleIdProduct, setExampleIdProduct] = useState(null);
-    const [showPopup, setShowPopup] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [errors, setErrors] = useState({});
-    const [showExamplePopup, setShowExamplePopup] = useState(false);
-    const [showSharePopup, setShowSharePopup] = useState(false);
-    const [productSearch, setProductSearch] = useState("");
-    const shareRef = useRef(null);
-    const [selectedCommission, setSelectedCommission] = useState(0);
-
-    const [showLottie, setShowLottie] = useState(false);
-
-    const handleCopyLink = () => {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url)
-            .then(() => {
-                setShowLottie(true);
-                setTimeout(() => setShowLottie(false), 2000); // Sembunyikan animasi setelah 2 detik
-            })
-            .catch((err) => {
-                console.error("Gagal menyalin URL: ", err);
-            });
-    };
-
-    const handleShare = (product) => {
-        setSelectedCommission(product.commission ?? 0);
-        setSelectedProduct(null)
-        setShowSharePopup(true);
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (shareRef.current && !shareRef.current.contains(event.target)) {
-                setShowSharePopup(false);
-            }
-        };
-
-        if (showSharePopup) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showSharePopup]);
+import React, { useState } from "react";
+import Footer from "../Components/Footer";
+import { Head, useForm } from '@inertiajs/react';
 
 
-    const filteredTypes = typeList.filter((type) =>
-        type.name.toLowerCase().includes(searchTerm.toLowerCase())
+function Profile({ user }) {
+    const { post } = useForm();
+
+    const [showBalance, setShowBalance] = useState(false);
+    const [imagePreview, setImagePreview] = useState(
+        user?.avatar ? `${user.avatar}` : "/storage/logo.webp"
     );
 
-    const goToCheckout = (product) => {
-        if (!customerNo && !phone) {
-            alert("Masukkan ID Tujuan terlebih dahulu!");
-            return;
-        }
-
-        router.get(`/checkout`, {
-            id: product.id,
-            customerNo,
-            phone
-        });
+    const handleLogout = () => {
+        post("/logout");
     };
 
-    const brandPrefixes = {
-        "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
-        "Indosat": ["0814", "0815", "0816", "0855", "0856", "0857", "0858"],
-        "XL": ["0817", "0818", "0819", "0859", "0877", "0878"],
-        "Tri": ["0895", "0896", "0897", "0898", "0899"],
-        "Axis": ["0831", "0832", "0833", "0838"],
-        "Smartfren": ["0881", "0882", "0883", "0884", "0885", "0886", "0887", "0888", "0889"],
-        "By.U": ["0851"]
+    const toggleBalanceVisibility = () => {
+        setShowBalance(!showBalance);
     };
-
-    useEffect(() => {
-        if (isPulsaOrData) {
-            const params = new URLSearchParams(window.location.search);
-            const phoneFromUrl = params.get("phone") || "";
-            const cleanedPhone = normalizePhoneNumber(phoneFromUrl);
-            setPhone(cleanedPhone);
-            detectBrandByPrefix(cleanedPhone);
-        }
-    }, []);
-
-    const handlePhoneChange = (e) => {
-        const rawNumber = e.target.value;
-        const cleanedNumber = normalizePhoneNumber(rawNumber);
-        setPhone(cleanedNumber);
-
-        if (typingTimeout) clearTimeout(typingTimeout);
-
-        setTypingTimeout(setTimeout(() => {
-            detectBrandByPrefix(cleanedNumber);
-            updateUrl({ phone: cleanedNumber });
-        }, 2000));
-    };
-
-    const normalizePhoneNumber = (number) => {
-        if (!number) return "";
-        let cleaned = number.replace(/[^0-9]/g, ""); // Hapus semua karakter kecuali angka
-
-        if (cleaned.startsWith("62")) {
-            cleaned = "0" + cleaned.substring(2); // Ubah "62" menjadi "0"
-        } else if (cleaned.startsWith("+62")) {
-            cleaned = "0" + cleaned.substring(3); // Ubah "+62" menjadi "0"
-        }
-
-        return cleaned;
-    };
-
-    const detectBrandByPrefix = (number) => {
-        if (!number || number.length < 4) {
-            setDetectedBrand("");
-            return;
-        }
-
-        const prefix = number.substring(0, 4);
-        let detected = null;
-
-        Object.entries(brandPrefixes).forEach(([brandName, prefixes]) => {
-            if (prefixes.includes(prefix)) {
-                detected = brandName;
-            }
-        });
-
-        if (!detected) {
-            setDetectedBrand("Tidak Diketahui");
-            return;
-        }
-
-        const matchedBrand = brands.find(b => b.name.toLowerCase().includes(detected.toLowerCase()));
-
-        const finalBrand = matchedBrand ? matchedBrand.name : detected;
-        setDetectedBrand(finalBrand);
-
-        if (finalBrand !== brand?.name) {
-            updateUrl({ phone: number, brand: finalBrand });
-        }
-    };
-
-    const updateUrl = (updatedValues) => {
-        const params = new URLSearchParams(window.location.search);
-        Object.entries(updatedValues).forEach(([key, value]) => {
-            if (value) {
-                params.set(key, value);
-            } else {
-                params.delete(key);
-            }
-        });
-
-        const newUrl = `/c=${category?.name}/b=${updatedValues.brand || brand?.name}` +
-            (updatedValues.type || type?.name ? `/t=${updatedValues.type || type?.name}` : '') +
-            `?${params.toString()}`;
-
-        router.get(newUrl, {}, { replace: true });
-    };
-
-    const openExamplePopup = () => {
-        const exampleImage = type?.example_image || brand?.example_image;
-        const exampleId = type?.example_id_product || brand?.example_id_product;
-
-        setExampleImage(exampleImage);
-        setExampleIdProduct(exampleId);
-        setShowExamplePopup(true);
-    };
-
-
-    const [dragOffset, setDragOffset] = useState(0);
-    const [startY, setStartY] = useState(null);
-    const [isDragging, setIsDragging] = useState(false);
-
-    const handleMouseDown = (e) => {
-        setStartY(e.clientY);
-        setIsDragging(true);
-    };
-
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (isDragging) {
-                const currentY = e.clientY;
-                const offset = Math.max(0, currentY - startY);
-                setDragOffset(offset);
-            }
-        };
-
-        const handleMouseUp = () => {
-            if (isDragging) {
-                if (dragOffset > 100) {
-                    setSelectedProduct(null);
-                } else {
-                    setDragOffset(0);
-                }
-                setStartY(null);
-                setIsDragging(false);
-            }
-        };
-
-        if (isDragging) {
-            window.addEventListener("mousemove", handleMouseMove);
-            window.addEventListener("mouseup", handleMouseUp);
-        }
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-            window.removeEventListener("mouseup", handleMouseUp);
-        };
-    }, [isDragging, dragOffset]);
-
-    useEffect(() => {
-        setDragOffset(0);
-    }, [selectedProduct]);
-
-
-    const handleTouchStart = (e) => {
-        setStartY(e.touches[0].clientY);
-    };
-
-    const handleTouchMove = (e) => {
-        if (startY !== null) {
-            const currentY = e.touches[0].clientY;
-            const offset = Math.max(0, currentY - startY);
-            setDragOffset(offset);
-        }
-    };
-
-    const handleTouchEnd = () => {
-        if (dragOffset > 100) {
-            setSelectedProduct(null);
-        } else {
-            // reset ke posisi semula
-            setDragOffset(0);
-        }
-        setStartY(null);
-    };
-
-    useEffect(() => {
-        setDragOffset(0);
-    }, [selectedProduct]);
-
-    const modalRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (modalRef.current && !modalRef.current.contains(event.target)) {
-                setSelectedProduct(null); // Tutup modal
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
 
     return (
         <>
-            <Head title="Product Page" />
-
-            <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
+            <Head title="Profile" />
+            <div className="mx-auto w-full max-w-[500px] flex flex-col min-h-screen pb-16">
                 {/* fixed position */}
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
-                    {/* Header */}
-                    <section className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                            {isPulsaOrData ? (
-                                <Link href={route('user.dashboard')} className="shrink-0 w-6 h-6">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                                    </svg>
-                                </Link>
-                            ) : (
-                                <button
-                                    className="shrink-0 w-6 h-6"
-                                    onClick={() => window.history.back()}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                                    </svg>
-                                </button>
-                            )}
-                            <div className="font-utama text-white font-bold text-lg">
-                                {category.name}
-                            </div>
-                        </div>
-                    </section>
 
-                    <section className="w-full h-max flex flex-col space-y-3 p-4 bg-white shadow-lg">
-                        <div className="w-full h-max flex flex-col space-y-3 items-center justify-start">
-                            <div className="w-full h-9 flex flex-row space-x-4 items-center justify-start">
+                {/* Header */}
+                <header className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                    <div className="w-full flex flex-row space-x-4 items-center justify-start">
+                        <div className="font-utama text-white font-bold text-lg">
+                            Profil
+                        </div>
+                    </div>
+                </header>
+
+                <div className="w-full w-max-[500px] flex flex-col space-y-5 mt-10 p-4 bg-main-white">
+                    <div className="w-full flex flex-col space-y-3">
+                        <div className="w-full flex flex-row items-center justify-between flex-wrap gap-4">
+                            {/* Profile */}
+                            <div className="flex flex-row items-center space-x-4 min-w-0">
                                 <img
-                                    src={brand?.image ? `/storage/${brand.image}` : "/storage/categories/default.png"}
-                                    alt={brand?.name}
-                                    className="w-9 h-9 rounded-full object-cover border border-gray-300"
+                                    src={imagePreview}
+                                    alt="Logo Muvausa Store"
+                                    className="w-24 h-24 aspect-square object-cover rounded-full shadow-lg border-4 border-white"
+                                    onError={(e) => (e.target.src = '/storage/logo.webp')}
                                 />
-                                <h1 className="text-utama text-lg font-medium text-center align-middle">
-                                    {brand?.name?.split(" - ")[0]}
-                                </h1>
-                            </div>
-
-                            <div className="w-full flex flex-row mx-auto items-center justify-center">
-                                {isPulsaOrData && (
-                                    <div className="flex-grow"
-                                    >
-                                        <input
-                                            type="tel"
-                                            className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
-                                            placeholder="Masukkan nomor HP"
-                                            value={phone}
-                                            onChange={handlePhoneChange}
-                                        />
-                                    </div>
-                                )}
-
-                                {!isPulsaOrData && inputTypes.length > 0 && (
-                                    <div className="relative w-full">
-                                        <DynamicInput
-                                            formula={inputTypes[0]?.formula}
-                                            onChange={(result) => setCustomerNo(result)}
-                                            className="w-full pr-12" // Beri padding kanan agar ikon tidak menutupi teks input
-                                        />
-                                        <button
-                                            onClick={openExamplePopup}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-white transition"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="bi bi-info-circle-fill w-5 h-5 text-main" viewBox="0 0 16 16">
-                                                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                )}
-                                {showExamplePopup && (
-                                    <div className="fixed h-screen px-4 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                                        <div className="w-full max-w-[328px] p-4 bg-white rounded-lg shadow-lg">
-                                            <div className="w-full h-max flex flex-col">
-                                                <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                                    Contoh Format Pengisian
-                                                </h2>
-                                            </div>
-
-                                            {exampleImage ? (
-                                                <img src={`/storage/${exampleImage}`} alt="Contoh ID Pelanggan" className="w-full" />
-                                            ) : (
-                                                <p className="text-gray-500 italic w-full text-center text-md">
-                                                    Gambar contoh ID pelanggan tidak tersedia.
-                                                </p>
-                                            )}
-
-                                            {exampleIdProduct ? (
-                                                <p className="text-gray-700 w-full text-center text-md font-medium">
-                                                    Contoh ID Pelanggan:<br />
-                                                    <span className="font-semibold">{exampleIdProduct}</span>
-                                                </p>
-                                            ) : (
-                                                <p className="text-gray-500 italic w-full text-center text-md">
-                                                    Contoh  ID pelanggan tidak tersedia.
-                                                </p>
-                                            )}
-
-
-                                            <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
-                                                <button
-                                                    onClick={() => {
-                                                        setShowExamplePopup(false);
-                                                        setErrors({});
-                                                    }}
-                                                    className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
-                                                >
-                                                    MENGERTI
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="flex flex-col min-w-0">
+                                    <p className="truncate max-w-[200px] font-utama text-lg font-medium text-gray-700 leading-tight">
+                                        {user.name}
+                                    </p>
+                                    <p className="truncate max-w-[200px] font-utama text-md font-medium text-gray-700 leading-tight">
+                                        {user.email}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div className="w-full h-px bg-gray-300 my-4" />
+                    </div>
 
-                        <div className="w-full h-max flex flex-col space-y-3 items-center justify-center">
-                            <div className="w-full flex flex-row items-center justify-center py-2 rounded bg-main hover:bg-blue-700 text-white">
-                                <button
-                                    onClick={() => setShowPopup(true)}
-                                    type="button"
-                                    className="w-full flex flex-row space-x-2 items-center justify-center"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grid-fill" viewBox="0 0 16 16">
-                                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z" />
+
+                    <div className="w-full flex flex-col space-y-4 items-start justify-start">
+                        <p className="truncate max-w-[120px] font-utama text-md font-medium text-gray-800 leading-tight">
+                            Akun
+                        </p>
+                        <div className="w-full flex flex-col space-y-2 p-4 rounded-lg bg-white shadow-md">
+                            <a href={route('account.settings')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m.256 7a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1zm3.63-4.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0" />
                                     </svg>
-                                    <span className="text-sm font-medium">Kategori</span>
-                                </button>
-                                {/* Popup Pilihan Type */}
-
-                                {showPopup && (
-                                    <div className="fixed h-screen px-4 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                                        <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg p-4 bg-white rounded-lg shadow-lg">
-                                            <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                                <input
-                                                    type="text"
-                                                    className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400 text-black"
-                                                    placeholder="Cari type..."
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                />
-
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 24 24"
-                                                    fill="currentColor"
-                                                    stroke="currentColor"
-                                                    strokeWidth="0.3"
-                                                    className="w-5 h-5 text-main"
-                                                >
-                                                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                                                </svg>
-                                            </div>
-
-                                            <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
-                                                <Link
-                                                    href={`/c=${category?.name}/b=${detectedBrand || brand?.name}/t=all?phone=${phone}`}
-                                                    className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-main"
-                                                >
-                                                    <p className="text-utama text-sm text-left align-middle">Tampilkan Semua</p>
-                                                </Link>
-                                                {filteredTypes.length > 0 ? (
-                                                    filteredTypes.map((typeItem) => (
-                                                        <Link
-                                                            key={typeItem.id}
-                                                            href={`/c=${category?.name}/b=${detectedBrand || brand?.name}/t=${typeItem?.name}?phone=${phone}`}
-                                                            className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-black"
-                                                        >
-                                                            <p className="text-utama text-sm text-left align-middle">{typeItem?.name?.split(" - ")[0]}</p>
-                                                        </Link>
-                                                    ))
-                                                ) : (
-                                                    <div className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer text-main">
-                                                        <p className="text-gray-500 text-sm text-left align-middle">Tipe yang dicari tidak tersedia.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <button
-                                                onClick={() => setShowPopup(false)}
-                                                className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
-                                            >
-                                                Tutup
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                <input
-                                    id="searchInput"
-                                    type="text"
-                                    className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                    value={productSearch}
-                                    onChange={(e) => setProductSearch(e.target.value)}
-                                    placeholder="Cari produk..."
-                                />
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    stroke="currentColor"
-                                    strokeWidth="0.3"
-                                    className="w-5 h-5 text-main"
-                                >
-                                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Edit Profil
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
                                 </svg>
-                            </div>
+                            </a>
+                            <a href={route('password.request')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2M5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Ubah Password
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('affiliate.dashboard')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Program Afiliasi
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('account.settings')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm3 0h-2v3h2z" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Edit Toko
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
                         </div>
+                    </div>
 
-                    </section>
+                    <div className="w-full flex flex-col space-y-4 items-start justify-start">
+                        <p className="truncate max-w-[120px] font-utama text-md font-medium text-gray-800 leading-tight">
+                            Informasi
+                        </p>
+                        <div className="w-full flex flex-col space-y-2 p-4 rounded-lg bg-white shadow-md">
+                            <a href={route('privacy')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56" />
+                                        <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0" />                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Kebijakan Privasi
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('privacy')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Syarat & Ketentuan
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('about')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Tentang
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleLogout}
+                        className="w-full py-2 px-4 rounded-xl text-white bg-blue-500 hover:bg-blue-700"
+                    >
+                        Logout
+                    </button>
                 </div>
-
-                <section className="flex flex-col pt-[294px] gap-5 p-4">
-                    {products
-                        .sort((a, b) => a.price - b.price)
-                        .map((product) => (
-                            <div
-                                onClick={() => setSelectedProduct(product)}
-                                key={product.id}
-                                className="flex flex-col space-y-2 border py-3 px-4 bg-white rounded-lg shadow-md">
-                                <h3 className="w-full text-utama text-sm font-medium text-justify line-clamp-3">{product.product_name}</h3>
-                                <div className="flex flex-row justify-between items-center w-full mt-2">
-                                    <p className="text-main text-lg font-semibold">
-                                        Rp{new Intl.NumberFormat("id-ID").format(product.price)}
-                                    </p>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation(); // <- ini penting: mencegah event bubbling ke card
-                                            handleShare(product); // <- pastikan fungsi ini ada
-                                        }}
-                                        className="text-blue-500 flex items-center gap-1"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-5 h-5" viewBox="0 0 16 16">
-                                            <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    }
-                </section>
-
-                {selectedProduct && (
-                    <div className="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-end justify-center">
-                        <div
-                            ref={modalRef}
-                            className="fixed left-1/2 bottom-0 transform -translate-x-1/2 w-full max-w-[500px] px-4 bg-white shadow-lg border-t max-h-[470px] flex flex-col justify-between rounded-t-xl transition-transform duration-200 ease-out z-50"
-                            style={{ transform: `translate(-50%, ${dragOffset}px)` }}
-                        >
-
-                            <div className="flex justify-center py-3">
-                                <div
-                                    className="w-12 h-1.5 rounded-full bg-gray-400 hover:bg-gray-500 transition touch-none cursor-pointer"
-                                    onTouchStart={handleTouchStart}
-                                    onTouchMove={handleTouchMove}
-                                    onTouchEnd={handleTouchEnd}
-                                    onMouseDown={handleMouseDown} // 👈 versi desktop
-                                />
-                            </div>
-
-                            <div className="max-h-[420px] flex flex-col space-y-2 items-start justify-start pt-3 border-t border-b border-gray-300">
-                                <div className="w-full max-h-[150px] overflow-y-auto">
-                                    <p className="w-full text-utama font-medium text-md text-justify break-words pb-2 border-b border-gray-200">
-                                        {selectedProduct.product_name}
-                                    </p>
-                                    <p className="w-full text-gray-600 text-sm font-thin text-justify break-words my-2">
-                                        Deskripsi:<br />
-                                        {selectedProduct.description}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-row items-center justify-between w-full py-3">
-                                <p className="text-lg text-utama text-main font-bold">Rp{new Intl.NumberFormat("id-ID").format(selectedProduct.price)}</p>
-                                <button
-                                    onClick={() => goToCheckout(selectedProduct)}
-                                    className="bg-main text-white px-4 py-2 rounded"
-                                >
-                                    Checkout
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {showSharePopup && (
-                    <div className="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-end justify-center">
-                        <div
-                            ref={shareRef}
-                            className="w-full max-w-[500px] px-4 pb-2 bg-white shadow-lg border-t flex flex-col justify-between rounded-t-xl z-50 transition-transform duration-200 ease-out">
-
-                            {/* Tombol Tutup */}
-                            <div className="flex justify-center py-3">
-                                <button
-                                    onClick={() => setShowSharePopup(false)}
-                                    className="text-sm font-medium text-red-600 border border-red-600 px-4 py-1 rounded hover:bg-red-50 transition"
-                                >
-                                    Tutup
-                                </button>
-                            </div>
-
-                            <p className="w-full text-utama font-medium text-xs text-center break-words py-2 border-b border-gray-200">
-                                BAGIKAN DAN RAIH KOMISI
-                            </p>
-
-                            {/* Konten Share */}
-                            <div className="max-h-[420px] flex flex-col space-y-2 items-start justify-start py-2 border-t border-b border-gray-300">
-                                <div className="w-full max-h-[150px] overflow-y-auto">
-                                    <div>
-                                        <p className="text-gray-600 text-xs font-thin text-justify break-words my-2">
-                                            Komisi hanya didapatkan jika pesanan telah memenuhi syarat
-                                            dan penyebar link sudah terdaftar sebagai affiliator Muvausa
-                                            Store.{" "}
-                                            <a
-                                                href="/affiliator"
-                                                className="text-blue-600 hover:text-blue-800 transition"
-                                            >
-                                                DAFTAR AFFILIATOR
-                                            </a>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-row items-center justify-between w-full py-3">
-                                <div className="text-justify">
-                                    <p className="text-sm text-black font-medium">Komisi</p>
-                                    <p className="text-lg text-main font-bold">
-                                        Rp{new Intl.NumberFormat("id-ID").format(selectedCommission)}
-                                    </p>
-                                </div>
-                                {showLottie ? (
-                                    <div className="w-24">
-                                        <DotLottieReact
-                                            src="https://lottie.host/519fbc9d-1e9b-4ddf-ab6f-14423aabd845/MtxYOaYcV8.lottie"
-                                            autoplay
-                                            loop={false}
-                                            style={{ width: '100%', height: '100%' }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleCopyLink}
-                                        className="bg-main text-white px-3 py-2 rounded flex items-center gap-2 hover:bg-blue-700 transition"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="currentColor"
-                                            className="w-5 h-5 font-bold text-white"
-                                            viewBox="0 0 16 16"
-                                        >
-                                            <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z" />
-                                            <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z" />
-                                        </svg>
-                                        <span className="font-semibold text-sm">Salin</span>
-                                    </button>
-                                )}
-
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
+            <Footer />
         </>
     );
 }
+
+export default Profile;

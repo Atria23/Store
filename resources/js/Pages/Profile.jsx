@@ -22,165 +22,155 @@ function Profile({ user }) {
     return (
         <>
             <Head title="Profile" />
-            <div className="relative min-h-screen">
-                <div className="pb-24">
-                    <section className="bg-[#0055bb]">
-                        <div className="text-white flex justify-between items-center px-6 py-8 md:pb-32 pb-20">
-                            <div className="flex items-center space-x-4">
+            <div className="mx-auto w-full max-w-[500px] flex flex-col min-h-screen pb-16">
+                {/* fixed position */}
+
+                {/* Header */}
+                <header className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                    <div className="w-full flex flex-row space-x-4 items-center justify-start">
+                        <div className="font-utama text-white font-bold text-lg">
+                            Profil
+                        </div>
+                    </div>
+                </header>
+
+                <div className="w-full w-max-[500px] flex flex-col space-y-5 mt-10 p-4 bg-main-white">
+                    <div className="w-full flex flex-col space-y-3">
+                        <div className="w-full flex flex-row items-center justify-between flex-wrap gap-4">
+                            {/* Profile */}
+                            <div className="flex flex-row items-center space-x-4 min-w-0">
                                 <img
                                     src={imagePreview}
                                     alt="Logo Muvausa Store"
-                                    className="md:w-20 md:h-20 w-12 h-12 p-1.5 border-2 border-white rounded-full shadow-lg bg-white"
-                                    onError={(e) => (e.target.src = "/storage/logo.webp")}
+                                    className="w-24 h-24 aspect-square object-cover rounded-full shadow-lg border-4 border-white"
+                                    onError={(e) => (e.target.src = '/storage/logo.webp')}
                                 />
-                                <div className="flex flex-col">
-                                    <p className="md:text-3xl text-sm font-bold truncate max-w-[200px] md:max-w-[500px]">{user.name}</p>
-                                    <p className="md:text-3xl text-sm font-bold truncate max-w-[200px] md:max-w-[500px]">{user.email}</p>
+                                <div className="flex flex-col min-w-0">
+                                    <p className="truncate max-w-[200px] font-utama text-lg font-medium text-gray-700 leading-tight">
+                                        {user.name}
+                                    </p>
+                                    <p className="truncate max-w-[200px] font-utama text-md font-medium text-gray-700 leading-tight">
+                                        {user.email}
+                                    </p>
                                 </div>
-                            </div>
-                            <div className="flex flex-col justify-center text-right">
-                                <p>
-                                    <span className="bg-blue-100 text-blue-800 md:text-xl text-sm font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
-                                        {user.transactions} trx
-                                    </span>
-                                </p>
                             </div>
                         </div>
-                    </section>
+                    </div>
 
-                    <section className="px-6 md:-mt-20 -mt-16">
-                        {/* Card Saldo dan Poin */}
-                        <div className="bg-white shadow-lg rounded-lg p-6 max-w-6xl mx-auto mt-4 flex justify-between items-center hover:shadow-2xl hover:bg-blue-50 transition-all duration-300">
-                            {/* Balance Section */}
-                            <div className="flex items-center justify-start flex-1">
-                                <div className="flex items-center space-x-4">
-                                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                        <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
-                                        <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
+
+                    <div className="w-full flex flex-col space-y-4 items-start justify-start">
+                        <p className="truncate max-w-[120px] font-utama text-md font-medium text-gray-800 leading-tight">
+                            Akun
+                        </p>
+                        <div className="w-full flex flex-col space-y-2 p-4 rounded-lg bg-white shadow-md">
+                            <a href={route('account.settings')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m.256 7a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1zm3.63-4.54c.18-.613 1.048-.613 1.229 0l.043.148a.64.64 0 0 0 .921.382l.136-.074c.561-.306 1.175.308.87.869l-.075.136a.64.64 0 0 0 .382.92l.149.045c.612.18.612 1.048 0 1.229l-.15.043a.64.64 0 0 0-.38.921l.074.136c.305.561-.309 1.175-.87.87l-.136-.075a.64.64 0 0 0-.92.382l-.045.149c-.18.612-1.048.612-1.229 0l-.043-.15a.64.64 0 0 0-.921-.38l-.136.074c-.561.305-1.175-.309-.87-.87l.075-.136a.64.64 0 0 0-.382-.92l-.148-.045c-.613-.18-.613-1.048 0-1.229l.148-.043a.64.64 0 0 0 .382-.921l-.074-.136c-.306-.561.308-1.175.869-.87l.136.075a.64.64 0 0 0 .92-.382zM14 12.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0" />
                                     </svg>
-                                    <div>
-                                        <p className="text-gray-700 font-semibold text-sm md:text-base lg:text-lg">
-                                            Rp{user.balance.toLocaleString('id-ID')}
-                                        </p>
-                                        <p className="text-gray-900 font-medium text-sm md:text-base lg:text-lg">Balance</p>
-                                    </div>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Edit Profil
+                                    </p>
                                 </div>
-                            </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('password.request')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2M5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Ubah Password
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('affiliate.dashboard')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Program Afiliasi
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('store.edit')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm3 0h-2v3h2z" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Edit Toko
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
 
-                            {/* Vertical Divider */}
-                            <div className="h-12 border-l-2 border-gray-300 mx-6"></div>
-
-                            {/* Points Section */}
-                            <div className="flex items-center justify-start flex-1">
-                                <div className="flex items-center space-x-4">
-                                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[#0055bb]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+                    <div className="w-full flex flex-col space-y-4 items-start justify-start">
+                        <p className="truncate max-w-[120px] font-utama text-md font-medium text-gray-800 leading-tight">
+                            Informasi
+                        </p>
+                        <div className="w-full flex flex-col space-y-2 p-4 rounded-lg bg-white shadow-md">
+                            <a href={route('privacy')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56" />
+                                        <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0" />                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Kebijakan Privasi
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('privacy')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
+                                        <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783" />
+                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Syarat & Ketentuan
+                                    </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
+                            </a>
+                            <a href={route('about')} className="w-full flex flex-row justify-between items-center p-4 rounded-lg">
+                                <div className="flex flex-row space-x-4 items-center justify-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-6 h-6 text-main" viewBox="0 0 16 16">
                                         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                                        <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
-                                    </svg>
-                                    <div>
-                                        <p className="text-gray-700 font-semibold text-sm md:text-base lg:text-lg">
-                                            {user.points.toLocaleString('id-ID')}
-                                        </p>
-                                        <p className="text-gray-900 font-medium text-sm md:text-base lg:text-lg">Points</p>
-                                    </div>
+                                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />                                    </svg>
+                                    <p className="font-utama text-sm font-medium text-gray-700">
+                                        Tentang
+                                    </p>
                                 </div>
-                            </div>
-                        </div>
-
-
-                        {/* 2 Full Width Menu Cards */}
-                        <div className="grid grid-cols-2 gap-6 md:my-6 my-3 sm:grid-cols-2 max-w-6xl mx-auto">
-                            {/* Menu 1: Deposit */}
-                            <a href="/deposit/create" className="flex items-center bg-white text-gray-900 p-8 rounded-lg shadow-md hover:shadow-lg hover:bg-blue-50 transition duration-300">
-                                <div className="flex items-center w-full justify-between">
-                                    <div className="flex items-center">
-                                        <svg className="w-6 sm:w-10 text-[#0055bb] mr-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                            <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
-                                            <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
-                                        </svg>
-                                        <p className="text-sm md:text-base font-bold text-[#0055bb]">Deposit</p>
-                                    </div>
-                                    <span className="text-gray-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </a>
-
-                            {/* Menu 2: Riwayat Transaksi */}
-                            <a href="/history" className="flex items-center bg-white text-gray-900 p-8 rounded-lg shadow-md hover:shadow-lg hover:bg-blue-50 transition duration-300">
-                                <div className="flex items-center w-full justify-between">
-                                    <div className="flex items-center">
-                                        <svg className="w-6 sm:w-10 text-[#0055bb] mr-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                            <path fillRule="evenodd" d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" clipRule="evenodd" />
-                                            <path fillRule="evenodd" d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" clipRule="evenodd" />
-                                        </svg>
-                                        <p className="text-sm md:text-base font-bold text-[#0055bb]">Transaksi</p>
-                                    </div>
-                                    <span className="text-gray-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="0.5">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708" />
+                                </svg>
                             </a>
                         </div>
-                    </section>
+                    </div>
 
-                    <section className="px-6">
-                        <div className="max-w-6xl mx-auto">
-                            <p className="text-gray-700 font-semibold text-lg opacity-80">Menu Akun</p>
-                            <a href="/account">
-                                <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                    <p className="text-gray-900 font-medium">Pengaturan Akun</p>
-                                    <span className="text-gray-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </a>
-                            <a href="/affiliate-dashboard">
-                                <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                    <p className="text-gray-900 font-medium">Program Afiliasi</p>
-                                    <span className="text-gray-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </a>
-                            <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                <p className="text-gray-900 font-medium">Option 3</p>
-                                <span className="text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </span>
-                            </div>
-                            <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                <p className="text-gray-900 font-medium">Option 4</p>
-                                <span className="text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </span>
-                            </div>
-                            <button onClick={handleLogout}>
-                                <div className="bg-white shadow-md rounded-lg p-4 mt-4 flex justify-between items-center hover:shadow-lg hover:bg-blue-50 transition-all duration-200">
-                                    <p className="text-gray-900 font-medium">Logout</p>
-                                    <span className="text-gray-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </button>
-
-                        </div>
-                    </section>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full py-2 px-4 rounded-xl text-white bg-blue-500 hover:bg-blue-700"
+                    >
+                        Logout
+                    </button>
                 </div>
             </div>
             <Footer />

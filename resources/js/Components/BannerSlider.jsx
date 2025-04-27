@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 
 const banners = [
-  "/storage/banner_home/banner-top-up-game.webp",
-  "/storage/banner_home/banner-top-up-game-2.webp",
-  "/storage/banner_home/banner-top-up-game-3.webp",
+  "/storage/banner_home/banner_muvausa_otomatis.png",
+  "/storage/banner_home/banner_muvausa_satset.png",
+  "/storage/banner_home/banner_muvausa_game.png",
+  "/storage/banner_home/banner_muvausa_payment.png"
 ];
 
 const BannerSlider = () => {

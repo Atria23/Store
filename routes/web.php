@@ -61,6 +61,10 @@ Route::get('/reset-password-success', function () {
     return Inertia::render('Auth/ResetPasswordSuccess');
 })->name('reset.password.success');
 
+Route::get('/about', function () {
+    return Inertia::render('About');
+})->name('about');
+
 Route::get('/', [WelcomeController::class, 'index']);
 
 Route::get('/privacy-policy', [PrivacyPolicyController::class, 'index'])->name('privacy');
@@ -137,9 +141,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/account', [AccountSettingsController::class, 'index'])->name('account.settings');
     Route::post('/account', [AccountSettingsController::class, 'update'])->name('account.settings.update');
     
-    Route::get('/deposit', [DepositController::class, 'index'])->name('deposit-history');
-    Route::get('/deposit/create', [DepositController::class, 'create'])->name('deposit-create');
-    Route::post('/deposit', [DepositController::class, 'store'])->name('deposit-store');
+    Route::get('/deposit', [DepositController::class, 'index'])->name('deposit.history');
+    Route::get('/deposit/create', [DepositController::class, 'create'])->name('deposit.create');
+    Route::post('/deposit', [DepositController::class, 'store'])->name('deposit.store');
     Route::post('/deposit/confirm/{id}', [DepositController::class, 'confirm'])->name('deposit-confirm');
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
@@ -152,7 +156,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/transactions/completed', [TransactionController::class, 'getCompletedTransactions'])
         ->name('transactions.completed');
 
-    Route::get('/history', [TransactionController::class, 'historyPage']);
+    Route::get('/history', [TransactionController::class, 'historyPage'])->name('history');
     Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
     Route::get('/store/edit', [StoreController::class, 'edit'])->name('store.edit');

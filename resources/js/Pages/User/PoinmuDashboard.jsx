@@ -5,35 +5,38 @@ import { Head, usePage, Link } from '@inertiajs/react';
 export default function PoinmuDashboard() {
     const { user, poinmuHistory } = usePage().props;
     const [redeemPoints, setRedeemPoints] = useState('');
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const handleRedeem = () => {
-        if (!redeemPoints || parseInt(redeemPoints) <= 0) {
+        if (!redeemPoints || parseInt(redeemPoints.replace(/\./g, '')) <= 0) {
             alert('Masukkan jumlah poin yang valid.');
             return;
         }
-        if (parseInt(redeemPoints) > user.points) {
+        if (parseInt(redeemPoints.replace(/\./g, '')) > user.points) {
             alert('Poin tidak cukup untuk diredeem.');
             return;
         }
 
-        if (confirm(`Anda yakin ingin menukar ${redeemPoints} poin menjadi saldo?`)) {
-            Inertia.post('/poinmu/redeem', { points: parseInt(redeemPoints) }, {
-                onSuccess: () => {
-                    setRedeemPoints('');
-                    alert('Poin berhasil diredeem!');
-                },
-                onError: (errors) => {
-                    alert(errors.error || 'Terjadi kesalahan.');
-                }
-            });
-        }
+        setShowConfirm(true); // Tampilkan modal konfirmasi
+    };
+
+    const confirmRedeem = () => {
+        Inertia.post('/poinmu/redeem', { points: parseInt(redeemPoints.replace(/\./g, '')) }, {
+            onSuccess: () => {
+                setRedeemPoints('');
+                setShowConfirm(false); // Tutup modal setelah sukses
+            },
+            onError: (errors) => {
+                alert(errors.error || 'Terjadi kesalahan.');
+            }
+        });
     };
 
     return (
         <>
             <Head title="Dashboard PoinMu" />
             <div className="mx-auto w-full max-w-[500px] min-h-screen bg-white">
-                {/* Header tetap */}
+                {/* Header */}
                 <header className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
                     <div className="w-full flex items-center px-4 py-2 space-x-4">
                         <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
@@ -46,12 +49,12 @@ export default function PoinmuDashboard() {
                         </div>
                     </div>
                 </header>
-
                 {/* Spacer header */}
                 <div className="h-11" />
 
                 {/* Main Content */}
                 <main className="w-full flex flex-col items-center justify-center">
+
                     {/* Informasi Pengguna */}
 
                     <section className="w-full flex flex-col justify-center items-center space-y-4 px-8 pt-8">
@@ -169,9 +172,35 @@ export default function PoinmuDashboard() {
                                 </Link>
                             ))
                         ) : (
-                            <p className="text-gray-500 px-4">Belum ada riwayat PoinMu.</p>
+                            <div className="flex flex-col items-center justify-center h-[100px]">
+                                <p className="text-gray-500 px-4 text-center">Belum ada riwayat PoinMu.</p>
+                            </div>
                         )}
                     </section>
+
+                    {/* Modal Konfirmasi */}
+                    {showConfirm && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-xl w-[90%] max-w-[400px] text-center space-y-4">
+                                <h2 className="text-lg font-bold text-main">Konfirmasi Redeem</h2>
+                                <p>Anda yakin ingin menukar <span className="font-bold">{redeemPoints}</span> poin menjadi saldo?</p>
+                                <div className="flex gap-4 justify-center mt-4">
+                                    <button
+                                        onClick={() => setShowConfirm(false)}
+                                        className="px-4 py-2 bg-gray-300 rounded font-semibold text-sm"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmRedeem}
+                                        className="px-4 py-2 bg-main text-white rounded font-semibold text-sm"
+                                    >
+                                        Ya, Tukar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 </main>
             </div>

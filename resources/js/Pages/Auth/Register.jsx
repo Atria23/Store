@@ -7,7 +7,7 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
-        referral_code: '', // ← Tambahan
+        referral_code: '',
     });
 
     const [referralValid, setReferralValid] = useState(null);
@@ -19,14 +19,14 @@ export default function Register() {
             setData('referral_code', ref);
         }
     }, []);
-    
+
 
     useEffect(() => {
         if (data.referral_code.trim() === '') {
             setReferralValid(null);
             return;
         }
-    
+
         const timeout = setTimeout(() => {
             fetch('/check-referral', {
                 method: 'POST',
@@ -40,10 +40,10 @@ export default function Register() {
                 .then(data => setReferralValid(data.valid))
                 .catch(() => setReferralValid(false));
         }, 500);
-    
+
         return () => clearTimeout(timeout);
     }, [data.referral_code]);
-    
+
 
     const [isChecked, setIsChecked] = useState(false);
     const isFormValid =

@@ -58,7 +58,17 @@ class RegisteredUserController extends Controller
 
         $affiliator->save();
 
-        event(new Registered($user));
+        
+
+// Tambahkan blok try-catch di sini
+try {
+    event(new Registered($user));
+} catch (\Exception $e) {
+    return back()->withErrors([
+        'email' => 'Gagal mengirim email verifikasi. Silakan cek kembali email Anda atau hubungi admin.'
+    ]);
+}
+
         Auth::login($user);
 
         return redirect(route('verification.notice', absolute: false));
