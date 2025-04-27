@@ -3,7 +3,7 @@ import { useForm } from "@inertiajs/react";
 
 export default function StoreEdit({ store }) {
     const fileInputRef = useRef(null);
-    const [imagePreview, setImagePreview] = useState(store?.image ? `/storage/${store.image}` : "/logo.webp");
+    const [imagePreview, setImagePreview] = useState(store?.image ? `/storage/${store.image}` : "/storage/logo.webp");
 
     const { data, setData, post, progress, errors, processing } = useForm({
         name: store?.name || '',
