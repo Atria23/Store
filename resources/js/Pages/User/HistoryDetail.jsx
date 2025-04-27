@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Head, usePage, Link } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import PopupEditStore from "../../Components/PopupEditStore"; // Import komponen popup
 import { toPng } from 'html-to-image'; // Import html-to-image
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
@@ -658,7 +658,7 @@ const HistoryDetail = () => {
                         )}
 
                         {/* Tombol Beranda */}
-                        <Link href="/user/dashboard">
+                        <a href={route('user.dashboard')}>
                             <button className="w-full bg-blue-500 text-white rounded-lg px-6 py-3 text-center text-sm font-semibold hover:bg-blue-600 flex items-center justify-center gap-2">
                                 <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
                                     <path
@@ -669,7 +669,7 @@ const HistoryDetail = () => {
                                 </svg>
                                 Beranda
                             </button>
-                        </Link>
+                        </a>
 
                         {/* Popup Edit Store */}
                         <PopupEditStore
@@ -681,7 +681,7 @@ const HistoryDetail = () => {
                 ) : (
                     <div className="w-full w-max-[500px] p-4">
                         {/* Tombol Beranda Saja */}
-                        <Link href="/user/dashboard">
+                        <a href={route('user.dashboard')}>
                             <button className="w-full bg-blue-500 text-white rounded-lg px-6 py-3 text-center text-sm font-semibold hover:bg-blue-600 flex items-center justify-center gap-2">
                                 <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
                                     <path
@@ -692,7 +692,7 @@ const HistoryDetail = () => {
                                 </svg>
                                 Beranda
                             </button>
-                        </Link>
+                        </a>
                     </div>
                 )}
             </div>

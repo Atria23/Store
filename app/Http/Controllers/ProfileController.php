@@ -31,7 +31,7 @@ class ProfileController extends Controller
             'isSuperAdmin' => $user->hasRole('super-admin'),
         ];
 
-        return Inertia::render('Profile', [
+        return Inertia::render('User/Profile', [
             'user' => $userData,
         ]);
     }
