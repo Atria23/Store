@@ -6,11 +6,12 @@ export default function StoreEdit({ store }) {
     const [imagePreview, setImagePreview] = useState(store?.image ? `/storage/${store.image}` : "/logo.webp");
 
     const { data, setData, post, progress, errors, processing } = useForm({
-        name: store.name,
-        address: store.address,
-        phone_number: store.phone_number,
+        name: store?.name || '',
+        address: store?.address || '',
+        phone_number: store?.phone_number || '',
         image: null,
     });
+    
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
