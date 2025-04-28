@@ -50,20 +50,19 @@ function Profile({ user }) {
 
                 <div className="w-full w-max-[500px] flex flex-col space-y-5 mt-10 p-4 bg-main-white">
                     <div className="w-full flex flex-col space-y-3">
-                        <div className="w-full flex flex-row items-center justify-between flex-wrap gap-4">
-                            {/* Profile */}
-                            <div className="flex flex-row items-center space-x-4 min-w-0">
+                        <div className="w-full flex flex-row items-center justify-center flex-wrap gap-4">
+                            <div className="flex flex-col items-center justify-center space-y-2">
                                 <img
                                     src={imagePreview}
                                     alt="Logo Muvausa Store"
                                     className="w-24 h-24 aspect-square object-cover rounded-full shadow-lg border-4 border-white"
                                     onError={(e) => (e.target.src = '/storage/logo.webp')}
                                 />
-                                <div className="flex flex-col min-w-0">
-                                    <p className="truncate max-w-[200px] font-utama text-lg font-medium text-gray-700 leading-tight">
+                                <div className="flex flex-col items-center">
+                                    <p className="truncate max-w-[300px] font-utama text-lg font-medium text-gray-700 leading-tight">
                                         {user.name}
                                     </p>
-                                    <p className="truncate max-w-[200px] font-utama text-md font-medium text-gray-700 leading-tight">
+                                    <p className="truncate max-w-[300px] font-utama text-md font-medium text-gray-700 leading-tight">
                                         {user.email}
                                     </p>
                                 </div>
