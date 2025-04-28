@@ -1,10 +1,7 @@
 import React from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link } from "@inertiajs/react";
 
 function Footer() {
-  const { url } = usePage();
-  const currentPath = url || window.location.pathname;
-
   const navItems = [
     {
       label: "Beranda",
@@ -17,7 +14,7 @@ function Footer() {
           />
         </svg>
       ),
-      path: "/dashboard",
+      route: "user.dashboard",
     },
     {
       label: "Riwayat",
@@ -30,7 +27,7 @@ function Footer() {
           />
         </svg>
       ),
-      path: "/history",
+      route: "history",
     },
     {
       label: "Profil",
@@ -43,7 +40,7 @@ function Footer() {
           />
         </svg>
       ),
-      path: "/profile",
+      route: "profile",
     },
   ];
 
@@ -51,16 +48,17 @@ function Footer() {
     <footer className="mx-auto fixed bottom-0 left-0 right-0 w-full max-w-[500px] max-h-[64px] flex flex-col bg-white shadow-2xl py-2 z-50">
       <div className="flex justify-between items-center text-sm">
         {navItems.map((item, index) => {
-          const isActive = currentPath === item.path;
+          const isActive = route().current(item.route);
           return (
             <Link
               key={index}
-              href={item.path}
-              className={`flex flex-col items-center justify-center flex-grow transition ${isActive ? 'text-blue-500' : 'text-gray-500 text-xs'
-                }`}
+              href={route(item.route)}
+              className={`flex flex-col items-center justify-center flex-grow transition ${
+                isActive ? "text-blue-500" : "text-gray-500 text-xs"
+              }`}
             >
               {item.icon}
-              <span className={`mt-1 ${isActive ? 'text-base -translate-y-1' : 'text-xs'}`}>
+              <span className={`mt-1 ${isActive ? "text-base -translate-y-1" : "text-xs"}`}>
                 {item.label}
               </span>
             </Link>
