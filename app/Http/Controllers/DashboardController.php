@@ -21,6 +21,7 @@ class DashboardController extends Controller
                 ['name' => 'QRIS', 'route' => route('admin.editQris'), 'icon' => 'box'],
                 ['name' => 'Mutasi QRIS', 'route' => route('mutasi-qris.index'), 'icon' => 'box'], 
                 ['name' => 'Kelola Deposit', 'route' => route('admin.deposit'), 'icon' => 'box'],
+                ['name' => 'Kelola Riwayat', 'route' => route('manage.history'), 'icon' => 'box'],
             ]
         ]);
     }

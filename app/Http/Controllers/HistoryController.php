@@ -24,4 +24,16 @@ class HistoryController extends Controller
             'history' => $history,
         ]);
     }
+
+    public function getAllHistory()
+    {
+        $history = TransactionsHistory::select('ref_id', 'product_name', 'customer_no', 'price', 'status', 'created_at', 'user_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('ManageHistory', [
+            'transactions' => $history,
+        ]);
+    }
+
 }

@@ -287,7 +287,7 @@ const DepositDetail = ({ deposit }) => {
                                             : "text-red-700 bg-red-100"
                                         }`}
                                 >
-                                    Transaksi {deposit.status}
+                                    {deposit.status}
                                 </span>
                             </div>
                         </div>

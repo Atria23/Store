@@ -86,49 +86,9 @@ Route::get('/c={categoryName}/b={brandName}/t={typeName}', [UserProductControlle
     ->name('category.brand.type.products');
 
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('balance-mutation', [BalanceMutationController::class, 'index'])->name('user.balance-mutation.index');
-    Route::get('balance-mutation/{id}', [BalanceMutationController::class, 'show'])->name('user.balance-mutation.show');
-});
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/poinmu', [PoinmuController::class, 'index'])->name('poinmu.dashboard');
-    Route::post('/poinmu/redeem', [PoinmuController::class, 'redeem'])->name('poinmu.redeem');
-});
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/poinmu-history', [PoinmuHistoryController::class, 'index'])->name('poinmu.history');
-    Route::get('/poinmu-history/{id}', [PoinmuHistoryController::class, 'show'])->name('poinmu.history.detail');
-});
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index'])
-        ->name('affiliate.dashboard');
-});
-
-Route::middleware(['auth'])->group(function () {
-    // Untuk user biasa, hanya berdasarkan user yang login
-    Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
-        ->name('affiliate.history');
-
-        Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
-
-
-    // Untuk admin & super-admin, bisa akses dengan affiliator_id
-    Route::middleware(['super-admin'])->group(function () {
-        Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
-            ->name('affiliate.history.admin');
-    });
-});
-
 // Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
 Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
 
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/affiliator', [AffiliatorController::class, 'index'])->name('affiliator.index');
-    Route::post('/affiliator/save', [AffiliatorController::class, 'save'])->name('affiliator.save');
-});
 
 Route::middleware(['auth'])->group(function () {
     // Menampilkan halaman verifikasi email
@@ -165,18 +125,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
-});
-
-Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
-
-Route::get('/products', [PriceListController::class, 'showAllProducts']);
-
-Route::middleware("super-admin")->group(function () {
-    Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
-});
-
-
-Route::middleware(['auth'])->group(function () {
+    Route::get('/affiliator', [AffiliatorController::class, 'index'])->name('affiliator.index');
+    Route::post('/affiliator/save', [AffiliatorController::class, 'save'])->name('affiliator.save');
+    
+    Route::get('/affiliate-dashboard', [AffiliateDashboardController::class, 'index'])
+        ->name('affiliate.dashboard');
+    Route::get('/poinmu-history', [PoinmuHistoryController::class, 'index'])->name('poinmu.history');
+    Route::get('/poinmu-history/{id}', [PoinmuHistoryController::class, 'show'])->name('poinmu.history.detail');
+    Route::get('/poinmu', [PoinmuController::class, 'index'])->name('poinmu.dashboard');
+    Route::post('/poinmu/redeem', [PoinmuController::class, 'redeem'])->name('poinmu.redeem');
+    Route::get('balance-mutation', [BalanceMutationController::class, 'index'])->name('user.balance-mutation.index');
+    Route::get('balance-mutation/{id}', [BalanceMutationController::class, 'show'])->name('user.balance-mutation.show');
+    Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
+        ->name('affiliate.history');
+    Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
     Route::get('/history/{ref_id}', function ($ref_id) {
         $user = auth()->user();
 
@@ -204,6 +166,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
 Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::get('/admin/deposits', [KelolaDepositController::class, 'index'])->name('admin.deposit');
@@ -244,18 +207,23 @@ Route::middleware(['super-admin'])->group(function () {
     Route::post('/manage-product-detail/{id}', [ProductController::class, 'update'])->name('product.update');
     Route::get('/manage-product-detail/{id?}', [ProductController::class, 'index'])->name('product.index');
     Route::delete('/manage-product-detail/{id}', [ProductController::class, 'destroy'])->name('product.destroy');;
+    Route::get('/manage-history', [HistoryController::class, 'getAllHistory'])->name('manage.history');
+    
+    Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
+    Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
+            ->name('affiliate.history.admin');
 
-        Route::resource('/manage-users', UserController::class)
-    ->parameters(['manage-users' => 'user']) // <- ubah parameter jadi 'user'
-    ->except('show')
-    ->names([
-        'index'   => 'manage-users.index',
-        'create'  => 'manage-users.create',
-        'store'   => 'manage-users.store',
-        'edit'    => 'manage-users.edit',
-        'update'  => 'manage-users.update',
-        'destroy' => 'manage-users.destroy',
-    ]);
+    Route::resource('/manage-users', UserController::class)
+        ->parameters(['manage-users' => 'user']) // <- ubah parameter jadi 'user'
+        ->except('show')
+        ->names([
+            'index'   => 'manage-users.index',
+            'create'  => 'manage-users.create',
+            'store'   => 'manage-users.store',
+            'edit'    => 'manage-users.edit',
+            'update'  => 'manage-users.update',
+            'destroy' => 'manage-users.destroy',
+        ]);
 
 });
 

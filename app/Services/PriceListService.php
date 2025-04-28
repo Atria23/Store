@@ -15,9 +15,6 @@ use App\Models\Barang;
 
 class PriceListService
 {
-    /**
-     * Fetch and update the price list from the external API.
-     */
     public function fetchAndUpdatePriceList()
     {
         $lastUpdated = Product::max('updated_at');
@@ -72,15 +69,16 @@ class PriceListService
 
                 // Update category
                 if (!empty($item['category'])) {
-                    Category::updateOrCreate(['name' => $item['category']], ['updated_at' => now()]);
+                    Category::updateOrCreate(['name' => trim($item['category'])], ['updated_at' => now()]);
                 }
 
                 // Update brand
                 if (!empty($item['brand']) && !empty($item['category'])) {
-                    $category = Category::where('name', $item['category'])->first();
+                    $category = Category::where('name', trim($item['category']))->first();
                     if ($category) {
+                        $brandName = trim($item['brand']) . ' - ' . trim($category->name);
                         Brand::updateOrCreate(
-                            ['name' => $item['brand'], 'category_id' => $category->id],
+                            ['name' => $brandName, 'category_id' => $category->id],
                             ['updated_at' => now()]
                         );
                     }
@@ -88,13 +86,20 @@ class PriceListService
 
                 // Update type
                 if (!empty($item['type']) && !empty($item['brand']) && !empty($item['category'])) {
-                    $brand = Brand::where('name', $item['brand'])->first();
-                    $category = Category::where('name', $item['category'])->first();
-                    if ($brand && $category) {
-                        Type::updateOrCreate(
-                            ['name' => $item['type'], 'brand_id' => $brand->id, 'category_id' => $category->id],
-                            ['updated_at' => now()]
-                        );
+                    $category = Category::where('name', trim($item['category']))->first();
+                    if ($category) {
+                        $brandName = trim($item['brand']) . ' - ' . trim($category->name);
+                        $brand = Brand::where('name', $brandName)
+                            ->where('category_id', $category->id)
+                            ->first();
+
+                        if ($brand) {
+                            $typeName = trim($item['type']) . ' - ' . $brand->name;
+                            Type::updateOrCreate(
+                                ['name' => $typeName, 'brand_id' => $brand->id, 'category_id' => $category->id],
+                                ['updated_at' => now()]
+                            );
+                        }
                     }
                 }
             }
@@ -110,7 +115,6 @@ class PriceListService
                     }
                 });
 
-            // ✅ Setelah semua PriceList update, lanjut sync Barang dari PriceList
             $this->syncBarangFromPriceList();
 
             Log::info("Data berhasil diperbarui dan Barang disinkronkan pada " . now()->toDateTimeString() . ".");
@@ -122,7 +126,7 @@ class PriceListService
     }
 
     /**
-     * Private: Sinkronisasi Barang berdasarkan PriceList.
+     * Sinkronisasi Barang berdasarkan PriceList
      */
     private function syncBarangFromPriceList()
     {
@@ -152,23 +156,20 @@ class PriceListService
 
         foreach ($priceListItems as $item) {
             $categoryName = trim($item->category);
-            $brandFullName = trim($item->brand);
-            $typeFullName = trim($item->type);
-
-            $brandBaseName = explode(' - ', $brandFullName)[0];
-            $typeBaseName = explode(' - ', $typeFullName)[0];
-
             $category = Category::where('name', $categoryName)->first();
-            $brand = Brand::whereRaw("LEFT(name, LENGTH(?)) = ?", [$brandBaseName, $brandBaseName])
-                ->where('category_id', optional($category)->id)
-                ->first();
-            $type = Type::whereRaw("LEFT(name, LENGTH(?)) = ?", [$typeBaseName, $typeBaseName])
-                ->where('brand_id', optional($brand)->id)
-                ->first();
+            if (!$category) continue;
 
-            if (!$category || !$brand || !$type) {
-                continue; // Lewati jika salah satu tidak ditemukan
-            }
+            $brandName = trim($item->brand) . ' - ' . $category->name;
+            $brand = Brand::where('name', $brandName)
+                ->where('category_id', $category->id)
+                ->first();
+            if (!$brand) continue;
+
+            $typeName = trim($item->type) . ' - ' . $brand->name;
+            $type = Type::where('name', $typeName)
+                ->where('brand_id', $brand->id)
+                ->first();
+            if (!$type) continue;
 
             Barang::updateOrCreate(
                 [
