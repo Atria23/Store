@@ -96,29 +96,6 @@ const HistoryDetail = () => {
         }
     };
 
-    // const updateStatus = (transaction_id) => {
-    //     fetch("/transactions/update-status", {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //             "X-CSRF-TOKEN": document.querySelector(
-    //                 "meta[name='csrf-token']"
-    //             ).getAttribute("content"),
-    //         },
-    //         body: JSON.stringify({
-    //             transaction_id: transaction_id,
-    //         }),
-    //     })
-    //         .then((response) => response.json())
-    //         .then((data) => {
-    //             if (data.success) {
-    //                 window.location.reload();
-    //             } else {
-    //                 window.location.reload();
-    //             }
-    //         })
-    //         .catch((error) => console.error("Error updating status:", error));
-    // };
     const updateStatus = (transaction_id) => {
         fetch("/transactions/update-status", {
             method: "POST",
@@ -132,43 +109,27 @@ const HistoryDetail = () => {
                 transaction_id: transaction_id,
             }),
         })
-            .then((response) => {
-                console.log('Response:', response);
-                return response.json(); // Parsing response to JSON
-            })
+            .then((response) => response.json())
             .then((data) => {
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    console.log('Error:', data.message);
+                    window.location.reload();
                 }
             })
             .catch((error) => console.error("Error updating status:", error));
     };
-    
-    
-    
 
     // Automatically update status every 2 seconds for pending transactions
-    // useEffect(() => {
-    //     const interval = setInterval(() => {
-    //         if (transaction?.status === "Pending") {
-    //             updateStatus(transaction.ref_id);
-    //         }
-    //     }, 2000); // 2 seconds interval
-
-    //     return () => clearInterval(interval); // Cleanup interval on unmount
-    // }, [transaction]);
     useEffect(() => {
         const interval = setInterval(() => {
             if (transaction?.status === "Pending") {
                 updateStatus(transaction.ref_id);
             }
-        }, 2000); // 2 detik interval
-    
+        }, 2000); // 2 seconds interval
+
         return () => clearInterval(interval); // Cleanup interval on unmount
-    }, [transaction]); // Pastikan state transaction ter-update dengan benar
-    
+    }, [transaction]);
 
     if (!transaction) {
         return <div>Loading...</div>;

@@ -43,7 +43,6 @@ use App\Http\Controllers\User\UserProductController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
-use App\Services\TransactionUpdateService;
 
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
@@ -118,10 +117,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('transactions.completed');
 
     Route::get('/history', [TransactionController::class, 'historyPage'])->name('history');
-    // Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
+    Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
-    Route::post('/transactions/update-status', [TransactionUpdateService::class, 'updatePendingTransactions']);
-    
     Route::get('/store/edit', [StoreController::class, 'edit'])->name('store.edit');
     Route::post('/store/update', [StoreController::class, 'update'])->name('store.update');
 
@@ -142,31 +139,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
         ->name('affiliate.history');
     Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
-    // Route::get('/history/{ref_id}', function ($ref_id) {
-    //     $user = auth()->user();
-
-    //     // Cek apakah user adalah admin atau super admin
-    //     $isAdmin = $user->hasRole('admin') || $user->hasRole('super-admin');
-
-    //     // Jika admin, ambil semua transaksi, jika bukan, hanya ambil transaksi miliknya
-    //     $transactions = $isAdmin
-    //         ? \App\Models\TransactionsHistory::all()
-    //         : \App\Models\TransactionsHistory::where('user_id', $user->id)->get();
-
-    //     // Ambil informasi toko
-    //     $store = \App\Models\Store::first();
-
-    //     return Inertia::render('User/HistoryDetail', [
-    //         'transactions' => $transactions,
-    //         'params' => ['ref_id' => $ref_id],
-    //         'store' => $store ? [
-    //             'name' => $store->name,
-    //             'address' => $store->address,
-    //             'phone_number' => $store->phone_number,
-    //             'image' => $store->image ? asset('storage/' . $store->image) : null,
-    //         ] : null,
-    //     ]);
-    // });
+    
     Route::get('/history/{ref_id}', function ($ref_id) {
         $user = auth()->user();
     
