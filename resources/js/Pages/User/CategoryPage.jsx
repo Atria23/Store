@@ -44,15 +44,22 @@ const CategoryPage = ({ category, brands, brand }) => {
     const [detectedOperator, setDetectedOperator] = useState(detectOperator(phoneNumber));
 
     useEffect(() => {
-        if (phoneNumber.length >= 4) {
-            const operator = detectOperator(phoneNumber);
-            setDetectedOperator(operator);
+        const handler = setTimeout(() => {
+            if (phoneNumber.length >= 4) {
+                const operator = detectOperator(phoneNumber);
+                setDetectedOperator(operator);
 
-            if (operator) {
-                window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
+                if (operator) {
+                    window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
+                }
             }
-        }
+        }, 2000);
+
+        return () => {
+            clearTimeout(handler);
+        };
     }, [phoneNumber, category.name]);
+
 
     useEffect(() => {
         if (detectedOperator) {
@@ -70,87 +77,87 @@ const CategoryPage = ({ category, brands, brand }) => {
 
     return (
         <>
-        <Head title="Category Page" />
+            <Head title="Category Page" />
 
-        <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
-            {/* fixed position */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
-                {/* Header */}
-                <section className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                    <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                        <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                            </svg>
-                        </button>
-                        <div className="font-utama text-white font-bold text-lg">
-                            List {category.name}
+            <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
+                {/* fixed position */}
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
+                    {/* Header */}
+                    <section className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
+                            <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
+                                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                                </svg>
+                            </button>
+                            <div className="font-utama text-white font-bold text-lg">
+                                List {category.name}
+                            </div>
                         </div>
-                    </div>
-                </section>
-                {/* Search & Filter */}
-                <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
-                    <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                        {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") ? (
-                            <input
-                                id="searchInput"
-                                type="text"
-                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                value={phoneNumber}
-                                onChange={handlePhoneInputChange}
-                                placeholder="Masukkan nomor HP"
-                            />
-                        ) : (
-                            <>
+                    </section>
+                    {/* Search & Filter */}
+                    <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
+                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                            {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") ? (
                                 <input
                                     id="searchInput"
                                     type="text"
                                     className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Cari brand..."
+                                    value={phoneNumber}
+                                    onChange={handlePhoneInputChange}
+                                    placeholder="Masukkan nomor HP"
                                 />
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    stroke="currentColor"
-                                    strokeWidth="0.3"
-                                    className="w-5 h-5 text-main"
-                                >
-                                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                                </svg>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <section className="w-full max-w-[500px] min-h-[828px] flex flex-col space-y-7 items-start justify-start pt-32 pb-4">
-                <div className="w-full flex flex-col space-y-4 items-center justify-start">
-                    <div className="w-full px-4 grid grid-cols-4 gap-x-5 gap-y-4 flex items-start justify-center">
-                        {!(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") && !brand ? (
-                            brands
-                                .filter(brandItem => brandItem.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .map((brandItem) => (
-                                    <Link
-                                        key={brandItem.id}
-                                        href={`/c=${category.name}/b=${brandItem.name}?phone=${phoneNumber}`}
-                                        className="w-full h-full flex flex-col space-y-1 items-center justify-start"
+                            ) : (
+                                <>
+                                    <input
+                                        id="searchInput"
+                                        type="text"
+                                        className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Cari brand..."
+                                    />
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                        stroke="currentColor"
+                                        strokeWidth="0.3"
+                                        className="w-5 h-5 text-main"
                                     >
-                                        <img
-                                            src={brandItem.image ? `storage/${brandItem.image}` : "storage/brands/default.webp"}
-                                            alt={brandItem.name}
-                                            className="w-14 h-14 rounded-full object-cover"
-                                        />
-                                        <p className="text-center text-xs line-clamp-2">{formatBrandName(brandItem.name)}</p>
-                                    </Link>
-                                ))
-                        ) : null}
+                                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                    </svg>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </section>
-        </div>
+
+                <section className="w-full max-w-[500px] min-h-[828px] flex flex-col space-y-7 items-start justify-start pt-32 pb-4">
+                    <div className="w-full flex flex-col space-y-4 items-center justify-start">
+                        <div className="w-full px-4 grid grid-cols-4 gap-x-5 gap-y-4 flex items-start justify-center">
+                            {!(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") && !brand ? (
+                                brands
+                                    .filter(brandItem => brandItem.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .map((brandItem) => (
+                                        <Link
+                                            key={brandItem.id}
+                                            href={`/c=${category.name}/b=${brandItem.name}?phone=${phoneNumber}`}
+                                            className="w-full h-full flex flex-col space-y-1 items-center justify-start"
+                                        >
+                                            <img
+                                                src={brandItem.image ? `storage/${brandItem.image}` : "storage/brands/default.webp"}
+                                                alt={brandItem.name}
+                                                className="w-14 h-14 rounded-full object-cover"
+                                            />
+                                            <p className="text-center text-xs line-clamp-2">{formatBrandName(brandItem.name)}</p>
+                                        </Link>
+                                    ))
+                            ) : null}
+                        </div>
+                    </div>
+                </section>
+            </div>
         </>
     );
 };

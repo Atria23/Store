@@ -139,20 +139,45 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
         ->name('affiliate.history');
     Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
+    // Route::get('/history/{ref_id}', function ($ref_id) {
+    //     $user = auth()->user();
+
+    //     // Cek apakah user adalah admin atau super admin
+    //     $isAdmin = $user->hasRole('admin') || $user->hasRole('super-admin');
+
+    //     // Jika admin, ambil semua transaksi, jika bukan, hanya ambil transaksi miliknya
+    //     $transactions = $isAdmin
+    //         ? \App\Models\TransactionsHistory::all()
+    //         : \App\Models\TransactionsHistory::where('user_id', $user->id)->get();
+
+    //     // Ambil informasi toko
+    //     $store = \App\Models\Store::first();
+
+    //     return Inertia::render('User/HistoryDetail', [
+    //         'transactions' => $transactions,
+    //         'params' => ['ref_id' => $ref_id],
+    //         'store' => $store ? [
+    //             'name' => $store->name,
+    //             'address' => $store->address,
+    //             'phone_number' => $store->phone_number,
+    //             'image' => $store->image ? asset('storage/' . $store->image) : null,
+    //         ] : null,
+    //     ]);
+    // });
     Route::get('/history/{ref_id}', function ($ref_id) {
         $user = auth()->user();
-
+    
         // Cek apakah user adalah admin atau super admin
         $isAdmin = $user->hasRole('admin') || $user->hasRole('super-admin');
-
+    
         // Jika admin, ambil semua transaksi, jika bukan, hanya ambil transaksi miliknya
         $transactions = $isAdmin
             ? \App\Models\TransactionsHistory::all()
             : \App\Models\TransactionsHistory::where('user_id', $user->id)->get();
-
-        // Ambil informasi toko
-        $store = \App\Models\Store::first();
-
+    
+        // Ambil store milik user (jika ada relasi)
+        $store = $user->store;
+    
         return Inertia::render('User/HistoryDetail', [
             'transactions' => $transactions,
             'params' => ['ref_id' => $ref_id],
@@ -164,6 +189,7 @@ Route::middleware(['auth'])->group(function () {
             ] : null,
         ]);
     });
+    
 });
 
 Route::post('/webhook', [TransactionController::class, 'webhookHandler']);

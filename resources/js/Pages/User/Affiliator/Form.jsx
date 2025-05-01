@@ -58,7 +58,7 @@ export default function AffiliatorForm({ affiliator }) {
                             {affiliator.affiliate_by_code ? (
                                 // Jika sudah ada referral teman, isi referral sendiri
                                 <div>
-                                    <label className="block text-gray-700 mb-1">Kode Referral Anda</label>
+                                    <label className="block text-gray-700 mb-1">Kode Afiliasi Anda</label>
                                     <div className="w-full h-9 flex items-center rounded-lg bg-neutral-100 border-2 border-gray-200">
                                         <input
                                             type="text"
@@ -67,7 +67,7 @@ export default function AffiliatorForm({ affiliator }) {
                                             onChange={(e) =>
                                                 setData("referral_code", e.target.value.toLowerCase().replace(/\s+/g, ""))
                                             }
-                                            placeholder="Masukkan kode referral Anda"
+                                            placeholder="Masukkan kode afiliasi Anda"
                                             className="bg-transparent text-sm border-none w-full focus:ring-0 focus:outline-none placeholder-gray-400"
                                             required
                                         />
@@ -77,9 +77,9 @@ export default function AffiliatorForm({ affiliator }) {
                                     )}
                                 </div>
                             ) : (
-                                // Kalau belum punya referral teman
+                                // Kalau belum punya afiliasi teman
                                 <div>
-                                    <label className="block text-gray-700 mb-1">Kode Referral Teman</label>
+                                    <label className="block text-gray-700 mb-1">Kode Afiliasi Teman</label>
                                     <div className="w-full h-9 flex items-center rounded-lg bg-neutral-100 border-2 border-gray-200">
                                         <input
                                             type="text"
@@ -88,7 +88,7 @@ export default function AffiliatorForm({ affiliator }) {
                                             onChange={(e) =>
                                                 setData("affiliate_by", e.target.value.toLowerCase().replace(/\s+/g, ""))
                                             }
-                                            placeholder="Masukkan kode referral teman"
+                                            placeholder="Masukkan kode afiliasi teman"
                                             className="bg-transparent text-sm border-none w-full focus:ring-0 focus:outline-none placeholder-gray-400"
                                             required
                                         />

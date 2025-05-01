@@ -152,14 +152,12 @@ export default function VerifyEmail({ status, isVerified }) {
                             </div>
 
                             <div className="w-full h-max flex flex-col space-y-2 mb-6">
-                                <button
-                                    type="submit"
-                                    className={`w-full text-white p-2 rounded transition ${processing || cooldown > 0 ? "bg-gray-400 cursor-not-allowed" : "bg-main hover:bg-blue-700"
-                                        }`}
-                                    disabled={processing || cooldown > 0}
+                                <Link
+                                    href={route('user.dashboard')}
+                                    className="w-full text-center text-white p-2 rounded transition bg-main hover:bg-blue-600"
                                 >
-                                    {processing ? 'Mengirim...' : 'Kirim Link Verifikasi Email'}
-                                </button>
+                                    Verifikasi Nanti
+                                </Link>
                             </div>
                         </div>
                     </form>

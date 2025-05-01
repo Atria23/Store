@@ -40,7 +40,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                             onError={(e) => (e.target.src = "/storage/logo.webp")}
                         />
                         <div className="w-full flex flex-col space-y-1">
-                            <h2 className="text-xl font-semibold">{affiliator.referral_code}</h2>
+                        <h2 className="text-xl font-semibold">{affiliator.referral_code || '-'}</h2>
 
                             <Link href="/affiliator">
                                 <div className="w-full flex flex-row space-x-1 justify-start items-center text-main">
@@ -57,23 +57,32 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                             </Link>
                         </div>
                     </section>
-
+                    
                     <section className="w-full bg-white">
-                        <button
-                            onClick={() => {
-                                const link = `${window.location.origin}/register?ref=${affiliator.referral_code}`;
-                                navigator.clipboard.writeText(link);
-                                alert("Link referral berhasil disalin!");
-                            }}
-                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-main text-white rounded-lg shadow hover:opacity-90 active:scale-95 transition"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
-                                <path d="M16 1a2 2 0 0 1 2 2v2h-2V3H8v18h8v-2h2v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h8z" />
-                                <path d="M21 7H10a1 1 0 0 0-1 1v14h2V9h10v12h-4v2h5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z" />
-                            </svg>
-                            <span className="font-semibold text-sm">Salin Link Afiliasi</span>
-                        </button>
-                    </section>
+    <button
+        onClick={() => {
+            if (!affiliator.referral_code) return;
+            const link = `${window.location.origin}/register?ref=${affiliator.referral_code}`;
+            navigator.clipboard.writeText(link);
+            alert("Link referral berhasil disalin!");
+        }}
+        disabled={!affiliator.referral_code}
+        className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg shadow transition ${
+            !affiliator.referral_code
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-main text-white hover:opacity-90 active:scale-95'
+        }`}
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+            <path d="M16 1a2 2 0 0 1 2 2v2h-2V3H8v18h8v-2h2v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h8z" />
+            <path d="M21 7H10a1 1 0 0 0-1 1v14h2V9h10v12h-4v2h5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z" />
+        </svg>
+        <span className="font-semibold text-sm">
+            {affiliator.referral_code ? 'Salin Link Afiliasi' : 'Link Afiliasi belum tersedia'}
+        </span>
+    </button>
+</section>
+
 
                     <section className="w-full flex justify-center items-center p-4 bg-white shadow-md rounded-xl">
                         <div className="flex flex-col justify-center items-center">
