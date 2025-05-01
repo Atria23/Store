@@ -17,7 +17,7 @@ const Receipt = ({ storeData, transaction, price, adminFee, ref_id, formattedDat
                     link.href = dataUrl;
                     link.click();
                 })
-                .catch((err) => {
+                .catch((err) => { 
                     console.error('Error generating image:', err);
                 });
         }
