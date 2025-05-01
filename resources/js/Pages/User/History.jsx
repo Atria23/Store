@@ -137,39 +137,6 @@ const History = () => {
 
     const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
 
-    const fetchAndUpdateTransactions = () => {
-        transactions.forEach((transaction) => {
-            if (transaction.status === "Pending") {
-                fetch("/transactions/update-status", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": document.querySelector("meta[name='csrf-token']").getAttribute("content"),
-                    },
-                    body: JSON.stringify({ transaction_id: transaction.ref_id }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            setTransactions((prevTransactions) =>
-                                prevTransactions.map((t) =>
-                                    t.ref_id === transaction.ref_id ? { ...t, status: data.new_status || t.status } : t
-                                )
-                            );
-                        }
-                    })
-                    .catch((error) => console.error("Error updating transaction status:", error));
-            }
-        });
-    };
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchAndUpdateTransactions();
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [transactions]);
-
     return (
         <>
             <Head title="History" />
