@@ -89,6 +89,7 @@ Route::get('/c={categoryName}/b={brandName}/t={typeName}', [UserProductControlle
 // Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
 Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
 
+Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
 Route::middleware(['auth'])->group(function () {
     // Menampilkan halaman verifikasi email
@@ -117,7 +118,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('transactions.completed');
 
     Route::get('/history', [TransactionController::class, 'historyPage'])->name('history');
-    Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
     Route::get('/store/edit', [StoreController::class, 'edit'])->name('store.edit');
     Route::post('/store/update', [StoreController::class, 'update'])->name('store.update');

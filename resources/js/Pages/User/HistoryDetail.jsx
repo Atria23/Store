@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { toPng } from 'html-to-image'; // Import html-to-image
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import Receipt from '@/Components/Receipt';
@@ -149,6 +149,7 @@ const HistoryDetail = () => {
         return `Rp${formattedAmount}`; // Remove space after 'Rp'
     };
 
+
     return (
         <>
             <Head title="History Detail" />
@@ -158,7 +159,12 @@ const HistoryDetail = () => {
                 {/* Header */}
                 <header className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
                     <div className="w-full flex flex-row space-x-4 items-center justify-start">
-                        <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
+                        <button className="shrink-0 w-6 h-6" onClick={() => {
+                            window.history.back();
+                            setTimeout(() => {
+                                router.reload({ only: ['data'] }); // tergantung props
+                            }, 100);
+                        }}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
                             </svg>
