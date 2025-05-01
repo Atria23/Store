@@ -43,6 +43,7 @@ use App\Http\Controllers\User\UserProductController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
+use App\Services\TransactionUpdateService;
 
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
@@ -117,8 +118,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('transactions.completed');
 
     Route::get('/history', [TransactionController::class, 'historyPage'])->name('history');
-    Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
+    // Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
+    Route::post('/transactions/update-status', [TransactionUpdateService::class, 'updatePendingTransactions']);
+    
     Route::get('/store/edit', [StoreController::class, 'edit'])->name('store.edit');
     Route::post('/store/update', [StoreController::class, 'update'])->name('store.update');
 

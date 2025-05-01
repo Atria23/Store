@@ -8,7 +8,6 @@ const HistoryDetail = () => {
     const { params, transactions, store } = usePage().props;
     const cardRef = useRef(null); // Ref untuk elemen kartu
     const [transaction, setTransaction] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [price, setPrice] = useState(0); // State untuk harga sementara
     const [adminFee, setAdminFee] = useState(0); // State untuk biaya admin sementara
     const [isEditing, setIsEditing] = useState(false); // State untuk toggle mode edit
@@ -71,7 +70,6 @@ const HistoryDetail = () => {
         setTimeout(() => setLottie(false), 1500);
     };
 
-
     const ref_id = params.ref_id;
 
     useEffect(() => {
@@ -98,7 +96,6 @@ const HistoryDetail = () => {
         }
     };
 
-
     const updateStatus = (transaction_id) => {
         fetch("/transactions/update-status", {
             method: "POST",
@@ -115,9 +112,9 @@ const HistoryDetail = () => {
             .then((response) => response.json())
             .then((data) => {
                 if (data.success) {
-                    window.location.reload();// Reload the page after updating the transaction status
+                    window.location.reload();
                 } else {
-                    window.location.reload();// Reload the page after updating the transaction statusd
+                    window.location.reload();
                 }
             })
             .catch((error) => console.error("Error updating status:", error));
