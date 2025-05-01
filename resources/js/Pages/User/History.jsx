@@ -33,6 +33,12 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
         get(`/history/${ref_id}`);
     };
 
+    useEffect(() => {
+        const current = window.location.pathname;
+        sessionStorage.setItem('previous-url', current);
+    }, []);
+
+
     return (
         <div
             onClick={handleTransactionClick}
