@@ -23,10 +23,6 @@ class AffiliateDashboardController extends Controller
         if (!$affiliator) {
             return redirect()->route('affiliator.index');
         }
-
-        // Ambil semua referral (orang yang direferensikan user ini)
-        $referrals = $affiliator->referrals()->with('user')->get();
-
         // Ambil riwayat affiliate berdasarkan affiliator yang sedang login
         $affiliateHistory = AffiliateHistory::where('affiliator_id', $affiliator->id)
             ->with(['transaction', 'affiliateProduct'])
@@ -44,7 +40,6 @@ class AffiliateDashboardController extends Controller
                     'total_commission' => $totalCommission,
                     'avatar' => $user->avatar ? '/storage/avatars/' . basename($user->avatar) : null,
                 ],
-                'referrals' => $referrals,
                 'affiliateHistory' => $affiliateHistory,
             ]);
             

@@ -9,7 +9,6 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
 
     return (
         <>
-
             <Head title="Dashboard Afiliator" />
             <div className="mx-auto w-full max-w-[500px] min-h-screen bg-white">
 
@@ -32,60 +31,79 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
 
                 {/* Form Section */}
                 <main className="w-full flex flex-col space-y-6 items-center justify-center p-4">
-                    <section className="w-full flex flex-row space-x-4 items-center justify-start">
-                        <img
-                            src={imagePreview}
-                            alt="Logo Muvausa Store"
-                            className="md:w-20 md:h-20 w-12 h-12 p-1.5 border-2 border-white rounded-full shadow-lg bg-white"
-                            onError={(e) => (e.target.src = "/storage/logo.webp")}
-                        />
-                        <div className="w-full flex flex-col space-y-1">
-                        <h2 className="text-xl font-semibold">{affiliator.referral_code || '-'}</h2>
+                    <div className="w-full flex flex-col items-center space-y-6">
 
-                            <Link href="/affiliator">
-                                <div className="w-full flex flex-row space-x-1 justify-start items-center text-main">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="currentColor"
-                                        viewBox="0 0 16 16"
-                                        className="w-4 h-4"
-                                    >
-                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l10-10zM11.207 3L13 4.793 14.293 3.5 12.5 1.707 11.207 3zM12 5.207 10.793 4 3 11.793V13h1.207L12 5.207z" />
-                                    </svg>
-                                    <span className="text-md font-medium">Ubah Data Afiliator</span>
-                                </div>
-                            </Link>
-                        </div>
-                    </section>
-                    
-                    <section className="w-full bg-white">
-    <button
-        onClick={() => {
-            if (!affiliator.referral_code) return;
-            const link = `${window.location.origin}/register?ref=${affiliator.referral_code}`;
-            navigator.clipboard.writeText(link);
-            alert("Link referral berhasil disalin!");
-        }}
-        disabled={!affiliator.referral_code}
-        className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg shadow transition ${
-            !affiliator.referral_code
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-main text-white hover:opacity-90 active:scale-95'
-        }`}
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
-            <path d="M16 1a2 2 0 0 1 2 2v2h-2V3H8v18h8v-2h2v2a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h8z" />
-            <path d="M21 7H10a1 1 0 0 0-1 1v14h2V9h10v12h-4v2h5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z" />
-        </svg>
-        <span className="font-semibold text-sm">
-            {affiliator.referral_code ? 'Salin Link Afiliasi' : 'Link Afiliasi belum tersedia'}
-        </span>
-    </button>
-</section>
+                        {/* SECTION: Profile, Centered */}
+                        <section className="w-full flex justify-center">
+                            <div className="w-full max-w-md flex flex-col items-center space-y-3">
+                                <img
+                                    src={imagePreview}
+                                    alt="Logo Muvausa Store"
+                                    className="w-24 h-24 aspect-square object-cover p-1.5 border-2 border-white rounded-full shadow-lg bg-white"
+                                    onError={(e) => (e.target.src = "/storage/logo.webp")}
+                                />
+                                <h2 className="text-xl font-semibold text-center">{affiliator.referral_code || '-'}</h2>
 
+                                <Link href={route('affiliator.index')}>
+                                    <div className="flex flex-row space-x-1 items-center text-main hover:underline">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="currentColor"
+                                            viewBox="0 0 16 16"
+                                            className="w-4 h-4"
+                                        >
+                                            <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.65-.65l1.5-4a.5.5 0 0 1 .11-.168l10-10zM11.207 3L13 4.793 14.293 3.5 12.5 1.707 11.207 3zM12 5.207 10.793 4 3 11.793V13h1.207L12 5.207z" />
+                                        </svg>
+                                        <span className="text-md font-medium">Ubah Data Afiliator</span>
+                                    </div>
+                                </Link>
+                            </div>
+                        </section>
+
+
+                        {/* SECTION: Button Salin + Teman Diajak */}
+                        <section className="w-full max-w-xl flex flex-row gap-4 justify-center">
+                            {/* Button: Salin Link */}
+                            <button
+                                onClick={() => {
+                                    if (!affiliator.referral_code) return;
+                                    const link = `${window.location.origin}/register?ref=${affiliator.referral_code}`;
+                                    navigator.clipboard.writeText(link);
+                                    alert("Link referral berhasil disalin!");
+                                }}
+                                disabled={!affiliator.referral_code}
+                                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg shadow transition
+                                                ${!affiliator.referral_code
+                                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                                            : 'bg-main text-white hover:opacity-90 active:scale-95'}
+                                            `}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-4 h-4" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z" />
+                                </svg>
+                                <span className="font-semibold text-sm">
+                                    {affiliator.referral_code ? 'Salin Link Afiliasi' : 'Lengkapi Data'}
+                                </span>
+                            </button>
+
+                            {/* Button: Teman Diajak */}
+                            <a
+                                href={route('affiliate.friends')}
+                                className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg shadow transition bg-main text-white hover:opacity-90 active:scale-95"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-5 h-5" viewBox="0 0 16 16">
+                                    <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4" />
+                                </svg>
+                                <span className="font-semibold text-sm">
+                                    Teman Diajak
+                                </span>
+                            </a>
+                        </section>
+
+                    </div>
 
                     <section className="w-full flex justify-center items-center p-4 bg-white shadow-md rounded-xl">
-                        <div className="flex flex-col justify-center items-center">
+                        <div className="flex flex-col text-center justify-center items-center">
                             <p className="font-utama font-semibold text-2xl">Total Perolehan Komisi</p>
                             <p className="font-utama font-semibold text-4xl text-main">{Number(affiliator.total_commission).toLocaleString("id-ID")} <span className="text-2xl">PoinMu</span></p>
                         </div>
@@ -126,7 +144,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                                                     {history.affiliate_product.product_name}
                                                 </p>
                                                 <p className="w-full font-utama text-sm">
-                                                    Komisi: {history.status === "Gagal" ? "0" : Number(history.commission).toLocaleString("id-ID")} PoinMu
+                                                    {history.status === "Gagal" ? "0" : Number(history.commission).toLocaleString("id-ID")} PoinMu
                                                 </p>
                                                 <p className="w-full font-utama text-sm text-gray-500">
                                                     {new Date(history.created_at).toLocaleDateString("id-ID", {
@@ -145,11 +163,16 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                                         {/* Kanan: Status */}
                                         <div className="hidden w-max-full min-[315px]:flex flex-col items-end justify-end space-y-1">
                                             <p
-                                                className={`px-2 py-[2px] text-xs rounded-3xl 
-                                                ${history.status === 'Sukses' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}
+                                                className={`px-2 py-[2px] text-xs rounded-3xl ${history.status === 'Sukses'
+                                                    ? 'bg-green-100 text-green-600'
+                                                    : history.status === 'Pending'
+                                                        ? 'bg-yellow-100 text-yellow-600'
+                                                        : 'bg-red-100 text-red-600'
+                                                    }`}
                                             >
                                                 {history.status}
                                             </p>
+
 
                                         </div>
                                     </div>
@@ -157,7 +180,7 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
                             ))
                         ) : (
                             <div className="flex justify-center items-center h-full mt-6">
-                                <p className="text-gray-500">Riwayat komisi tidak ditemukan.</p>
+                                <p className="text-gray-500">Riwayat afiliasi tidak ditemukan.</p>
                             </div>
                         )}
                     </section>

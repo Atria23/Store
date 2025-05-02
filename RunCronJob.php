@@ -41,18 +41,20 @@ function runPriceListService()
 function runTransactionUpdateService()
 {
     try {
-        $service = new TransactionUpdateService();
+        $service = new \App\Services\TransactionUpdateService();
         
         // Update transaksi pending
         $resultTransactions = $service->updatePendingTransactions();
         echo "Transaction Update Service: " . $resultTransactions . PHP_EOL;
 
+        // Update affiliate history setelah update transaksi
+        $service->updateAffiliateHistoryStatus();
+        echo "Affiliate History status update completed." . PHP_EOL;
+
     } catch (\Exception $e) {
         echo "Error Transaction Update Service: " . $e->getMessage() . PHP_EOL;
     }
 }
-
-
 
 // Panggil semua service
 runMutasiQrisService();

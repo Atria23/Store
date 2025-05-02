@@ -435,8 +435,8 @@ export default function Register() {
                                             }}
                                             disabled={referralValid === true}
                                             className={`
-        text-sm border-none w-full focus:ring-0 focus:outline-none placeholder-gray-400
-        ${referralValid === true
+                                                    text-sm border-none w-full focus:ring-0 focus:outline-none placeholder-gray-400
+                                                    ${referralValid === true
                                                     ? 'bg-neutral-200 text-gray-600 cursor-not-allowed'
                                                     : 'bg-transparent text-gray-900'}
     `}
@@ -448,12 +448,12 @@ export default function Register() {
                                     )}
 
                                     {referralValid === true && (
-                                        <p className="text-green-600 text-sm mt-1">Kode referral valid.</p>
+                                        <p className="text-green-600 text-sm mt-1">Kode afiliasi valid.</p>
                                     )}
 
 
                                     {referralValid === false && !errors.referral_code && (
-                                        <p className="text-red-500 text-sm mt-1">Kode referral tidak ditemukan.</p>
+                                        <p className="text-red-500 text-sm mt-1">Kode afiliasi tidak ditemukan.</p>
                                     )}
 
                                 </div>

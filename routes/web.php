@@ -40,6 +40,7 @@ use App\Http\Controllers\User\PoinmuHistoryController;
 use App\Http\Controllers\User\PoinmuController;
 use App\Http\Controllers\User\BalanceMutationController;
 use App\Http\Controllers\User\UserProductController;
+use App\Http\Controllers\User\AffiliateFriendController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
@@ -139,7 +140,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/affiliate-history', [AffiliateHistoryController::class, 'show'])
         ->name('affiliate.history');
     Route::get('/affiliate-history/{id}', [AffiliateHistoryController::class, 'showDetail'])->name('affiliate.history.detail');
-    
+    Route::get('/affiliator/friends', [AffiliateFriendController::class, 'index'])->name('affiliate.friends');
+
     Route::get('/history/{ref_id}', function ($ref_id) {
         $user = auth()->user();
     

@@ -1,94 +1,176 @@
+// import React, { useState, useEffect } from 'react';
+// import { Link, usePage, Head } from '@inertiajs/react';
 
-import { useState, useEffect } from "react";
-import { Head, usePage, Link, useForm } from "@inertiajs/react";
+// export default function AffiliateFriends() {
+//     const { referrals } = usePage().props;
 
-const TransactionItem = ({
-    id,
-    affiliate_product,
-    commission,
-    status,
-    created_at,
-}) => {
-    const statusClasses = {
-        Sukses: "bg-green-100 text-green-600",
-        Pending: "bg-yellow-100 text-yellow-600",
-        Gagal: "bg-red-100 text-red-600",
-    };
+//     const [searchQuery, setSearchQuery] = useState("");
+//     const [currentPage, setCurrentPage] = useState(1);
+//     const [sortOrder, setSortOrder] = useState("desc");
+//     const [dateRange, setDateRange] = useState({ start: "", end: "" });
+//     const [showFilter, setShowFilter] = useState(false);
 
-    const formattedDate = new Date(created_at).toLocaleString("id-ID", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: "Asia/Jakarta",
-    });
+//     const getNextDate = (dateString) => {
+//         const date = new Date(dateString);
+//         date.setDate(date.getDate() + 1);
+//         return date.toISOString().split('T')[0];
+//     };
 
-    const { get } = useForm();
+//     const filteredReferrals = referrals
+//         .filter((referral) => {
+//             const lowerQuery = searchQuery.toLowerCase();
 
-    const handleTransactionClick = () => {
-        get(`/affiliate-history/${id}`);
-    };
+//             const matchSearch = referral.name?.toLowerCase().includes(lowerQuery);
+//             const createdDate = new Date(referral.created_at);
+//             const inDateRange =
+//                 (!dateRange.start || createdDate >= new Date(dateRange.start)) &&
+//                 (!dateRange.end || createdDate <= new Date(getNextDate(dateRange.end)));
 
-    return (
-        <div
-            onClick={handleTransactionClick}
-            className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2"
-        >
-            {/* Kiri: Logo dan Informasi Produk */}
-            <div className="flex items-center gap-2 w-full">
-                {/* Logo Produk */}
-                <div className="w-14 p-3 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-full h-full text-main" viewBox="0 0 16 16">
-                        <path fillRule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003zM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461z" />
-                    </svg>
-                </div>
+//             return matchSearch && inDateRange;
+//         })
+//         .sort((a, b) => {
+//             const dateA = new Date(a.created_at).getTime();
+//             const dateB = new Date(b.created_at).getTime();
+//             return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+//         });
 
-                {/* Informasi Produk */}
-                <div className="flex flex-col items-start w-max space-y-[2px]">
-                    <p className="font-utama font-semibold text-sm truncate w-full max-w-[180px] [@media(max-width:315px)]:max-w-[250px]">
-                        {affiliate_product?.product_name || "Nama Produk Tidak Tersedia"}
-                    </p>
-                    <p className="w-full font-utama text-sm">
-                        Komisi: {Number(commission).toLocaleString("id-ID")} PoinMu
-                    </p>
-                    <p className="w-full font-utama text-sm text-gray-500">{formattedDate}</p>
-                </div>
-            </div>
+//     const referralsPerPage = 10;
+//     const paginatedReferrals = filteredReferrals.slice(
+//         (currentPage - 1) * referralsPerPage,
+//         currentPage * referralsPerPage
+//     );
 
-            {/* Kanan: Status */}
-            <div className="hidden w-max-full min-[315px]:flex flex-col items-end justify-end space-y-1">
-                <p
-                    className={`px-2 py-[2px] text-xs rounded-3xl ${statusClasses[status] || "bg-gray-100 text-gray-600"
-                        }`}
-                >
-                    {status}
-                </p>
-            </div>
-        </div>
-    );
-};
+//     useEffect(() => {
+//         setCurrentPage(1);
+//     }, [searchQuery, sortOrder, dateRange]);
 
+//     const totalPages = Math.ceil(filteredReferrals.length / referralsPerPage);
 
-export default function AffiliateHistory() {
-    const { transactions, params, store } = usePage().props;
+//     return (
+//         <>
+//             <Head title="Affiliate Friends" />
+
+//             <div className="p-6 max-w-4xl mx-auto">
+//                 <h1 className="text-2xl font-bold mb-6 text-center">Teman yang Kamu Ajak</h1>
+
+//                 <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+//                     <input
+//                         type="text"
+//                         placeholder="Cari nama..."
+//                         value={searchQuery}
+//                         onChange={(e) => setSearchQuery(e.target.value)}
+//                         className="w-full md:w-1/3 px-4 py-2 border rounded shadow-sm"
+//                     />
+
+//                     <div className="flex items-center space-x-2">
+//                         <label className="text-sm">Urutkan:</label>
+//                         <select
+//                             value={sortOrder}
+//                             onChange={(e) => setSortOrder(e.target.value)}
+//                             className="px-2 py-1 border rounded"
+//                         >
+//                             <option value="desc">Terbaru</option>
+//                             <option value="asc">Terlama</option>
+//                         </select>
+//                     </div>
+
+//                     <button
+//                         onClick={() => setShowFilter(!showFilter)}
+//                         className="text-sm text-blue-600 underline"
+//                     >
+//                         {showFilter ? 'Sembunyikan' : 'Tampilkan'} Filter Tanggal
+//                     </button>
+//                 </div>
+
+//                 {showFilter && (
+//                     <div className="mb-4 flex flex-col md:flex-row gap-2">
+//                         <input
+//                             type="date"
+//                             value={dateRange.start}
+//                             onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+//                             className="px-4 py-2 border rounded"
+//                         />
+//                         <input
+//                             type="date"
+//                             value={dateRange.end}
+//                             onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+//                             className="px-4 py-2 border rounded"
+//                         />
+//                     </div>
+//                 )}
+
+//                 {filteredReferrals.length === 0 ? (
+//                     <p className="text-gray-600 text-center">Belum ada teman yang diajak.</p>
+//                 ) : (
+//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                         {paginatedReferrals.map((referral, index) => (
+//                             <div key={index} className="border rounded-lg p-4 shadow-sm bg-white">
+//                                 <p className="text-lg font-semibold text-gray-800">{referral.name}</p>
+//                                 <p className="text-sm text-gray-600">
+//                                     Total Transaksi: <span className="font-bold">{referral.transactions_count}</span>
+//                                 </p>
+//                                 <p className="text-sm text-gray-500">
+//                                     Bergabung pada:{' '}
+//                                     {new Date(referral.created_at).toLocaleDateString('id-ID', {
+//                                         year: 'numeric',
+//                                         month: 'long',
+//                                         day: 'numeric',
+//                                     })}
+//                                 </p>
+//                             </div>
+//                         ))}
+//                     </div>
+//                 )}
+
+//                 {/* Pagination */}
+//                 {totalPages > 1 && (
+//                     <div className="mt-6 flex justify-center space-x-2">
+//                         {Array.from({ length: totalPages }, (_, i) => (
+//                             <button
+//                                 key={i}
+//                                 onClick={() => setCurrentPage(i + 1)}
+//                                 className={`px-3 py-1 rounded ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'
+//                                     }`}
+//                             >
+//                                 {i + 1}
+//                             </button>
+//                         ))}
+//                     </div>
+//                 )}
+
+//                 <div className="mt-6 text-center">
+//                     <Link href={route('affiliate.dashboard')} className="text-blue-600 hover:underline font-medium">
+//                         ← Kembali ke Dashboard Afiliasi
+//                     </Link>
+//                 </div>
+//             </div>
+//         </>
+//     );
+// }
+import React, { useState, useEffect } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
+
+export default function AffiliateFriends() {
+    const { referrals } = usePage().props;
+
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOrder, setSortOrder] = useState("desc");
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [showFilter, setShowFilter] = useState(false);
 
-    const filteredTransactions = transactions
-        .filter((transaction) => {
+    const getNextDate = (dateString) => {
+        const date = new Date(dateString);
+        date.setDate(date.getDate() + 1);
+        return date.toISOString().split('T')[0];
+    };
+
+    const filteredReferrals = referrals
+        .filter((referral) => {
             const lowerQuery = searchQuery.toLowerCase();
+            const matchSearch = referral.name?.toLowerCase().includes(lowerQuery);
 
-            const matchSearch =
-                transaction.id?.toString().toLowerCase().includes(lowerQuery) ||
-                transaction.affiliate_product?.product_name?.toLowerCase().includes(lowerQuery) ||
-                transaction.transaction?.user?.name?.toLowerCase().includes(lowerQuery);
-
-            const createdDate = new Date(transaction.created_at);
+            const createdDate = new Date(referral.created_at);
             const inDateRange =
                 (!dateRange.start || createdDate >= new Date(dateRange.start)) &&
                 (!dateRange.end || createdDate <= new Date(dateRange.end));
@@ -98,32 +180,26 @@ export default function AffiliateHistory() {
         .sort((a, b) => {
             const dateA = new Date(a.created_at).getTime();
             const dateB = new Date(b.created_at).getTime();
-
             return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
         });
 
-    const getNextDate = (dateString) => {
-        const date = new Date(dateString);
-        date.setDate(date.getDate() + 1);
-        return date.toISOString().split('T')[0];
-    };
-
-    const transactionsPerPage = 10;
-    const paginatedTransactions = filteredTransactions.slice(
-        (currentPage - 1) * transactionsPerPage,
-        currentPage * transactionsPerPage
+    const referralsPerPage = 10;
+    const totalPages = Math.ceil(filteredReferrals.length / referralsPerPage);
+    const paginatedReferrals = filteredReferrals.slice(
+        (currentPage - 1) * referralsPerPage,
+        currentPage * referralsPerPage
     );
+
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, sortOrder, dateRange]);
 
-    const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
-
     return (
         <>
-            <Head title="Affiliate History" />
-
+            <Head title="Affiliate Friends" />
             <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
+
+                {/* Fixed Header & Filters */}
                 <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
                     {/* Header */}
                     <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
@@ -135,7 +211,7 @@ export default function AffiliateHistory() {
                                 </svg>
                             </button>
                             <div className="font-utama text-white font-bold text-lg">
-                                Riwayat Affiliasi
+                                Teman Diundang
                             </div>
                         </div>
                     </div>
@@ -147,7 +223,7 @@ export default function AffiliateHistory() {
                                 id="searchInput"
                                 type="text"
                                 className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                placeholder="Cari id riwayat/nama produk"
+                                placeholder="Cari nama teman"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -280,64 +356,60 @@ export default function AffiliateHistory() {
                     )}
                 </div>
 
-                <div className="mb-4 min-h-[756px] pt-[163px] bg-white">
-                    {paginatedTransactions.length > 0 ? (
-                        paginatedTransactions.map((transaction) => (
-                            <TransactionItem key={transaction.id} {...transaction} />
-                        ))
+                {/* Main Content */}
+                <div className="pt-[180px] pb-10 px-4 bg-white min-h-[756px]">
+                    {paginatedReferrals.length === 0 ? (
+                        <p className="text-center text-gray-500 mt-6">Belum ada teman yang diajak.</p>
                     ) : (
-                        <div className="flex justify-center items-center h-full mt-6">
-                            <p className="text-gray-500">Riwayat afiliasi tidak ditemukan.</p>
-                        </div>
+                        paginatedReferrals.map((referral, index) => (
+                                <div
+                                    key={referral.id ?? index}
+                                    className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 w-full gap-2"
+                                >
+                                    {/* Kiri: Logo dan Informasi Produk */}
+                                    <div className="flex items-center gap-2 w-full">
+
+                                        {/* Informasi Produk */}
+                                        <div className="flex flex-col items-start w-max space-y-[2px] pr-3">
+                                            <p className="font-utama font-semibold text-sm truncate w-full max-w-[200px] [@media(max-width:315px)]:max-w-[250px]">
+                                                {referral.name ?? 'Nama tidak tersedia'}
+                                            </p>
+                                            <p className="w-full font-utama text-xs text-gray-500">
+                                                Terdaftar: {new Date(referral.created_at).toLocaleString("id-ID", {
+                                                    year: "numeric",
+                                                    month: "short",
+                                                    day: "2-digit",
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Kanan: Status */}
+                                    <p className="min-[315px]:inline-flex items-center justify-center px-3 py-1 w-full max-w-[150px] text-xs rounded-3xl bg-blue-100 text-blue-600 text-center">
+                                        {referral.transactions_count.toLocaleString("id-ID")} trx
+                                    </p>
+                                </div>
+                        ))
                     )}
 
-                    {/* Laravel-style Pagination */}
+                    {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="w-full flex justify-center py-4">
-                            <div className="flex flex-wrap justify-center items-center gap-1 max-w-full px-2">
-                                {/* Tombol Prev */}
+                        <div className="flex justify-center mt-4 flex-wrap gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => (
                                 <button
-                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                    disabled={currentPage === 1}
-                                    className={`px-2 py-1 text-xs rounded border transition-all ${currentPage === 1
-                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed border-gray-200"
-                                        : "bg-white hover:bg-gray-100 text-main border-gray-300"
+                                    key={i}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`px-3 py-1 rounded text-sm border ${currentPage === i + 1
+                                        ? "bg-main text-white border-main"
+                                        : "bg-white border-gray-300 text-main"
                                         }`}
                                 >
-                                    « Prev
+                                    {i + 1}
                                 </button>
-
-                                {/* Tombol Angka */}
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-2 py-1 text-xs rounded border transition-all ${page === currentPage
-                                            ? "bg-main text-white border-main"
-                                            : "bg-white hover:bg-gray-100 text-main border-gray-300"
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
-
-                                {/* Tombol Next */}
-                                <button
-                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                    disabled={currentPage === totalPages}
-                                    className={`px-2 py-1 text-xs rounded border transition-all ${currentPage === totalPages
-                                        ? "bg-gray-200 text-gray-500 cursor-not-allowed border-gray-200"
-                                        : "bg-white hover:bg-gray-100 text-main border-gray-300"
-                                        }`}
-                                >
-                                    Next »
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     )}
-
                 </div>
-
             </div>
         </>
     );

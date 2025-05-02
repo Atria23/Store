@@ -74,87 +74,103 @@ class TransactionUpdateService
             return "Failed to update pending transactions: " . $e->getMessage();
         }
     }
-
-    private function updateAffiliateHistoryStatus($transaction)
+    
+    public function updateAffiliateHistoryStatus()
     {
         try {
-            Log::info("=== DEBUG: Coba Insert ke Poinmu History ===");
+            Log::info("=== Mulai Cek dan Update Semua Affiliate History dengan Status Pending ===");
 
-            // Ambil affiliate history berdasarkan transaction_id
-            $affiliateHistory = AffiliateHistory::where('transaction_id', $transaction->id)->first();
+            // Ambil semua affiliate history dengan status 'Pending'
+            $pendingHistories = AffiliateHistory::where('status', 'Pending')->get();
 
-            if (!$affiliateHistory) {
-                Log::warning("Affiliate History not found for Transaction ID {$transaction->id}");
+            foreach ($pendingHistories as $affiliateHistory) {
+                $transaction = \App\Models\Transaction::find($affiliateHistory->transaction_id);
+
+                if (!$transaction) {
+                    Log::warning("Transaction not found for Affiliate History ID {$affiliateHistory->id}");
+                    continue;
+                }
+
+                // Hanya update jika status transaksi sudah berubah dari 'Pending'
+                if ($transaction->status !== 'Pending') {
+                    $affiliateHistory->update([
+                        'status' => $transaction->status,
+                    ]);
+
+                    Log::info("Affiliate History ID {$affiliateHistory->id} diupdate dengan status {$transaction->status}");
+
+                    if ($transaction->status === 'Sukses') {
+                        $this->updatePoinmuHistory($transaction, $affiliateHistory);
+                    }
+                } else {
+                    Log::info("Transaction ID {$transaction->id} masih dalam status Pending, tidak ada update.");
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error dalam updateAffiliateHistoryStatus: " . $e->getMessage());
+        }
+    }
+
+    private function updatePoinmuHistory($transaction, $affiliateHistory)
+    {
+        try {
+            // Ambil affiliator berdasarkan affiliateHistory
+            $affiliator = \App\Models\User\Affiliator::find($affiliateHistory->affiliator_id);
+
+            if (!$affiliator) {
+                Log::warning("Affiliator not found for Affiliate History ID {$affiliateHistory->id}");
                 return;
             }
 
-            // Update status affiliate history sesuai transaksi
-            $affiliateHistory->update([
-                'status' => $transaction->status,
-            ]);
+            // Ambil user berdasarkan user_id dari affiliator
+            $user = \App\Models\User::find($affiliator->user_id);
+            Log::info("Looking for user with ID: {$affiliator->user_id}");
 
-            Log::info("Updated Affiliate History ID {$affiliateHistory->id} to status {$transaction->status}");
-            Log::info("Looking for affiliator with ID: {$affiliateHistory->affiliator_id}");
-
-            // **Jika transaksi sukses, konversi commission ke points & simpan ke PoinmuHistory**
-            if ($transaction->status === 'Sukses') { // Pastikan ini sesuai dengan status sukses di sistem
-                // Ambil affiliator berdasarkan affiliateHistory
-                $affiliator = \App\Models\User\Affiliator::find($affiliateHistory->affiliator_id);
-
-                if (!$affiliator) {
-                    Log::warning("Affiliator not found for Affiliate History ID {$affiliateHistory->id}");
-                    return;
-                }
-
-                // Ambil user berdasarkan user_id dari affiliator
-                $user = \App\Models\User::find($affiliator->user_id);
-                Log::info("Looking for user with ID: {$affiliator->user_id}");
-
-                if (!$user) {
-                    Log::warning("User not found for Affiliator ID {$affiliator->id}");
-                    return;
-                }
-
-                $commissionAsPoints = $affiliateHistory->commission ?? 0; // Pastikan tidak null
-
-                Log::info("Commission for Transaction ID {$transaction->id}: {$commissionAsPoints}");
-
-                // Pastikan nilai points tidak null sebelum dijumlahkan
-                $previousPoints = $user->points ?? 0;
-                $newPoints = $previousPoints + $commissionAsPoints;
-
-                Log::info("Trying to create PoinmuHistory", [
-                    'user_id' => $user->id,
-                    'transaction_id' => $transaction->id,
-                    'affiliate_history_id' => $affiliateHistory->id,
-                    'type' => 'perolehan',
-                    'points' => $commissionAsPoints,
-                    'previous_points' => $previousPoints,
-                    'new_points' => $newPoints,
-                    'description' => "Komisi dari riwayat afiliasi dengan ID: {$affiliateHistory->id}",
-                ]);
-
-                // Insert data ke tabel PoinmuHistory
-                \App\Models\User\PoinmuHistory::create([
-                    'user_id' => $user->id,
-                    'transaction_id' => $transaction->id,
-                    'affiliate_history_id' => $affiliateHistory->id,
-                    'type' => 'perolehan',
-                    'points' => $commissionAsPoints,
-                    'previous_points' => $previousPoints,
-                    'new_points' => $newPoints,
-                    'description' => "Komisi dari riwayat afiliasi dengan ID: {$affiliateHistory->id}",
-                ]);
-
-                // Update points di tabel users
-                $user->points = $newPoints;
-                $user->save();
-
-                Log::info("Added {$commissionAsPoints} points to User ID {$user->id} in Poinmu History");
+            if (!$user) {
+                Log::warning("User not found for Affiliator ID {$affiliator->id}");
+                return;
             }
 
+            $commissionAsPoints = $affiliateHistory->commission ?? 0; // Pastikan tidak null
+
+            Log::info("Commission for Transaction ID {$transaction->id}: {$commissionAsPoints}");
+
+            // Pastikan nilai points tidak null sebelum dijumlahkan
+            $previousPoints = $user->points ?? 0;
+            $newPoints = $previousPoints + $commissionAsPoints;
+
+            Log::info("Trying to create PoinmuHistory", [
+                'user_id' => $user->id,
+                'transaction_id' => $transaction->id,
+                'affiliate_history_id' => $affiliateHistory->id,
+                'type' => 'perolehan',
+                'points' => $commissionAsPoints,
+                'previous_points' => $previousPoints,
+                'new_points' => $newPoints,
+                'description' => "Komisi dari riwayat afiliasi dengan ID: {$affiliateHistory->id}",
+            ]);
+
+            // Insert data ke tabel PoinmuHistory
+            \App\Models\User\PoinmuHistory::create([
+                'user_id' => $user->id,
+                'transaction_id' => $transaction->id,
+                'affiliate_history_id' => $affiliateHistory->id,
+                'type' => 'perolehan',
+                'points' => $commissionAsPoints,
+                'previous_points' => $previousPoints,
+                'new_points' => $newPoints,
+                'description' => "Komisi dari riwayat afiliasi dengan ID: {$affiliateHistory->id}",
+            ]);
+
+            // Update points di tabel users
+            $user->points = $newPoints;
+            $user->save();
+
+            Log::info("Added {$commissionAsPoints} points to User ID {$user->id} in Poinmu History");
+
         } catch (\Exception $e) {
-            Log::error("Error updating affiliate history status: " . $e->getMessage());
+            Log::error("Error updating PoinmuHistory: " . $e->getMessage());
         }
     }
+
 }
