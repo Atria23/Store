@@ -22,7 +22,11 @@ class AdminDepositNotification extends Mailable
 
     public function build()
     {
-        return $this->subject('New Deposit Request')
+        $subject = $this->type === 'proof'
+            ? 'Deposit Proof Submitted'
+            : 'New Deposit Request';
+
+        return $this->subject($subject)
                     ->view('emails.admin_deposit_notification');
     }
 }
