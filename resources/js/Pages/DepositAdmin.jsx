@@ -44,11 +44,12 @@
 //       <h1 className="text-xl font-bold mb-4">Request Deposit Admin</h1>
 
 //       {/* Alert Success */}
-//       {result && (
+//       {result && result.type === 'success' && (
 //         <div className="mt-6 p-4 bg-green-100 border rounded text-green-800">
 //           <h2 className="font-semibold mb-1">Permintaan Deposit Diterima</h2>
 //           <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
 //           <p>Berita transfer: <strong>{result.notes}</strong></p>
+//           <p>Nomor Rekening: <strong>{result.account_number}</strong></p>
 //         </div>
 //       )}
 
@@ -143,7 +144,7 @@ export default function DepositAdmin() {
 
   useEffect(() => {
     if (alert?.type === 'success') {
-      setResult(alert); // show alert section
+      setResult(alert);
     }
   }, [alert]);
 
@@ -161,17 +162,53 @@ export default function DepositAdmin() {
     post(route('deposit-admin.store'));
   };
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <div className="max-w-[500px] mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Request Deposit Admin</h1>
 
       {/* Alert Success */}
       {result && result.type === 'success' && (
-        <div className="mt-6 p-4 bg-green-100 border rounded text-green-800">
-          <h2 className="font-semibold mb-1">Permintaan Deposit Diterima</h2>
-          <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
-          <p>Berita transfer: <strong>{result.notes}</strong></p>
-          <p>Nomor Rekening: <strong>{result.account_number}</strong></p>
+        <div className="mt-6 p-4 bg-green-100 border rounded text-green-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span>
+              Jumlah yang harus ditransfer:{' '}
+              <strong>{Number(result.amount).toLocaleString('id-ID')}</strong>
+            </span>
+            <button
+              onClick={() => copyToClipboard(result.amount)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Salin
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span>
+              Berita transfer: <strong>{result.notes}</strong>
+            </span>
+            <button
+              onClick={() => copyToClipboard(result.notes)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Salin
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span>
+              Nomor Rekening: <strong>{result.account_number}</strong>
+            </span>
+            <button
+              onClick={() => copyToClipboard(result.account_number)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Salin
+            </button>
+          </div>
         </div>
       )}
 
@@ -239,7 +276,11 @@ export default function DepositAdmin() {
 
 function formatRupiah(value) {
   const number = parseInt(value || '0', 10);
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  })
     .format(number)
     .replace(/^Rp/, 'Rp');
 }
