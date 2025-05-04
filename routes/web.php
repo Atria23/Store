@@ -53,7 +53,7 @@ Route::get('/test-email', function () {
     // Ambil salah satu deposit (pastikan id-nya ada)
     $deposit = Deposit::latest()->first();
 
-    Mail::to('admin@muvausa.com')->send(new AdminDepositNotification($deposit, 'request'));
+    Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'request'));
 
     return 'Email test berhasil dikirim!';
 });

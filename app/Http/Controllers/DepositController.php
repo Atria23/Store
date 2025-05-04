@@ -93,6 +93,30 @@ class DepositController extends Controller
             'admin_account' => $admin->{$validated['payment_method']} ?? null,
         ]);
 
+        // Kirim email notifikasi ke admin
+//         $admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
+// if ($admins) {
+//     foreach ($admins as $adminUser) {
+//         \Log::info("Sending email to: " . $adminUser->email);  // Log email yang dikirim
+//         Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
+//     }
+// } else {
+//     \Log::error('No super-admin users found.');
+// }
+$admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
+$admins[] = (object) ['email' => 'muvausastore1@gmail.com'];  // Menambahkan email statis ke array admins
+
+if ($admins) {
+    foreach ($admins as $adminUser) {
+        \Log::info("Sending email to: " . $adminUser->email);  // Log email yang dikirim
+        Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
+    }
+} else {
+    \Log::error('No super-admin users found.');
+}
+
+
+
         return redirect()->route('deposit.history')
             ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
     }
@@ -184,17 +208,34 @@ class DepositController extends Controller
             $deposit->proof_of_payment = $path;
             $deposit->save();
 
+            
+//             $admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
+// if ($admins) {
+//     foreach ($admins as $adminUser) {
+//         \Log::info("Sending email to: " . $adminUser->email);  // Log email yang dikirim
+//         Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
+//     }
+// } else {
+//     \Log::error('No super-admin users found.');
+// }
+$admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
+$admins[] = (object) ['email' => 'muvausastore1@gmail.com'];  // Menambahkan email statis ke array admins
+
+if ($admins) {
+    foreach ($admins as $adminUser) {
+        \Log::info("Sending email to: " . $adminUser->email);  // Log email yang dikirim
+        Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
+    }
+} else {
+    \Log::error('No super-admin users found.');
+}
+
+
+
             return response()->json([
                 'success' => true,
                 'proof_of_payment' => $path, // Berikan path file yang disimpan
             ]);
-
-            $admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
-            if ($admins) {
-                foreach ($admins as $adminUser) {
-                    Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
-                }
-            }
 
         }
 
