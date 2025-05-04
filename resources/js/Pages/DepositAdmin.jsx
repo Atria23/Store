@@ -186,12 +186,12 @@ export default function DepositAdmin({ flash }) {
       </form>
 
       {result && (
-        <div className="mt-6 p-4 bg-green-100 border rounded">
-          <h2 className="font-semibold">Permintaan Deposit Diterima</h2>
-          <p>Jumlah yang harus ditransfer: <strong>Rp{result.amount.toLocaleString()}</strong></p>
-          <p>Berita transfer: <strong>{result.notes}</strong></p>
-        </div>
-      )}
+  <div className="mt-6 p-4 bg-green-100 border rounded">
+    <h2 className="font-semibold">Permintaan Deposit Diterima</h2>
+    <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
+    <p>Berita transfer: <strong>{result.notes}</strong></p>
+  </div>
+)}
 
       {alert?.success && (
         <div className="p-3 bg-green-100 text-green-800 rounded mb-4">{alert.success}</div>

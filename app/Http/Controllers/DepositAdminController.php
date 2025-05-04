@@ -55,16 +55,18 @@ class DepositAdminController extends Controller
 
     // Check if the response was successful
     if ($response->successful() && $response->json('data.rc') === '00') {
-        $amount = number_format($response->json('data.amount'));
-        $notes = $response->json('data.notes');
-        $message = "Silakan transfer sebesar Rp{$amount} dengan berita: {$notes}";
-
-        return redirect()->route('deposit-admin.create')->with('success', $message);
+        return redirect()->route('deposit-admin.create')->with('success', [
+            'amount' => $response->json('data.amount'),
+            'notes' => $response->json('data.notes'),
+        ]);
     }
+    
 
     // Log the error if the request failed
     Log::error('Deposit request failed', ['response' => $response->json()]);
     return back()->withErrors(['api' => 'Gagal mengirim permintaan deposit.']);
 }
+
+
 
 }
