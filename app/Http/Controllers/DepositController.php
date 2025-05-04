@@ -93,7 +93,12 @@ class DepositController extends Controller
             'admin_account' => $admin->{$validated['payment_method']} ?? null,
         ]);
 
-        Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'create'));
+        // Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'create'));
+        $adminEmails = config('custom.admin_emails');
+
+        foreach ($adminEmails as $email) {
+            Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'create'));
+        }
 
         return redirect()->route('deposit.history')
             ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
@@ -186,8 +191,11 @@ class DepositController extends Controller
             $deposit->proof_of_payment = $path;
             $deposit->save();
 
-           
-            Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'proof'));
+            $adminEmails = config('custom.admin_emails');
+
+            foreach ($adminEmails as $email) {
+                Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'proof'));
+            }
 
 
             return response()->json([
