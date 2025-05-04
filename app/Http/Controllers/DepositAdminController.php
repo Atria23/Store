@@ -55,9 +55,17 @@ class DepositAdminController extends Controller
 
     // Check if the response was successful
     if ($response->successful() && $response->json('data.rc') === '00') {
-        return redirect()->route('deposit-admin.create')->with('success', [
-            'amount' => $response->json('data.amount'),
-            'notes' => $response->json('data.notes'),
+        // return redirect()->route('deposit-admin.create')->with('success', [
+        //     'amount' => $response->json('data.amount'),
+        //     'notes' => $response->json('data.notes'),
+        // ]);
+        return Inertia::render('DepositAdmin', [
+            'alert' => [
+                'type' => 'success',
+                'message' => 'Deposit berhasil!',
+                'amount' => $response->json('data.amount'),
+                'notes' => $response->json('data.notes'),
+            ]
         ]);
     }
     
