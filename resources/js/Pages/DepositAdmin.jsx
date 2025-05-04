@@ -1,7 +1,10 @@
-// import React, { useState } from 'react';
-// import { useForm } from '@inertiajs/react';
+// import React, { useState, useEffect } from 'react';
+// import { useForm, usePage } from '@inertiajs/react';
 
-// export default function DepositAdmin({ flash }) {
+// export default function DepositAdmin() {
+//   const { props } = usePage();
+//   const alert = props.alert || null;
+
 //   const { data, setData, post, processing, errors } = useForm({
 //     amount: 200000,
 //     bank: 'BCA',
@@ -12,8 +15,15 @@
 //     formatRupiah(data.amount.toString())
 //   );
 
-//   const [alert, setAlert] = useState(() => (flash && flash.success ? flash : null));
-//   const [result, setResult] = useState(() => (flash && flash.success ? flash.success : null));
+//   const [result, setResult] = useState(() => (
+//     alert?.type === 'success' ? alert : null
+//   ));
+
+//   useEffect(() => {
+//     if (alert?.type === 'success') {
+//       setResult(alert); // show alert section
+//     }
+//   }, [alert]);
 
 //   const handleAmountChange = (e) => {
 //     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -26,18 +36,35 @@
 //   const handleSubmit = (e) => {
 //     e.preventDefault();
 //     setResult(null);
-//     post(route('deposit-admin.store'), {
-//       onSuccess: ({ props }) => {
-//         if (props?.flash?.success) setResult(props.flash.success);
-//       },
-//     });
+//     post(route('deposit-admin.store'));
 //   };
 
 //   return (
 //     <div className="max-w-[500px] mx-auto p-4">
 //       <h1 className="text-xl font-bold mb-4">Request Deposit Admin</h1>
 
-//       <form onSubmit={handleSubmit} className="space-y-4">
+//       {/* Alert Success */}
+//       {result && (
+//         <div className="mt-6 p-4 bg-green-100 border rounded text-green-800">
+//           <h2 className="font-semibold mb-1">Permintaan Deposit Diterima</h2>
+//           <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
+//           <p>Berita transfer: <strong>{result.notes}</strong></p>
+//         </div>
+//       )}
+
+//       {/* Alert Error */}
+//       {alert?.type === 'error' && (
+//         <div className="mt-4 p-3 bg-red-100 text-red-800 rounded">
+//           {alert.message}
+//         </div>
+//       )}
+
+//       {/* API validation error */}
+//       {errors.api && (
+//         <div className="p-3 bg-red-100 text-red-800 rounded mb-4">{errors.api}</div>
+//       )}
+
+//       <form onSubmit={handleSubmit} className="space-y-4 mt-6">
 //         <div>
 //           <label className="block font-medium">Jumlah Deposit</label>
 //           <input
@@ -83,22 +110,6 @@
 //           {processing ? 'Mengirim...' : 'Kirim Permintaan Deposit'}
 //         </button>
 //       </form>
-
-//       {result && (
-//   <div className="mt-6 p-4 bg-green-100 border rounded">
-//     <h2 className="font-semibold">Permintaan Deposit Diterima</h2>
-//     <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
-//     <p>Berita transfer: <strong>{result.notes}</strong></p>
-//   </div>
-// )}
-
-//       {alert?.success && (
-//         <div className="p-3 bg-green-100 text-green-800 rounded mb-4">{alert.success}</div>
-//       )}
-
-//       {errors.api && (
-//         <div className="p-3 bg-red-100 text-red-800 rounded mb-4">{errors.api}</div>
-//       )}
 //     </div>
 //   );
 // }
@@ -155,11 +166,12 @@ export default function DepositAdmin() {
       <h1 className="text-xl font-bold mb-4">Request Deposit Admin</h1>
 
       {/* Alert Success */}
-      {result && (
+      {result && result.type === 'success' && (
         <div className="mt-6 p-4 bg-green-100 border rounded text-green-800">
           <h2 className="font-semibold mb-1">Permintaan Deposit Diterima</h2>
           <p>Jumlah yang harus ditransfer: <strong>Rp{Number(result.amount).toLocaleString()}</strong></p>
           <p>Berita transfer: <strong>{result.notes}</strong></p>
+          <p>Nomor Rekening: <strong>{result.account_number}</strong></p>
         </div>
       )}
 
