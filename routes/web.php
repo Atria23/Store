@@ -44,6 +44,7 @@ use App\Http\Controllers\User\AffiliateFriendController;
 use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
+use App\Http\Controllers\DepositAdminController;
 
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
@@ -212,6 +213,8 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/manage-product-detail/{id?}', [ProductController::class, 'index'])->name('product.index');
     Route::delete('/manage-product-detail/{id}', [ProductController::class, 'destroy'])->name('product.destroy');;
     Route::get('/manage-history', [HistoryController::class, 'getAllHistory'])->name('manage.history');
+    Route::get('/deposit-admin', [DepositAdminController::class, 'create'])->name('deposit-admin.create');
+    Route::post('/deposit-admin', [DepositAdminController::class, 'store'])->name('deposit-admin.store');
     
     Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
     Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])

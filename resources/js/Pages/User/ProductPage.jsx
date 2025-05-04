@@ -551,6 +551,9 @@ export default function TypePage() {
 
                 <section className="flex flex-col pt-[294px] gap-5 p-4">
                     {products
+                        .filter((product) =>
+                            product.product_name?.toLowerCase().includes(productSearch.toLowerCase())
+                        )
                         .sort((a, b) => a.price - b.price)
                         .map((product) => {
                             const now = new Date();

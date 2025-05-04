@@ -28,31 +28,19 @@ class UserController extends Controller implements HasMiddleware
     /**
      * Display a listing of the resource.
      */
-
-    // public function index()
-    // {
-    //     // Ambil semua data pengguna tanpa filter atau pengurutan
-    //     $users = User::select('id', 'name', 'avatar', 'email', 'created_at', 'balance', 'username')
-    //     ->with('roles')
-    //     ->get(); // Bukan paginate
-
-    // return inertia('ManageUsers', [
-    //     'users' => $users
-    // ]);
-
-    // }
     public function index()
     {
-        // Ambil semua data pengguna tanpa filter atau pengurutan
         $users = User::select('id', 'name', 'avatar', 'email', 'created_at', 'balance', 'username')
             ->with('roles')
-            ->get(); // Bukan paginate
-    
+            ->get();
+
+        $totalBalance = $users->sum('balance');
+
         return inertia('ManageUsers', [
-            'users' => $users
+            'users' => $users,
+            'total_balance' => $totalBalance,
         ]);
     }
-    
 
     /**
      * Show the form for creating a new resource.

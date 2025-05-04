@@ -2,13 +2,18 @@ import { useEffect, useState } from "react";
 import { Head, usePage, router } from "@inertiajs/react";
 
 export default function UserManagement() {
-    const { users } = usePage().props;
+    const { users, total_balance } = usePage().props;
 
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOrder, setSortOrder] = useState("desc");
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
     const [showFilter, setShowFilter] = useState(false);
+    const [showBalance, setShowBalance] = useState(false);
+
+    const toggleBalanceVisibility = () => {
+        setShowBalance(!showBalance);
+    };
 
     const filteredUsers = users
         .filter((user) => {
@@ -71,11 +76,9 @@ export default function UserManagement() {
             <Head title="Manage User" />
             <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
                 <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
-                    {/* Header */}
-                    <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                        {/* Left Section (Back Icon + Title) */}
-                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                            {/* Title */}
+                    <div className="w-full flex items-center justify-between px-4 py-2 bg-main">
+                        {/* Kiri: Back + Title */}
+                        <div className="flex items-center space-x-4">
                             <button className="shrink-0 w-6 h-6" onClick={() => window.history.back()}>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
                                     <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
@@ -85,7 +88,28 @@ export default function UserManagement() {
                                 Manajemen Pengguna
                             </div>
                         </div>
+
+                        {/* Kanan: Balance + Toggle */}
+                        <div className="flex items-center space-x-2">
+                            <span className="text-white text-sm font-semibold">
+                                {showBalance ? `Rp${total_balance.toLocaleString('id-ID')}` : '••••••'}
+                            </span>
+                            <button onClick={toggleBalanceVisibility} className="text-white">
+                                {showBalance ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" />
+                                        <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" />
+                                        <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8Zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
                     </div>
+
                     {/* Search & Filter */}
                     <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
                         <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">

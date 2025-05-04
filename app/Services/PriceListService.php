@@ -104,18 +104,14 @@ class PriceListService
                 }
             }
 
-            // Update produk lama yang SKU-nya tidak ada di API
+            // Hapus produk lama yang SKU-nya tidak ada di API
             PriceList::whereNotIn('buyer_sku_code', $apiSkuList)
-                ->chunkById(500, function ($priceLists) {
-                    foreach ($priceLists as $priceList) {
-                        $priceList->update([
-                            'seller_product_status' => 0,
-                            'updated_at' => now(),
-                        ]);
-                    }
-                });
+            ->delete();
 
             $this->syncBarangFromPriceList();
+
+            // Hapus Barang lama yang SKU-nya tidak ada di API
+            Barang::whereNotIn('buyer_sku_code', $apiSkuList)->delete();
 
             Log::info("Data berhasil diperbarui dan Barang disinkronkan pada " . now()->toDateTimeString() . ".");
             return true;
