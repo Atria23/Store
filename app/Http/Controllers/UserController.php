@@ -30,12 +30,13 @@ class UserController extends Controller implements HasMiddleware
      */
     public function index()
     {
-        $users = User::select('id', 'name', 'avatar', 'email', 'created_at', 'balance', 'username')
+        $users = User::select('id', 'name', 'avatar', 'email', 'created_at', 'balance', 'username', 'points')
             ->with('roles')
             ->get();
 
-        $totalBalance = $users->sum('balance');
-
+            $totalBalance = $users->sum(function ($user) {
+                return $user->balance + $user->points;
+            });
         return inertia('ManageUsers', [
             'users' => $users,
             'total_balance' => $totalBalance,

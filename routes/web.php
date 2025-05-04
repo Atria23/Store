@@ -45,6 +45,19 @@ use App\Http\Controllers\PrivacyPolicyController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\DepositAdminController;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AdminDepositNotification;
+use App\Models\Deposit;
+
+Route::get('/test-email', function () {
+    // Ambil salah satu deposit (pastikan id-nya ada)
+    $deposit = Deposit::latest()->first();
+
+    Mail::to('admin@muvausa.com')->send(new AdminDepositNotification($deposit, 'request'));
+
+    return 'Email test berhasil dikirim!';
+});
+
 
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     

@@ -12,6 +12,9 @@ use App\Models\User;
 use App\Models\MutasiQris;
 use Inertia\Inertia;
 use App\Services\DepositService;
+use App\Mail\AdminDepositNotification;
+use Illuminate\Support\Facades\Mail;
+
 class DepositController extends Controller
 {
 
@@ -185,6 +188,14 @@ class DepositController extends Controller
                 'success' => true,
                 'proof_of_payment' => $path, // Berikan path file yang disimpan
             ]);
+
+            $admins = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first()?->users;
+            if ($admins) {
+                foreach ($admins as $adminUser) {
+                    Mail::to($adminUser->email)->queue(new AdminDepositNotification($deposit, 'proof'));
+                }
+            }
+
         }
 
         return response()->json([
