@@ -31,19 +31,19 @@ class WelcomeController extends Controller
 
         $statsData = [
             [
-                'value' => number_format(User::count() + 51, 0, ',', '.'),
+                'value' => number_format(User::count() + 0, 0, ',', '.'),
                 'label' => 'Pelanggan',
             ],
             [
-                'value' => number_format(Transaction::count() + 322, 0, ',', '.'),
+                'value' => number_format(Transaction::count() + 0, 0, ',', '.'),
                 'label' => 'Transaksi',
             ],
             [
-                'value' => number_format(Affiliator::count(), 0, ',', '.'),
+                'value' => number_format(Affiliator::count() + 0, 0, ',', '.'),
                 'label' => 'Affiliator',
             ],
             [
-                'value' => number_format(Product::count(), 0, ',', '.'),
+                'value' => number_format(Product::count() + 0, 0, ',', '.'),
                 'label' => 'Produk',
             ],
         ];

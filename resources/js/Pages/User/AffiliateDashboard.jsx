@@ -102,11 +102,21 @@ const AffiliateDashboard = ({ affiliator, referrals, affiliateHistory, avatar })
 
                     </div>
 
-                    <section className="w-full flex justify-center items-center p-4 bg-white shadow-md rounded-xl">
-                        <div className="flex flex-col text-center justify-center items-center">
+                    <section className="w-full flex flex-col justify-center items-center p-4 bg-white shadow-md rounded-xl">
+                        <div className="mb-2 flex flex-col text-center justify-center items-center">
                             <p className="font-utama font-semibold text-2xl">Total Perolehan Komisi</p>
                             <p className="font-utama font-semibold text-4xl text-main">{Number(affiliator.total_commission).toLocaleString("id-ID")} <span className="text-2xl">PoinMu</span></p>
+                            
                         </div>
+                        <a
+                                href={route('poinmu.dashboard')}
+                                className="w-full flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg shadow transition bg-main text-white hover:opacity-90 active:scale-95"
+                            >
+                                <p className="font-utama text-lg font-medium text-left flex items-center justify-center text-white">Tukar PoinMu</p>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 16 16" strokeWidth="1">
+                    <path fillRule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z" />
+                  </svg>
+                            </a>
                     </section>
 
                     <section className="w-full mb-4 bg-white">

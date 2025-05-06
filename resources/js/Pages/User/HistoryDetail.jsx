@@ -627,7 +627,7 @@ const HistoryDetail = () => {
                                                         ? 'bg-blue-500 text-white border-blue-500'
                                                         : 'bg-white text-blue-500 border-blue-500'}`}
                                             >
-                                                Struk {tipe.charAt(0).toUpperCase() + tipe.slice(1)}
+                                                Struk font {tipe.charAt(0).toUpperCase() + tipe.slice(1)}
                                             </button>
                                         ))}
                                     </div>

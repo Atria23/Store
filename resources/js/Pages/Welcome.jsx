@@ -1,6 +1,7 @@
 import { Link, Head, useForm } from '@inertiajs/react';
 import React from "react";
 import { useEffect, useState } from 'react';
+import MockupCarousel from "@/Components/MockupCarousel";
 
 export default function Welcome(props) {
     const { data, setData, post } = useForm({
@@ -185,7 +186,7 @@ export default function Welcome(props) {
                     </section>
 
                     {/* Stats Section */}
-                    <section className="w-full">
+                    {/* <section className="w-full">
                         <div className="flex flex-col w-full items-center gap-5 px-[30px] py-12 bg-[#F5F7FA]">
                             <div className="flex flex-wrap justify-center gap-[36.31px_36.31px] w-full rounded-[12.1px]">
                                 {statsData.map((stat, index) => (
@@ -204,7 +205,10 @@ export default function Welcome(props) {
                                 ))}
                             </div>
                         </div>
-                    </section>
+                    </section> */}
+
+                    {/* Mockup Section */}
+                    <MockupCarousel />
 
 
                     {/* CTA Section */}

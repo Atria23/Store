@@ -13,7 +13,7 @@ class KelolaDepositController extends Controller
     {
         // Ambil semua data deposit dan tampilkan dengan Inertia
         $deposits = Deposit::with('user')->orderBy('created_at', 'desc')->get();
-        return Inertia::render('KelolaDeposits', [
+        return Inertia::render('ManageDeposits', [
             'deposits' => $deposits
         ]);
     }
@@ -23,8 +23,8 @@ class KelolaDepositController extends Controller
     {
         $deposit = Deposit::findOrFail($id);
 
-        // Pastikan status deposit adalah 'pending' sebelum diproses
-        if ($deposit->status !== 'pending') {
+        // Batalkan konfirmasi jika status confirmed
+        if ($deposit->status === 'confirmed') {
             // Tambahkan pesan flash untuk error
             session()->flash('error', 'Deposit sudah diproses.');
             return redirect()->back();

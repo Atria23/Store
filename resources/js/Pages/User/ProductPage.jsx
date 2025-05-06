@@ -84,6 +84,7 @@ export default function TypePage() {
     const [productSearch, setProductSearch] = useState("");
     const shareRef = useRef(null);
     const [selectedCommission, setSelectedCommission] = useState(0);
+    const { user } = usePage().props;
 
     const [showLottie, setShowLottie] = useState(false);
 
@@ -127,17 +128,23 @@ export default function TypePage() {
     );
 
     const goToCheckout = (product) => {
+        if (!user) {
+            router.visit('/login');
+            return;
+        }
+    
         if (!customerNo && !phone) {
             alert("Masukkan ID Tujuan terlebih dahulu!");
             return;
         }
-
+    
         router.get(`/checkout`, {
             id: product.id,
             customerNo,
             phone
         });
     };
+    
 
     const brandPrefixes = {
         "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
@@ -679,14 +686,13 @@ export default function TypePage() {
                                 <div className="w-full max-h-[150px] overflow-y-auto">
                                     <div>
                                         <p className="text-gray-600 text-xs font-thin text-justify break-words my-2">
-                                            Komisi hanya didapatkan jika pesanan telah memenuhi syarat
-                                            dan penyebar link sudah terdaftar sebagai affiliator Muvausa
-                                            Store.{" "}
+                                        Komisi hanya diberikan untuk setiap pesanan yang berhasil diselesaikan oleh teman yang diundang,
+                                        pastikan kamu telah terdaftar sebagai affiliator Muvausa Store.{" "}
                                             <a
                                                 href="/affiliator"
                                                 className="text-blue-600 hover:text-blue-800 transition"
                                             >
-                                                DAFTAR AFFILIATOR
+                                                DAFTAR SEBAGAI AFFILIATOR SEKARANG
                                             </a>
                                         </p>
                                     </div>
