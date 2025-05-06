@@ -219,7 +219,7 @@ class DepositController extends Controller
         // Pastikan hanya pengunggah atau admin yang dapat mengakses file
         $user = auth()->user();
         if ($user->id !== $deposit->user_id && !$user->hasRole('super-admin')) {
-            abort(403, 'You are not authorized to view this file.');
+            abort(403, 'You are not authorized to view this file.'); 
         }
 
         // Pastikan file ada

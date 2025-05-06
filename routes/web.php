@@ -32,6 +32,8 @@ use App\Http\Controllers\BrandCategoryController;
 use App\Http\Controllers\TypeController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ManageAffiliatorController;
+
 use App\Http\Controllers\User\AffiliatorController;
 use App\Http\Controllers\AffiliateProductController;
 use App\Http\Controllers\User\AffiliateHistoryController;
@@ -228,7 +230,8 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/manage-history', [HistoryController::class, 'getAllHistory'])->name('manage.history');
     Route::get('/deposit-admin', [DepositAdminController::class, 'create'])->name('deposit-admin.create');
     Route::post('/deposit-admin', [DepositAdminController::class, 'store'])->name('deposit-admin.store');
-    
+    Route::get('/manage-affiliators', [ManageAffiliatorController::class, 'index'])->name('manage-affiliators');
+
     Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
     Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
             ->name('affiliate.history.admin');
