@@ -7,7 +7,6 @@ export default function AccountSettings({ user }) {
 
     const { data, setData, post, progress, errors, processing } = useForm({
         name: user.name,
-        username: user.username,
         avatar: null,
     });
 
@@ -33,7 +32,7 @@ export default function AccountSettings({ user }) {
         });
     };
 
-    const isFormValid = data.name && data.username;
+    const isFormValid = data.name;
 
     return (
         <div className="mx-auto w-full max-w-[500px] min-h-screen md:h-screen">
@@ -138,23 +137,6 @@ export default function AccountSettings({ user }) {
                                     />
                                 </div>
                                 {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                            </div>
-
-                            {/* Username */}
-                            <div>
-                                <label className="block text-gray-700 mb-1">Username</label>
-                                <div className="w-full h-9 flex items-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={data.username}
-                                        onChange={(e) => setData('username', e.target.value)}
-                                        placeholder="Username kamu"
-                                        className="bg-transparent text-sm border-none w-full focus:ring-0 focus:outline-none placeholder-gray-400"
-                                        required
-                                    />
-                                </div>
-                                {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
                             </div>
 
                             {/* Submit */}

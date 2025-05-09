@@ -62,9 +62,6 @@ function Profile({ user }) {
                                     <p className="truncate max-w-[300px] font-utama text-lg font-medium text-gray-700 leading-tight">
                                         {user.name}
                                     </p>
-                                    <p className="truncate max-w-[300px] font-utama text-md font-medium text-gray-700 leading-tight">
-                                        {user.email}
-                                    </p>
                                 </div>
                             </div>
                         </div>

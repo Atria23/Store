@@ -4,22 +4,27 @@ const mockups = [
   {
     src: "/storage/mockup/cetak_struk.jpeg",
     title: "Cetak Struk Dinamis",
-    desc: "Unduh & cetak struk untuk kertas lebar 58mm, tersedia dalam dua ukuran font untuk kebutuhan berbeda.",
+    desc: "Unduh & cetak struk untuk kertas dengan lebar 58mm, tersedia dalam dua ukuran font.",
+  },
+  {
+    src: "/storage/mockup/struk_unduhan.jpeg",
+    title: "Hasil Unduhan Struk",
+    desc: "Simpan bukti transaksi dalam format digital.",
   },
   {
     src: "/storage/mockup/edit_harga_dan_cetak.jpeg",
     title: "Transaksi & Cetak Struk",
-    desc: "Kelola transaksi, ubah harga, dan unduh struk dalam satu halaman yang praktis.",
-  },
-  {
-    src: "/storage/mockup/edit_harga_dan_admin.jpeg",
-    title: "Edit Harga & Biaya Admin",
-    desc: "Atur harga jual dan biaya admin dengan mudah sesukamu.",
+    desc: "Kelola transaksi, ubah data toko, harga, admin, dan unduh struk dalam satu halaman yang praktis.",
   },
   {
     src: "/storage/mockup/edit_toko.jpeg",
     title: "Kelola Profil Toko",
-    desc: "Ubah informasi toko seperti nama, alamat, dan nomor kontak sesuai kebutuhan.",
+    desc: "Ubah informasi toko seperti nama, alamat, dan nomor telepon toko sesuai kebutuhan.",
+  },
+  {
+    src: "/storage/mockup/edit_harga_dan_admin.jpeg",
+    title: "Edit Harga & Biaya Admin",
+    desc: "Atur harga jual dan biaya admin sesukamu.",
   }
 ];
 

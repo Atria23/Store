@@ -26,13 +26,11 @@ class AccountSettingsController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username,' . auth()->id(),
             'avatar' => 'nullable|image|max:2048',
         ]);
 
         $user = auth()->user();
         $user->name = $validated['name'];
-        $user->username = $validated['username'];
 
         if ($request->hasFile('avatar')) {
             // Gunakan nama file lama jika ada, jika tidak buat nama baru
