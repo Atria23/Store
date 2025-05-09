@@ -1,939 +1,695 @@
-import { useState, useRef, useEffect } from "react";
-import { useForm, router } from "@inertiajs/react";
+import { useEffect, useState, useRef } from 'react';
+import { Head, usePage, router } from '@inertiajs/react';
+import { toPng } from 'html-to-image'; // Import html-to-image
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import Receipt from '@/Components/Receipt';
 
-export default function ManageBrands({ brands, categories, inputTypes }) {
+const HistoryDetail = () => {
+    const { params, transactions, store } = usePage().props;
+    const cardRef = useRef(null); // Ref untuk elemen kartu
+    const [transaction, setTransaction] = useState(null);
+    const [price, setPrice] = useState(0); // State untuk harga sementara
+    const [adminFee, setAdminFee] = useState(0); // State untuk biaya admin sementara
+    const [isEditing, setIsEditing] = useState(false); // State untuk toggle mode edit
+    const [size, setSize] = useState('kecil'); // default ke kecil
     const [showModal, setShowModal] = useState(false);
-    const [editBrand, setEditBrand] = useState(null);
-    const [previewImage, setPreviewImage] = useState(null);
-    const [previewExampleImage, setPreviewExampleImage] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [sortOrder, setSortOrder] = useState("asc");
-    const [errors, setErrors] = useState({});
-    const [searchCategory, setSearchCategory] = useState("");
-    const [searchInputType, setSearchInputType] = useState("");
-    const [showCategoryPopup, setShowCategoryPopup] = useState(false);
-    const [showInputTypePopup, setShowInputTypePopup] = useState(false);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [selectedBrandId, setSelectedBrandId] = useState(null);
 
-    const filteredBrands = brands.filter(brand =>
-        brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const filteredCategories = categories.filter(category =>
-        category.name.toLowerCase().includes(searchCategory.toLowerCase())
-    );
-
-    const filteredInputTypes = inputTypes.filter(type =>
-        type.name.toLowerCase().includes(searchInputType.toLowerCase())
-    );
-
-    const { data, setData, post, processing, reset, delete: destroy } = useForm({
-        id: "",
+    const [storeData, setStoreData] = useState({
         name: "",
-        image: null,
-        example_image: null,
-        category_id: "",
-        input_type_id: "",
-        profit_persen: "",
-        profit_tetap: "",
-        example_id_product: ""
+        address: "",
+        phone_number: "",
+        image: "",
     });
 
-    // 🔹 Handle Submit (Tambah & Edit)
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setErrors({});
-
-        const formData = new FormData();
-        Object.keys(data).forEach((key) => {
-            if (data[key]) formData.append(key, data[key]);
-        });
-
-        if (editBrand) {
-            post(route("brands.update", data.id), {
-                data: formData,
-                onSuccess: () => {
-                    reset();
-                    setPreviewImage(null);
-                    setPreviewExampleImage(null);
-                    setEditBrand(null);
-                    setTimeout(() => setShowModal(false), 300);
-                },
-                onError: (err) => setErrors(err)
-            });
-        } else {
-            post(route("brands.store"), {
-                data: formData,
-                onSuccess: () => {
-                    reset();
-                    setPreviewImage(null);
-                    setPreviewExampleImage(null);
-                    setTimeout(() => setShowModal(false), 300);
-                },
-                onError: (err) => setErrors(err)
-            });
+    useEffect(() => {
+        if (store) {
+            setStoreData(store);
         }
+    }, [store]);
+
+    const rcMessages = {
+        "00": "Transaksi Sukses",
+        "01": "Timeout",
+        "02": "Transaksi Gagal",
+        "03": "Transaksi Pending",
+        "40": "Payload Error",
+        "50": "Transaksi Tidak Ditemukan",
+        "51": "Nomor Tujuan Diblokir",
+        "52": "Prefix Tidak Sesuai Operator",
+        "53": "Produk Seller Tidak Tersedia",
+        "54": "Nomor Tujuan Salah",
+        "55": "Produk Gangguan",
+        "57": "Jumlah Digit Tidak Sesuai",
+        "58": "Sedang Perbaikan",
+        "59": "Tujuan di Luar Wilayah",
+        "60": "Tagihan Belum Tersedia",
+        "62": "Produk Mengalami Gangguan",
+        "63": "Tidak Support Transaksi Multi",
+        "65": "Limit Transaksi Multi",
+        "66": "Sedang Perbaikan Sistem",
+        "68": "Stok Habis",
+        "71": "Produk Tidak Stabil",
+        "72": "Unreg Paket Dulu",
+        "73": "Kwh Melebihi Batas",
+        "74": "Transaksi Refund",
+        "80": "Akun Diblokir Penyedia Layanan",
+        "82": "Akun Belum Terverifikasi",
+        "84": "Nominal Tidak Valid",
+        "85": "Limitasi Transaksi",
+        "86": "Limitasi Pengecekan PLN",
     };
 
+    const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal`;
 
-    // 🔹 Handle Edit
-    const handleEdit = (brand) => {
-        setEditBrand(brand);
-        setData({
-            id: brand.id,
-            name: brand.name.split(" - ")[0],
-            category_id: brand.category_id,
-            input_type_id: brand.input_type_id,
-            profit_persen: brand.profit_persen,
-            profit_tetap: brand.profit_tetap,
-            example_id_product: brand.example_id_product,
-        });
-        setPreviewImage(brand.image);
-        setPreviewExampleImage(brand.example_image);
-        setShowModal(true);
+    const [showLottieRefId, setShowLottieRefId] = useState(false);
+    const [showLottieSn, setShowLottieSn] = useState(false);
+
+    const handleCopy = (textToCopy, setLottie) => {
+        navigator.clipboard.writeText(textToCopy);
+        setLottie(true);
+        setTimeout(() => setLottie(false), 1500);
     };
 
-    // 🔹 Handle Ganti Gambar
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData("image", file);
-            setPreviewImage(URL.createObjectURL(file));
-        }
-    };
+    const ref_id = params.ref_id;
 
-    const handleExampleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData("example_image", file);
-            setPreviewExampleImage(URL.createObjectURL(file));
-        }
-    };
-
-    const confirmDelete = (brandId) => {
-        setSelectedBrandId(brandId);
-        setIsPopupOpen(true);
-    };
-
-    const handleDelete = (id) => {
-        setIsPopupOpen(false); // Tutup pop-up setelah user konfirmasi
-        destroy(route("brands.destroy", id));
-    };
-
-    const handleSync = () => {
-        router.get(route("brands.sync"), {}, {
-            onSuccess: (page) => {
-                alert(page.props.flash.message || "Sinkronisasi berhasil!");
-            },
-            onError: (errors) => {
-                console.error("Gagal sinkronisasi:", errors);
-                alert("Gagal melakukan sinkronisasi.");
-            }
-        });
-    };
-
-    // bulk edit
-    const [selectedBrands, setSelectedBrands] = useState([]);
-    const [bulkEditData, setBulkEditData] = useState({
-        profit_persen: "",
-        profit_tetap: "",
-        category_id: null,
-        input_type_id: null
-    });
-    const [showModalBulk, setShowModalBulk] = useState(false);
-    const [categorySearch, setCategorySearch] = useState("");
-    const [inputTypeSearch, setInputTypeSearch] = useState("");
-    const [showInputTypeOptions, setShowInputTypeOptions] = useState(false);
-    const [selectedInputType, setSelectedInputType] = useState(null);
-const inputTypeRef = useRef();
-
-useEffect(() => {
-    const handleClickOutside = (e) => {
-        if (inputTypeRef.current && !inputTypeRef.current.contains(e.target)) {
-            setShowInputTypeOptions(false);
-            // Restore ke pilihan sebelumnya jika batal
-            if (selectedInputType) {
-                setInputTypeSearch(selectedInputType.name);
+    useEffect(() => {
+        if (transactions && Array.isArray(transactions)) {
+            const transactionData = transactions.find((t) => t.ref_id === ref_id);
+            if (transactionData) {
+                setTransaction(transactionData);
             }
         }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-}, [selectedInputType]);
+    }, [ref_id, transactions]);
 
-    const [selectedIds, setSelectedIds] = useState([]); // ✔ Untuk handle select all (list ID yang tampil)
-    const toggleSelectAll = () => {
-        if (selectedIds.length === filteredBrands.length && filteredBrands.length > 0) {
-            setSelectedIds([]);
-            setSelectedBrands([]); // Tambahan penting ✔
-        } else {
-            const allIds = filteredBrands.map(brand => brand.id);
-            setSelectedIds(allIds);
-            setSelectedBrands(allIds); // Tambahan penting ✔
-        }
-    };
-
-
-    // Toggle brand selection
-    // const handleSelectBrand = (brandId) => {
-    //     setSelectedBrands(prev =>
-    //         prev.includes(brandId) ? prev.filter((id) => id !== brandId) : [...prev, brandId]
-    //     );
-    // };
-    const handleSelectBrand = (brandId) => {
-        setSelectedBrands(prev =>
-            prev.includes(brandId) ? prev.filter(id => id !== brandId) : [...prev, brandId]
-        );
-
-        setSelectedIds(prev =>
-            prev.includes(brandId) ? prev.filter(id => id !== brandId) : [...prev, brandId]
-        );
-    };
-
-
-    // Handle change in bulk edit input fields
-    const handleBulkEditChange = (field, value) => {
-        setBulkEditData(prevData => ({
-            ...prevData,
-            [field]: value
-        }));
-    };
-
-    // Submit bulk update
-    const handleBulkEditSubmit = () => {
-        // Bersihkan data yang kosong
-        const cleanData = {};
-        Object.entries(bulkEditData).forEach(([key, value]) => {
-            if (value !== null && value !== "") {
-                cleanData[key] = value;
-            }
-        });
-
-        // Pastikan ada brand yang dipilih dan minimal satu field diisi
-        if (selectedBrands.length === 0 || Object.keys(cleanData).length === 0) {
-            alert("Pilih brand dan isi minimal satu field.");
-            return;
-        }
-
-        // Siapkan data untuk dikirim
-        const brands = selectedBrands.map(id => ({
-            id, // id brand
-            ...cleanData, // Data yang ingin diupdate
-        }));
-
-        console.log("Selected Brands:", selectedBrands);
-        console.log("Bulk Edit Data:", bulkEditData);
-
-        // Kirim data ke backend menggunakan router.post
-        router.post(route('brands.bulk-update'), { brands }, {
-            onSuccess: () => {
-                // Reset form bulk edit setelah berhasil
-                setShowModalBulk(false);
-                setBulkEditData({
-                    profit_persen: "",
-                    profit_tetap: "",
-                    category_id: null,
-                    input_type_id: null
+    const handleDownload = () => {
+        if (cardRef.current) {
+            toPng(cardRef.current, { backgroundColor: 'white' })
+                .then((dataUrl) => {
+                    const link = document.createElement('a');
+                    link.download = `Transaction-${transaction?.ref_id}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                })
+                .catch((err) => {
+                    console.error('Error generating image:', err);
                 });
-                setSelectedBrands([]); // Reset brand yang dipilih
-            }
-        });
+        }
     };
 
+    const updateStatus = (transaction_id) => {
+        fetch("/transactions/update-status", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    "meta[name='csrf-token']"
+                ).getAttribute("content"),
+            },
+            body: JSON.stringify({
+                transaction_id: transaction_id,
+            }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch((error) => console.error("Error updating status:", error));
+    };
+
+    // Automatically update status every 2 seconds for pending transactions
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (transaction?.status === "Pending") {
+                updateStatus(transaction.ref_id);
+            }
+        }, 2000); // 2 seconds interval
+
+        return () => clearInterval(interval); // Cleanup interval on unmount
+    }, [transaction]);
+
+    if (!transaction) {
+        return <div>Loading...</div>;
+    }
+
+    const formattedDate = new Date(transaction.created_at).toLocaleString("id-ID", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    });
+
+    const formatRupiah = (amount) => {
+        const formattedAmount = parseInt(amount).toLocaleString('id-ID'); // Convert to integer and format with commas
+        return `Rp${formattedAmount}`; // Remove space after 'Rp'
+    };
+
+    const previousUrl = sessionStorage.getItem('previous-url') || '/';
 
     return (
-
         <>
-            <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
-                    {/* Header */}
-                    <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
-                        {/* Left Section (Back Icon + Title) */}
-                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                            {/* Back Icon */}
-                            <button
-                                className="shrink-0 w-6 h-6"
-                                onClick={() => window.history.back()}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                                </svg>
-                            </button>
-                            {/* Title */}
-                            <div className="font-utama text-white font-bold text-lg">
-                                Kelola Brand
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleSync}
-                            className="flex items-center w-6 h-6"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-6 h-6 text-white">
-                                <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
-                                <path fillRule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
-                            </svg>
-                        </button>
-                        {/* Plus Icon */}
-                        <button
-                            onClick={() => {
-                                setEditBrand(null);
-                                reset();
-                                setPreviewImage(null);
-                                setShowModal(true);
-                            }}
-                            className="flex items-center w-6 h-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white">
-                                <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8.01 8.01 0 0 1-8 8" />
-                                <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4z" />
-                            </svg>
-                        </button>
-                    </div>
-                    {/* Search & Filter */}
-                    <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
-                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                            {/* Search Bar */}
-                            <input
-                                id="searchInput"
-                                type="text"
-                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                placeholder="Cari brand"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            {/* Search Icon */}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                stroke="currentColor"
-                                strokeWidth="0.3"  // Ubah ketebalan stroke di sini
-                                className="w-5 h-5 text-main"
-                            >
-                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                            </svg>
-                        </div>
-                        {/* Sorting & Filter */}
-                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
-                            {/* Sort Button */}
-                            <button
-                                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                                className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2"
-                            >
-                                {sortOrder === "asc" ? (
-                                    // Ikon A-Z (urutan naik)
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 16 16"
-                                        fill="currentColor"
-                                        className="w-4 h-4 text-main"
-                                    >
-                                        <path fillRule="evenodd" d="M10.082 5.629 9.664 7H8.598l1.789-5.332h1.234L13.402 7h-1.12l-.419-1.371zm1.57-.785L11 2.687h-.047l-.652 2.157z" />
-                                        <path d="M12.96 14H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-                                    </svg>
-                                ) : (
-                                    // Ikon Z-A (urutan turun)
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 16 16"
-                                        fill="currentColor"
-                                        className="w-4 h-4 text-main"
-                                    >
-                                        <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645z" />
-                                        <path fillRule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371zm1.57-.785L11 9.688h-.047l-.652 2.156z" />
-                                        <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
-                                    </svg>
-                                )}
-                                <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">
-                                    Urutkan
-                                </span>
-                            </button>
+            <Head title="History Detail" />
+            <div className="mx-auto w-full max-w-[500px] flex flex-col min-h-screen">
+                {/* fixed position */}
 
-                            <div className="shrink-0 w-8 text-main">
+                {/* Header */}
+                <header className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                    <div className="w-full flex flex-row space-x-4 items-center justify-start">
+                        <button className="shrink-0 w-6 h-6" onClick={() => router.visit(previousUrl, { preserveState: false })}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
+                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                            </svg>
+                        </button>
+                        <div className="font-utama text-white font-bold text-lg">
+                            Detail Riwayat Transaksi
+                        </div>
+                    </div>
+                </header>
+
+                {/* Card */}
+                <main className="w-full w-max-[500px] flex flex-col space-y-3 mt-12 [@media(max-width:277px)]:mt-[76px] p-4 bg-main-white">
+
+
+                    {/* Pesan saat status Pending */}
+                    {transaction.status === "Pending" && (
+                        <div className="w-full bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-3 text-sm rounded-xl">
+                            Status pesanan saat ini <strong>Pending</strong>. Tetap di halaman ini untuk melihat pembaruan terbaru secara otomatis.
+                        </div>
+                    )}
+
+                    {/* tombol edit toko */}
+                    {transaction.status === "Sukses" && (
+
+                        <a href={route('store.edit')}>
+                            <button className="w-full h-max flex flex-row space-x-3 justify-center items-center p-4 rounded-full border border-main"
+                            >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1"
-                                    className="w-full h-full"
-                                >
-                                    <line x1="12" y1="4" x2="12" y2="20" />
-                                </svg>
-                            </div>
-                            {/* Filter Button */}
-                            <button className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 16 16"
                                     fill="currentColor"
-                                    className="w-4 h-4 text-main"
+                                    className="text-main w-5"
+                                    viewBox="0 0 16 16"
                                 >
-                                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
+                                    <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h12V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5m2 .5a.5.5 0 0 1 .5.5V13h8V9.5a.5.5 0 0 1 1 0V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a.5.5 0 0 1 .5-.5" />
                                 </svg>
-                                <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">Filter</span>
+                                <span className="text-main text-sm font-medium">Edit Informasi Toko</span>
                             </button>
-                        </div>
+                        </a>
+                    )}
 
-                        <div className="flex items-center justify-between px-4 py-2 bg-neutral-50 border-y border-neutral-200">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedIds.length === filteredBrands.length && filteredBrands.length > 0}
-                                    onChange={toggleSelectAll}
-                                    className="accent-main w-4 h-4"
-                                />
-                                <span className="text-sm font-medium text-gray-700">
-                                    Pilih Semua
+                    {/* bg putih */}
+                    <div className="w-full flex flex-col space-y-8 items-center justify-center p-6 rounded-3xl bg-white shadow-md">
+                        <div className="w-full h-max flex flex-col space-y-4 items-start justify-center">
+                            <div className="w-full flex justify-center">
+                                {transaction.status === "Pending" && (
+                                    <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 16 16"
+                                            className="w-14 h-14 text-yellow-500"
+                                            fill="currentColor"
+                                        >
+                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z" />
+                                        </svg>
+                                    </div>
+                                )}
+                                {transaction.status === "Sukses" && (
+                                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 16 16"
+                                            className="w-14 h-14 text-green-500"
+                                            fill="currentColor"
+                                        >
+                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                                        </svg>
+                                    </div>
+                                )}
+                                {transaction.status !== "Pending" && transaction.status !== "Sukses" && (
+                                    <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="currentColor"
+                                            className="w-14 h-14 text-red-500"
+                                            viewBox="0 0 16 16"
+                                        >
+                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="w-full flex justify-center">
+                                <span
+                                    className={`text-center text-sm font-medium px-4 py-1 rounded-full ${transaction.status === "Pending"
+                                        ? "text-yellow-700 bg-yellow-100"
+                                        : transaction.status === "Sukses"
+                                            ? "text-green-700 bg-green-100"
+                                            : "text-red-700 bg-red-100"
+                                        }`}
+                                >
+                                    Transaksi {transaction.status}
                                 </span>
                             </div>
-                            <div className="text-sm text-gray-600">
-                                {selectedIds.length > 0 ? `${selectedIds.length} brand dipilih` : "Tidak ada yang dipilih"}
-                            </div>
+                            <p className="w-full font-utama font-semibold text-xl break-words text-wrap text-center">{transaction.product_name}</p>
                         </div>
-
-                        <button onClick={() => setShowModalBulk(true)} className="btn-primary">
-                            Edit Massal Brand
-                        </button>
-                    </div>
-                </div>
-
-                <div className="mb-4 min-h-[756px] pt-[263px] bg-white">
-                    <div className="mb-4 min-h-[756px] bg-white">
-                        {filteredBrands.length > 0 ? (
-                            [...filteredBrands]
-                                .filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
-                                .sort((a, b) => (sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))) // 🔀 Sorting
-                                .map((brand) => (
-                                    <div
-                                        key={brand.id}
-                                        className="flex space-x-2 justify-between items-center p-4 border-b-2 border-b-neutral-100"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds.includes(brand.id)}
-                                            onChange={() => handleSelectBrand(brand.id)}
-                                            className="accent-main w-4 h-4"
-                                        />
-                                        <div className="w-full h-max flex items-center space-x-3 content-start">
-                                            <div className="w-13 h-13 space-x-2 flex items-center justify center p-1 rounded-xl bg-white shadow">
-                                                <img
-                                                    src={brand.image || "storage/categories/default.png"}
-                                                    alt={brand.name}
-                                                    className="w-10 h-10 rounded-xl object-cover"
-                                                />
-                                            </div>
-
-                                            <div className="max-w-[180px] flex flex-col items-start space-y-[2px]">
-                                                <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
-                                                <p className="font-utama text-xs text-gray-500">{categories.find(cat => cat.id === brand.category_id)?.name || "Tidak ada kategori"} / {inputTypes.find(type => type.id === brand.input_type_id)?.name || "Tidak ada tipe input"}</p>
-                                                <div className="w-[180px] h-max px-2 py-[2px] text-xs text-green-600 rounded-3xl bg-green-50 border border-green-600 flex items-center justify-center">
-                                                    {brand.profit_persen}% + Rp{brand.profit_tetap}
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        <div className="w-12 h-full flex flex-col items-center space-y-2">
-                                            <button
-                                                onClick={() => handleEdit(brand)}
-                                                className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => confirmDelete(brand.id)}
-                                                className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center 
-                                                ${brand.is_used
-                                                        ? "text-yellow-600 bg-yellow-50 border border-yellow-600"
-                                                        : "text-red-600 bg-red-50 border border-red-600"
-                                                    }`}
-                                            >
-                                                Hapus
-                                            </button>
-
-
-                                        </div>
-
+                        <div className="w-full h-px bg-gray-600" />
+                        <div className="w-full flex flex-col space-y-2 items-start justify-center">
+                            <div className="w-full flex flex-col space-y-2 items-start justify-start">
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        ID Transaksi
                                     </div>
-                                ))
-                        ) : (
-                            <p className="p-4 text-center">Brand tidak ditemukan</p>
-                        )}
-                    </div>
-                </div>
-
-                {isPopupOpen && (
-                    <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                        <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
-                            <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                Yakin ingin menghapus brand ini?
-                            </p>
-                            <div className="w-full h-max flex flex-row space-x-2">
-                                <button
-                                    onClick={() => handleDelete(selectedBrandId)}
-                                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
-                                >
-                                    Ya
-                                </button>
-                                <button
-                                    onClick={() => setIsPopupOpen(false)}
-                                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-main rounded-md hover:bg-blue-700"
-                                >
-                                    Tidak
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-
-
-
-                {/* 🔹 MODAL FORM */}
-                {showModal && (
-                    <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                        {/* <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white"> */}
-                        <div className="w-[328px] h-[643px] overflow-y-auto flex flex-col space-y-2 p-4 rounded-lg bg-white">
-
-                            <div className="w-full h-max flex flex-col">
-                                {/* Ikon silang di kanan atas */}
-                                <button
-                                    className="w-full flex items-end justify-end"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        setErrors({}); // Menghapus error saat modal ditutup
-                                    }}>
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 16 16"
-                                        fill="currentColor"
-                                        className="w-7 h-7 text-red-500"
-                                    >
-                                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
-                                    </svg>
-                                </button>
-                                {/* Judul di tengah */}
-                                <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
-                                    {editBrand ? "Edit Brand" : "Tambah Brand"}
-                                </h2>
-                            </div>
-                            <form onSubmit={handleSubmit}>
-                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                    <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                        <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
-                                            {/* Input file transparan di atas lingkaran */}
-                                            <input
-                                                type="file"
-                                                name="image"
-                                                accept="image/*"
-                                                onChange={handleImageChange}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                            {/* Preview gambar atau placeholder */}
-                                            {previewImage ? (
-                                                <img
-                                                    src={previewImage}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words flex items-center justify-end gap-1">
+                                        <div className="flex items-center justify-end gap-2 text-sm font-medium text-right font-utama tracking-[0.1px]">
+                                            {showLottieRefId ? (
+                                                <div className="w-20">
+                                                    <DotLottieReact
+                                                        src="https://lottie.host/519fbc9d-1e9b-4ddf-ab6f-14423aabd845/MtxYOaYcV8.lottie"
+                                                        autoplay
+                                                        loop={false}
+                                                        style={{ width: '100%', height: '100%' }}
+                                                    />
+                                                </div>
                                             ) : (
-                                                <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
-                                                    Pilih Gambar
-                                                </span>
-                                            )}
-                                        </label>
-                                        {/* Error message */}
-                                        {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
-                                        <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Brand</p>
-                                    </div>
-                                    <div className="w-[294px] h-max flex flex-col space-y-2">
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama Brand</p>
-                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                value={data.name.split(" - ")[0]}
-                                                onChange={(e) => setData("name", e.target.value)}
-                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                placeholder="Contoh: Mobile Legends"
-                                                required
-                                            />
-                                        </div>
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
-                                        )}
-
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Kategori</p>
-                                        <div className="relative w-full">
-                                            <div
-                                                className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
-                                                onClick={() => setShowCategoryPopup(true)}
-                                            >
-                                                <span>
-                                                    {categories.find(cat => cat.id === data.category_id)?.name || "Pilih kategori"}
-                                                </span>
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-5 h-5 text-gray-500"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M6 9l6 6 6-6"></path>
-                                                </svg>
-                                            </div>
-                                            {showCategoryPopup && (
-                                                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                                                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
-                                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                                            {/* Search Bar */}
-                                                            <input
-                                                                id="searchInput"
-                                                                type="text"
-                                                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                                placeholder="Cari kategori"
-                                                                value={searchCategory}
-                                                                onChange={(e) => setSearchCategory(e.target.value)}
-                                                            />
-                                                            {/* Search Icon */}
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                viewBox="0 0 24 24"
-                                                                fill="currentColor"
-                                                                stroke="currentColor"
-                                                                strokeWidth="0.3"  // Ubah ketebalan stroke di sini
-                                                                className="w-5 h-5 text-main"
-                                                            >
-                                                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                                                            </svg>
-                                                        </div>
-
-                                                        <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
-                                                            {categories
-                                                                .filter(cat => cat.name.toLowerCase().includes(searchCategory.toLowerCase()))
-                                                                .map((cat) => (
-                                                                    <div
-                                                                        key={cat.id}
-                                                                        className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
-                                                                        onClick={() => {
-                                                                            setData("category_id", cat.id);
-                                                                            setShowCategoryPopup(false);
-                                                                        }}
-                                                                    >
-                                                                        {/* Gambar kategori di sebelah kiri */}
-                                                                        <img
-                                                                            src={cat.image ? `/storage/${cat.image}` : "storage/categories/default.png"}
-                                                                            alt={cat.name}
-                                                                            className="w-8 h-8 border border-gray-300 rounded-full object-cover"
-                                                                        />
-                                                                        <p className="text-utama text-sm text-left align-middle">{cat.name}</p>
-                                                                    </div>
-                                                                ))}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setShowCategoryPopup(false)}
-                                                            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"                                                    >
-                                                            Tutup
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        
-
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Tipe Input</p>
-                                        <div className="relative w-full">
-                                            <div
-                                                className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
-                                                onClick={() => setShowInputTypePopup(true)}
-                                            >
-                                                <span>
-                                                    {inputTypes.find(type => type.id === data.input_type_id)?.name || "Pilih tipe input"}
-                                                </span>
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-5 h-5 text-gray-500"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M6 9l6 6 6-6"></path>
-                                                </svg>
-                                            </div>
-                                            {showInputTypePopup && (
-                                                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                                                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
-                                                        {/* Search Bar */}
-                                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                                            <input
-                                                                id="searchInput"
-                                                                type="text"
-                                                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                                placeholder="Cari Input Type..."
-                                                                value={searchInputType}
-                                                                onChange={(e) => setSearchInputType(e.target.value)}
-                                                            />
-                                                            {/* Search Icon */}
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                viewBox="0 0 24 24"
-                                                                fill="currentColor"
-                                                                stroke="currentColor"
-                                                                strokeWidth="0.3"
-                                                                className="w-5 h-5 text-main"
-                                                            >
-                                                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
-                                                            </svg>
-                                                        </div>
-
-                                                        {/* List Input Types */}
-                                                        <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
-                                                            {inputTypes
-                                                                .filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase()))
-                                                                .map((type) => (
-                                                                    <div
-                                                                        key={type.id}
-                                                                        className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
-                                                                        onClick={() => {
-                                                                            setData("input_type_id", type.id);
-                                                                            setShowInputTypePopup(false);
-                                                                        }}
-                                                                    >
-                                                                        <p className="text-utama text-sm text-left align-middle">{type.name}</p>
-                                                                    </div>
-                                                                ))}
-                                                        </div>
-
-                                                        {/* Tombol Tutup */}
-                                                        <button
-                                                            onClick={() => setShowInputTypePopup(false)}
-                                                            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                                                <div className="flex items-center gap-2">
+                                                    <span className="break-words">{transaction.ref_id}</span>
+                                                    <button
+                                                        onClick={() => handleCopy(transaction.ref_id, setShowLottieRefId)}
+                                                        className="text-main hover:text-blue-700 font-medium"
+                                                        aria-label="Copy Ref Id"
+                                                    >
+                                                        <svg
+                                                            className="w-5 h-5 shrink-0"
+                                                            aria-hidden="true"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            width="24"
+                                                            height="24"
+                                                            fill="currentColor"
+                                                            viewBox="0 0 24 24"
                                                         >
-                                                            Tutup
-                                                        </button>
-                                                    </div>
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M7 9v6a4 4 0 0 0 4 4h4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1v2Z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M13 3.054V7H9.2a2 2 0 0 1 .281-.432l2.46-2.87A2 2 0 0 1 13 3.054ZM15 3v4a2 2 0 0 1-2 2H9v6a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-3Z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             )}
-                                        </div>
 
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Persen</p>
-                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                value={data.profit_persen}
-                                                onChange={(e) => setData("profit_persen", e.target.value)}
-                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                placeholder="Contoh: 2.5"
-                                            />
                                         </div>
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Waktu Transaksi
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {formattedDate}
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Pesan
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {transaction.status === 'Pending'
+                                            ? 'Transaksi sedang diproses'
+                                            : getResponseMessage(transaction.rc)}                                    </div>
+                                </div>
+                                <div className="w-full h-px border border-dashed border-gray-400 my-4" />
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Kategori
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {transaction.category}
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Brand
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {transaction.brand.split(" - ")[0]}
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Tipe
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {transaction.type.split(" - ")[0]}
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        ID Tujuan
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {transaction.customer_no}
+                                    </div>
+                                </div>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Harga
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {isEditing && (
+                                            <div className="fixed h-screen px-4 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                                                <div className="w-full max-w-[328px] p-4 bg-white rounded-lg shadow-lg">
+                                                    <div className="w-full h-max flex flex-col">
+                                                        <button
+                                                            className="w-full flex justify-end"
+                                                            onClick={() => {
+                                                                setPrice(transaction.price);
+                                                                setAdminFee(Number(transaction.admin_fee) || 0);
+                                                                setIsEditing(false);
+                                                            }}
+                                                        >
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                viewBox="0 0 16 16"
+                                                                fill="currentColor"
+                                                                className="w-7 h-7 text-red-500"
+                                                            >
+                                                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                                                            </svg>
+                                                        </button>
+
+                                                        <h2 className="text-center text-utama text-lg font-medium mb-4">Edit Harga & Biaya Admin</h2>
+
+                                                        <form
+                                                            onSubmit={(e) => {
+                                                                e.preventDefault();
+                                                                setIsEditing(false);
+                                                                // Optional: simpan ke backend di sini
+                                                            }}
+                                                            className="space-y-4"
+                                                        >
+                                                            {/* Harga */}
+                                                            <div className="w-full max-w-[328px] h-max flex flex-col space-y-2">
+                                                                <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Harga</p>
+                                                                <input
+                                                                    type="text"
+                                                                    value={formatRupiah(price)}
+                                                                    onChange={(e) => {
+                                                                        const raw = e.target.value.replace(/\D/g, ""); // Remove non-digit
+                                                                        setPrice(Number(raw));
+                                                                    }}
+                                                                    className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
+                                                                    placeholder="Harga"
+                                                                />
+                                                            </div>
+
+                                                            {/* Admin Fee */}
+                                                            <div className="w-full max-w-[328px] h-max flex flex-col space-y-2">
+                                                                <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Biaya Admin</p>
+                                                                <input
+                                                                    type="text"
+                                                                    value={formatRupiah(adminFee)}
+                                                                    onChange={(e) => {
+                                                                        const raw = e.target.value.replace(/\D/g, ""); // Remove non-digit
+                                                                        setAdminFee(Number(raw) || 0); // fallback ke 0
+                                                                    }}
+                                                                    className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
+                                                                    placeholder="Biaya Admin"
+                                                                />
+                                                            </div>
+
+                                                            {/* Tombol Simpan */}
+                                                            <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
+                                                                <button
+                                                                    type="submit"
+                                                                    className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                                                                >
+                                                                    Simpan
+                                                                </button>
+                                                            </div>
+                                                        </form>
+
+
+                                                    </div>
+                                                </div>
+                                            </div>
                                         )}
 
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Tetap</p>
-                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                            {/* Search Bar */}
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                value={data.profit_tetap}
-                                                onChange={(e) => setData("profit_tetap", e.target.value)}
-                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                placeholder="Contoh: 1000"
-                                            />
-                                        </div>
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
-                                        )}
-
-                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Contoh ID Pelanggan</p>
-                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
-                                            {/* Search Bar */}
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                value={data.example_id_product || ""} // Ini mencegah undefined
-                                                onChange={(e) => setData("example_id_product", e.target.value)}
-                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
-                                                placeholder="input 1= 24434, input 2=Ms24"
-                                            />
-                                        </div>
-                                        {errors.name && (
-                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                        {/* Tampilan awal saat tidak sedang edit */}
+                                        {!isEditing && (
+                                            <div className="text-right items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setPrice(transaction.price);
+                                                        setAdminFee(Number(transaction.admin_fee) || 0);
+                                                        setIsEditing(true);
+                                                    }}
+                                                >
+                                                    <span className="text-right">{formatRupiah(price || transaction.price)}</span>
+                                                </button>
+                                            </div>
                                         )}
 
                                     </div>
-                                    <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
-                                        <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
-                                            {/* Input file transparan di atas lingkaran */}
-                                            <input
-                                                type="file"
-                                                name="image"
-                                                accept="image/*"
-                                                onChange={handleExampleImageChange}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                            {/* Preview gambar atau placeholder */}
-                                            {previewExampleImage ? (
-                                                <img
-                                                    src={previewExampleImage}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
-                                                    Pilih Gambar
-                                                </span>
-                                            )}
-                                        </label>
-                                        {/* Error message */}
-                                        {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
-                                        <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Contoh ID Pel</p>
+                                </div>
+                                <div className="w-full h-px border border-dashed border-gray-400 my-4" />
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Kode Promosi
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        -
                                     </div>
                                 </div>
-
-                                <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
-                                    <button
-                                        type="submit"
-                                        disabled={processing || !data.name || !data.category_id || !data.input_type_id}
-                                        className={`w-full p-2 rounded transition ${processing || !data.name || !data.category_id || !data.input_type_id
-                                            ? "bg-gray-300 cursor-not-allowed"
-                                            : "bg-blue-600 text-white hover:bg-blue-700"
-                                            }`}
-                                    >
-                                        {editBrand ? "Update" : "Tambah"}
-                                    </button>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Diskon
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        -
+                                    </div>
                                 </div>
-                            </form>
+                                <div className="w-full flex flex-row">
+                                    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                        Biaya Admin
+                                    </div>
+                                    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                        {isEditing ? (
+                                            <></>
+                                        ) : (
+                                            <div className="text-right items-center gap-2">
+                                                <span className="text-right">{formatRupiah(adminFee)}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        setAdminFee(0); // Set initial admin fee for editing
+                                                        setIsEditing(true);
+                                                    }}
+                                                >
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="w-full h-px border border-dashed border-gray-400 my-4" />
+                            <div className="w-full flex flex-row justify-between items-center">
+                                <span className="text-md font-utama font-medium text-gray-700">Total Bayar</span>
+                                <span className="text-md font-utama font-semibold text-black">
+                                    {formatRupiah((parseFloat(price) || transaction.price) + (parseFloat(adminFee) || 0))}
+                                </span>
+                            </div>
                         </div>
+                        {transaction.status == 'Sukses' && (
+                            // If "Sukses", display the full card
+                            <div className="w-full p-3 rounded-lg mt-6 mb-2 border border-gray-400">
+                                <div className="items-center text-center mb-2">
+                                    <h3 className="text-sm font-medium text-gray-700">SERIAL NUMBER</h3>
+                                </div>
+
+                                <hr className="border-t border-gray-200 mb-2" />
+
+                                <div className="flex flex-col items-center">
+                                    {showLottieSn ? (
+                                        <div className="w-20">
+                                            <DotLottieReact
+                                                src="https://lottie.host/519fbc9d-1e9b-4ddf-ab6f-14423aabd845/MtxYOaYcV8.lottie"
+                                                autoplay
+                                                loop={false}
+                                                style={{ width: '100%', height: '100%' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleCopy(transaction.sn, setShowLottieSn)}
+                                            className="text-main hover:text-blue-700 font-medium flex items-center justify-center gap-2 text-sm"
+                                            aria-label="Copy Serial Number"
+                                        >
+                                            <span className="text-base font-semibold text-gray-800 break-all">
+                                                {transaction.sn || 'N/A'}
+                                            </span>
+                                            <svg
+                                                className="w-5 h-5 shrink-0"
+                                                aria-hidden="true"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                fill="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M7 9v6a4 4 0 0 0 4 4h4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1v2Z"
+                                                    clipRule="evenodd"
+                                                />
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M13 3.054V7H9.2a2 2 0 0 1 .281-.432l2.46-2.87A2 2 0 0 1 13 3.054ZM15 3v4a2 2 0 0 1-2 2H9v6a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-3Z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                        }
+                    </div>
+                </main>
+
+                {/* tombol edit harga, unduh struk, beranda */}
+                {transaction.status === 'Sukses' ? (
+                    <div className="w-full w-max-[500px] p-4">
+
+                        {/* Tombol Edit Harga dan Unduh Struk */}
+                        <div className="flex justify-between mb-4">
+                            <button
+                                onClick={() => {
+                                    setPrice(transaction.price);
+                                    setIsEditing(true);
+                                }}
+                                className="w-[48%] border border-blue-500 text-blue-500 rounded-lg px-4 py-2 text-sm text-center flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-receipt" viewBox="0 0 16 16">
+                                    <path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27m.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0z" />
+                                    <path d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5m8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5" />
+                                </svg>
+                                Edit Harga
+                            </button>
+
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="w-[48%] border border-blue-500 text-blue-500 rounded-lg px-4 py-2 text-sm text-center flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-download" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                                </svg>
+                                Unduh Struk
+                            </button>
+                        </div>
+                        {showModal && (
+                            <div className="fixed h-screen px-4 inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
+                                <div className="bg-white rounded-xl shadow-xl max-h-[90vh] w-full max-w-[450px] p-4 overflow-auto">
+                                    {/* Header: Tombol Tutup + Judul */}
+                                    <div className="w-full h-max flex flex-col mb-4">
+                                        <button
+                                            className="w-full flex items-end justify-end"
+                                            onClick={() => setShowModal(false)}
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 16 16"
+                                                fill="currentColor"
+                                                className="w-7 h-7 text-red-500"
+                                            >
+                                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                                            </svg>
+                                        </button>
+                                        <h2 className="w-full text-utama text-lg font-medium text-center">Preview Struk</h2>
+                                    </div>
+
+                                    {/* PILIHAN STRUK */}
+                                    <div className="flex justify-between mb-4">
+                                        {['kecil', 'besar'].map((tipe) => (
+                                            <button
+                                                key={tipe}
+                                                onClick={() => setSize(tipe)}
+                                                className={`w-[48%] rounded-lg px-4 py-2 text-sm font-semibold border
+                                                ${size === tipe
+                                                        ? 'bg-blue-500 text-white border-blue-500'
+                                                        : 'bg-white text-blue-500 border-blue-500'}`}
+                                            >
+                                                Struk Font {tipe.charAt(0).toUpperCase() + tipe.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* PREVIEW STRUK */}
+                                    <div
+                                        ref={cardRef}
+                                        className="flex justify-center border border-dashed border-gray-300 p-2 rounded-md bg-gray-50 w-full overflow-auto"
+                                    >
+                                        <div className="w-full flex justify-center">
+                                            <div className="w-full max-w-full">
+                                                <Receipt
+                                                    storeData={storeData}
+                                                    transaction={transaction}
+                                                    price={price}
+                                                    adminFee={adminFee}
+                                                    ref_id={ref_id}
+                                                    formattedDate={formattedDate}
+                                                    size={size}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tombol Beranda */}
+                        <a href={route('user.dashboard')}>
+                            <button className="w-full bg-blue-500 text-white rounded-lg px-6 py-3 text-center text-sm font-semibold hover:bg-blue-600 flex items-center justify-center gap-2">
+                                <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M11.293 3.293a1 1 0 0 1 1.414 0l6 6 2 2a1 1 0 0 1-1.414 1.414L19 12.414V19a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-3h-2v3a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2v-6.586l-.293.293a1 1 0 0 1-1.414-1.414l2-2 6-6Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                                Beranda
+                            </button>
+                        </a>
+                    </div>
+                ) : (
+                    <div className="w-full w-max-[500px] p-4">
+                        {/* Tombol Beranda Saja */}
+                        <a href={route('user.dashboard')}>
+                            <button className="w-full bg-blue-500 text-white rounded-lg px-6 py-3 text-center text-sm font-semibold hover:bg-blue-600 flex items-center justify-center gap-2">
+                                <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M11.293 3.293a1 1 0 0 1 1.414 0l6 6 2 2a1 1 0 0 1-1.414 1.414L19 12.414V19a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-3h-2v3a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2v-6.586l-.293.293a1 1 0 0 1-1.414-1.414l2-2 6-6Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                                Beranda
+                            </button>
+                        </a>
                     </div>
                 )}
             </div>
-            {/* Form Bulk Edit */}
-            {showModalBulk && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div className="bg-white rounded-lg p-4 max-w-[90%] w-[400px] relative z-50">
-                        <h2 className="text-lg font-semibold mb-3">Edit Massal Brand</h2>
-
-                        <div className="mb-2">
-                            <label className="block text-sm font-medium">Profit Persen</label>
-                            <input
-                                type="number"
-                                className="w-full border rounded p-2"
-                                value={bulkEditData.profit_persen || ""}
-                                onChange={(e) => handleBulkEditChange("profit_persen", e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-2">
-                            <label className="block text-sm font-medium">Profit Tetap</label>
-                            <input
-                                type="number"
-                                className="w-full border rounded p-2"
-                                value={bulkEditData.profit_tetap || ""}
-                                onChange={(e) => handleBulkEditChange("profit_tetap", e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-2">
-                            <label className="block text-sm font-medium">Kategori</label>
-                            <input
-                                type="text"
-                                value={categorySearch}
-                                onChange={(e) => setCategorySearch(e.target.value)}
-                                placeholder="Cari kategori..."
-                                className="w-full border rounded p-2 mb-1 text-sm"
-                            />
-                            <select
-                                value={bulkEditData.category_id || ""}
-                                onChange={(e) => handleBulkEditChange("category_id", e.target.value)}
-                                className="w-full border rounded p-2 text-sm"
-                            >
-                                <option value="">Pilih Kategori</option>
-                                {categories
-                                    .filter(category =>
-                                        category.name.toLowerCase().includes(categorySearch.toLowerCase())
-                                    )
-                                    .map(category => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
-
-
-<div className="mb-2 relative" ref={inputTypeRef}>
-    <label className="block text-sm font-medium mb-1">Tipe Input</label>
-    <input
-        type="text"
-        value={inputTypeSearch}
-        onFocus={() => {
-            setInputTypeSearch(""); // Kosongkan input saat fokus
-            setShowInputTypeOptions(true); // Tampilkan semua
-        }}
-        onChange={(e) => {
-            setInputTypeSearch(e.target.value);
-            setShowInputTypeOptions(true);
-        }}
-        placeholder="Ketik untuk mencari tipe input..."
-        className="w-full border rounded p-2 text-sm"
-    />
-    {showInputTypeOptions && (
-        <div className="absolute z-10 bg-white border border-gray-300 rounded w-full max-h-40 overflow-y-auto mt-1">
-            {inputTypes
-                .filter(type =>
-                    type.name.toLowerCase().includes(inputTypeSearch.toLowerCase())
-                )
-                .map(type => (
-                    <div
-                        key={type.id}
-                        onClick={() => {
-                            handleBulkEditChange("input_type_id", type.id);
-                            setSelectedInputType(type); // Simpan pilihan
-                            setInputTypeSearch(type.name); // Tampilkan nama
-                            setShowInputTypeOptions(false); // Tutup opsi
-                        }}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                    >
-                        {type.name}
-                    </div>
-                ))}
-            {inputTypes.filter(type =>
-                type.name.toLowerCase().includes(inputTypeSearch.toLowerCase())
-            ).length === 0 && (
-                <div className="px-3 py-2 text-gray-500 text-sm">Tidak ditemukan</div>
-            )}
-        </div>
-    )}
-</div>
-
-
-
-
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button onClick={() => setShowModalBulk(false)} className="px-4 py-2 bg-gray-200 rounded">
-                                Batal
-                            </button>
-                            <button
-                                onClick={handleBulkEditSubmit}
-                                className="px-4 py-2 bg-blue-600 text-white rounded"
-                            >
-                                Simpan
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
+
     );
-}
+};
+
+export default HistoryDetail;
