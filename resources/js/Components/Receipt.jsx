@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { toPng } from 'html-to-image';
 
 const Receipt = ({ storeData, transaction, price, adminFee, ref_id, formattedDate, size = 'besar' }) => {
-    
+
     const cardRef = useRef();
     const formatRupiah = (amount) => {
         const formattedAmount = parseInt(amount).toLocaleString('id-ID'); // Convert to integer and format with commas
@@ -17,7 +17,7 @@ const Receipt = ({ storeData, transaction, price, adminFee, ref_id, formattedDat
                     link.href = dataUrl;
                     link.click();
                 })
-                .catch((err) => { 
+                .catch((err) => {
                     console.error('Error generating image:', err);
                 });
         }
@@ -126,7 +126,9 @@ const Receipt = ({ storeData, transaction, price, adminFee, ref_id, formattedDat
                         Serial Number
                     </div>
                     <div className="w-full border-b border-black mt-1" />
-                    <div className={`mt-1 text-black font-mono ${sizeStyle.serialNumber} font-medium tracking-widest`}>
+                    <div
+                        className={`mt-1 text-black font-mono ${sizeStyle.serialNumber} font-medium tracking-widest break-words whitespace-pre-wrap`}
+                    >
                         {transaction.sn}
                     </div>
                 </div>

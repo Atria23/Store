@@ -125,7 +125,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/deposit/confirm/{id}', [DepositController::class, 'confirm'])->name('deposit-confirm');
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
-    Route::get('/deposit/{id}', [DepositController::class, 'show'])->name('deposit.show')->middleware('auth');
+    Route::get('/deposit/{id}', [DepositController::class, 'show'])->name('deposit.show');
 
     Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
 
@@ -231,6 +231,8 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/deposit-admin', [DepositAdminController::class, 'create'])->name('deposit-admin.create');
     Route::post('/deposit-admin', [DepositAdminController::class, 'store'])->name('deposit-admin.store');
     Route::get('/manage-affiliators', [ManageAffiliatorController::class, 'index'])->name('manage-affiliators');
+    Route::post('/barang/bulk-update', [BarangController::class, 'bulkUpdate'])->name('barang.bulk-update');
+    Route::post('/brands/bulk-update', [BrandController::class, 'bulkUpdate'])->name('brands.bulk-update');
 
     Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
     Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])

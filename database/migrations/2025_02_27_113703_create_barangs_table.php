@@ -17,13 +17,13 @@ return new class extends Migration {
         $table->foreignId('input_type_id')->nullable()->constrained('input_types')->onDelete('cascade');
         $table->string('seller_name')->nullable(); // Dibuat nullable ✅
         $table->string('price'); // Harga tetap sebagai string sesuai dengan price_list
-        $table->boolean('buyer_product_status')->default(true);
+        $table->boolean('buyer_product_status')->nullable()->default(true);
         $table->boolean('seller_product_status')->default(true);
-        $table->boolean('unlimited_stock')->default(true);
+        $table->boolean('unlimited_stock')->nullable()->default(true);
         $table->string('stock')->nullable(); // Sesuai dengan price_list (nullable)
-        $table->boolean('multi')->default(true);
-        $table->string('start_cut_off'); 
-        $table->string('end_cut_off');   
+        $table->boolean('multi')->nullable()->default(true);
+        $table->string('start_cut_off')->nullable(); 
+        $table->string('end_cut_off')->nullable();   
         $table->text('desc')->nullable();
         $table->timestamps();
     });

@@ -136,7 +136,7 @@ class UserProductController extends Controller
             'inputTypes' => $inputTypes,
             'exampleIdProduct' => $exampleIdProduct,
             'exampleImage' => $exampleImage,
-            'user' => Auth::user(), // <-- ini yang ditambahkan
+            'user' => Auth::user(),
         ]);
     }
 

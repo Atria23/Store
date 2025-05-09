@@ -280,8 +280,9 @@ class DepositController extends Controller
         $deposit = Deposit::findOrFail($id);
 
         // Pastikan deposit tersebut milik user yang sedang login
-        if ($deposit->user_id !== auth()->id()) {
-            abort(403, 'You are not authorized to view this deposit.');
+        $user = auth()->user();
+        if ($user->id !== $deposit->user_id && !$user->hasRole('super-admin')) {
+            abort(403, 'You are not authorized to view this deposit.'); 
         }
 
         // Siapkan data untuk tampilan detail deposit

@@ -1,152 +1,939 @@
-import React, { useState, useEffect } from "react";
-import { Head } from "@inertiajs/react";
+import { useState, useRef, useEffect } from "react";
+import { useForm, router } from "@inertiajs/react";
 
-export default function ManageAffiliators({ affiliators }) {
-    // Memastikan data valid
-    if (!affiliators) {
-        return <div>Loading...</div>;
-    }
-
-    // State untuk pencarian, sorting, dan pagination
+export default function ManageBrands({ brands, categories, inputTypes }) {
+    const [showModal, setShowModal] = useState(false);
+    const [editBrand, setEditBrand] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+    const [previewExampleImage, setPreviewExampleImage] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [sortOrder, setSortOrder] = useState("desc"); // default sort terbaru
-    const [currentPage, setCurrentPage] = useState(1);
-    const [filteredAffiliators, setFilteredAffiliators] = useState(affiliators);
+    const [sortOrder, setSortOrder] = useState("asc");
+    const [errors, setErrors] = useState({});
+    const [searchCategory, setSearchCategory] = useState("");
+    const [searchInputType, setSearchInputType] = useState("");
+    const [showCategoryPopup, setShowCategoryPopup] = useState(false);
+    const [showInputTypePopup, setShowInputTypePopup] = useState(false);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedBrandId, setSelectedBrandId] = useState(null);
 
-    const itemsPerPage = 10;
+    const filteredBrands = brands.filter(brand =>
+        brand.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    // Fungsi untuk mengatur urutan (terbaru/terlama)
-    const handleSort = () => {
-        setSortOrder(sortOrder === "desc" ? "asc" : "desc");
-    };
+    const filteredCategories = categories.filter(category =>
+        category.name.toLowerCase().includes(searchCategory.toLowerCase())
+    );
 
-    // Fungsi untuk melakukan filter, sorting, dan pagination
-    useEffect(() => {
-        let result = affiliators.filter((aff) =>
-            aff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            aff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (aff.referral_code && aff.referral_code.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
+    const filteredInputTypes = inputTypes.filter(type =>
+        type.name.toLowerCase().includes(searchInputType.toLowerCase())
+    );
 
-        // Sort data berdasarkan tanggal gabung (joined_at)
-        result = result.sort((a, b) => {
-            const dateA = new Date(a.joined_at);
-            const dateB = new Date(b.joined_at);
-            return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    const { data, setData, post, processing, reset, delete: destroy } = useForm({
+        id: "",
+        name: "",
+        image: null,
+        example_image: null,
+        category_id: "",
+        input_type_id: "",
+        profit_persen: "",
+        profit_tetap: "",
+        example_id_product: ""
+    });
+
+    // 🔹 Handle Submit (Tambah & Edit)
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setErrors({});
+
+        const formData = new FormData();
+        Object.keys(data).forEach((key) => {
+            if (data[key]) formData.append(key, data[key]);
         });
 
-        // Pagination logic
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedAffiliators = result.slice(startIndex, startIndex + itemsPerPage);
-
-        setFilteredAffiliators(paginatedAffiliators);
-    }, [searchTerm, sortOrder, currentPage, affiliators]);
-
-    // Handle perubahan halaman
-    const handlePageChange = (pageNumber) => {
-        setCurrentPage(pageNumber);
+        if (editBrand) {
+            post(route("brands.update", data.id), {
+                data: formData,
+                onSuccess: () => {
+                    reset();
+                    setPreviewImage(null);
+                    setPreviewExampleImage(null);
+                    setEditBrand(null);
+                    setTimeout(() => setShowModal(false), 300);
+                },
+                onError: (err) => setErrors(err)
+            });
+        } else {
+            post(route("brands.store"), {
+                data: formData,
+                onSuccess: () => {
+                    reset();
+                    setPreviewImage(null);
+                    setPreviewExampleImage(null);
+                    setTimeout(() => setShowModal(false), 300);
+                },
+                onError: (err) => setErrors(err)
+            });
+        }
     };
 
-    // Total halaman
-    const totalPages = Math.ceil(affiliators.length / itemsPerPage);
+
+    // 🔹 Handle Edit
+    const handleEdit = (brand) => {
+        setEditBrand(brand);
+        setData({
+            id: brand.id,
+            name: brand.name.split(" - ")[0],
+            category_id: brand.category_id,
+            input_type_id: brand.input_type_id,
+            profit_persen: brand.profit_persen,
+            profit_tetap: brand.profit_tetap,
+            example_id_product: brand.example_id_product,
+        });
+        setPreviewImage(brand.image);
+        setPreviewExampleImage(brand.example_image);
+        setShowModal(true);
+    };
+
+    // 🔹 Handle Ganti Gambar
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData("image", file);
+            setPreviewImage(URL.createObjectURL(file));
+        }
+    };
+
+    const handleExampleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setData("example_image", file);
+            setPreviewExampleImage(URL.createObjectURL(file));
+        }
+    };
+
+    const confirmDelete = (brandId) => {
+        setSelectedBrandId(brandId);
+        setIsPopupOpen(true);
+    };
+
+    const handleDelete = (id) => {
+        setIsPopupOpen(false); // Tutup pop-up setelah user konfirmasi
+        destroy(route("brands.destroy", id));
+    };
+
+    const handleSync = () => {
+        router.get(route("brands.sync"), {}, {
+            onSuccess: (page) => {
+                alert(page.props.flash.message || "Sinkronisasi berhasil!");
+            },
+            onError: (errors) => {
+                console.error("Gagal sinkronisasi:", errors);
+                alert("Gagal melakukan sinkronisasi.");
+            }
+        });
+    };
+
+    // bulk edit
+    const [selectedBrands, setSelectedBrands] = useState([]);
+    const [bulkEditData, setBulkEditData] = useState({
+        profit_persen: "",
+        profit_tetap: "",
+        category_id: null,
+        input_type_id: null
+    });
+    const [showModalBulk, setShowModalBulk] = useState(false);
+    const [categorySearch, setCategorySearch] = useState("");
+    const [inputTypeSearch, setInputTypeSearch] = useState("");
+    const [showInputTypeOptions, setShowInputTypeOptions] = useState(false);
+    const [selectedInputType, setSelectedInputType] = useState(null);
+const inputTypeRef = useRef();
+
+useEffect(() => {
+    const handleClickOutside = (e) => {
+        if (inputTypeRef.current && !inputTypeRef.current.contains(e.target)) {
+            setShowInputTypeOptions(false);
+            // Restore ke pilihan sebelumnya jika batal
+            if (selectedInputType) {
+                setInputTypeSearch(selectedInputType.name);
+            }
+        }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+}, [selectedInputType]);
+
+    const [selectedIds, setSelectedIds] = useState([]); // ✔ Untuk handle select all (list ID yang tampil)
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredBrands.length && filteredBrands.length > 0) {
+            setSelectedIds([]);
+            setSelectedBrands([]); // Tambahan penting ✔
+        } else {
+            const allIds = filteredBrands.map(brand => brand.id);
+            setSelectedIds(allIds);
+            setSelectedBrands(allIds); // Tambahan penting ✔
+        }
+    };
+
+
+    // Toggle brand selection
+    // const handleSelectBrand = (brandId) => {
+    //     setSelectedBrands(prev =>
+    //         prev.includes(brandId) ? prev.filter((id) => id !== brandId) : [...prev, brandId]
+    //     );
+    // };
+    const handleSelectBrand = (brandId) => {
+        setSelectedBrands(prev =>
+            prev.includes(brandId) ? prev.filter(id => id !== brandId) : [...prev, brandId]
+        );
+
+        setSelectedIds(prev =>
+            prev.includes(brandId) ? prev.filter(id => id !== brandId) : [...prev, brandId]
+        );
+    };
+
+
+    // Handle change in bulk edit input fields
+    const handleBulkEditChange = (field, value) => {
+        setBulkEditData(prevData => ({
+            ...prevData,
+            [field]: value
+        }));
+    };
+
+    // Submit bulk update
+    const handleBulkEditSubmit = () => {
+        // Bersihkan data yang kosong
+        const cleanData = {};
+        Object.entries(bulkEditData).forEach(([key, value]) => {
+            if (value !== null && value !== "") {
+                cleanData[key] = value;
+            }
+        });
+
+        // Pastikan ada brand yang dipilih dan minimal satu field diisi
+        if (selectedBrands.length === 0 || Object.keys(cleanData).length === 0) {
+            alert("Pilih brand dan isi minimal satu field.");
+            return;
+        }
+
+        // Siapkan data untuk dikirim
+        const brands = selectedBrands.map(id => ({
+            id, // id brand
+            ...cleanData, // Data yang ingin diupdate
+        }));
+
+        console.log("Selected Brands:", selectedBrands);
+        console.log("Bulk Edit Data:", bulkEditData);
+
+        // Kirim data ke backend menggunakan router.post
+        router.post(route('brands.bulk-update'), { brands }, {
+            onSuccess: () => {
+                // Reset form bulk edit setelah berhasil
+                setShowModalBulk(false);
+                setBulkEditData({
+                    profit_persen: "",
+                    profit_tetap: "",
+                    category_id: null,
+                    input_type_id: null
+                });
+                setSelectedBrands([]); // Reset brand yang dipilih
+            }
+        });
+    };
+
 
     return (
+
         <>
-            <Head title="Kelola Affiliator" />
-            <div className="mx-auto w-full max-w-[500px] min-h-screen bg-white">
-                {/* Fixed Header */}
-                <div className="sticky top-0 bg-white z-10 border-b border-gray-200 px-4 py-3">
-                    <h1 className="text-lg font-semibold text-main">Kelola Affiliator</h1>
-                </div>
-
-                {/* Search & Filter */}
-                <div className="p-4 space-y-4">
-                    <div className="flex flex-row items-center space-x-2">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-                            placeholder="Cari nama/email/kode affiliator"
-                        />
-                        <button
-                            onClick={handleSort}
-                            className="px-4 py-2 rounded-lg border bg-main text-white"
-                        >
-                            {sortOrder === "desc" ? "Urutkan: Terbaru" : "Urutkan: Terlama"}
-                        </button>
-                    </div>
-
-                    {filteredAffiliators.length === 0 && (
-                        <p className="text-center text-sm text-gray-500">Belum ada affiliator terdaftar.</p>
-                    )}
-
-                    {filteredAffiliators.map((aff) => (
-                        <div key={aff.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-                            <div className="mb-2">
-                                <p className="font-semibold text-main">{aff.name}</p>
-                                <p className="text-sm text-gray-500">{aff.email}</p>
-                                {/* Tampilkan referral_code */}
-                                {aff.referral_code && (
-                                    <p className="text-xs text-gray-500">
-                                        Kode Afiliator: <span className="font-mono">{aff.referral_code}</span>
-                                    </p>
-                                )}
-
-                                <p className="text-xs text-gray-400">Gabung sejak {new Date(aff.joined_at).toLocaleDateString()}</p>
-                            </div>
-
-                            <div className="mt-3">
-                                <p className="font-medium text-sm text-gray-600 mb-1">Referral:</p>
-                                {aff.referrals.length > 0 ? (
-                                    <ul className="space-y-2">
-                                        {aff.referrals.map((ref) => (
-                                            <li key={ref.id} className="text-sm border border-gray-100 rounded p-2 bg-white">
-                                                <p className="font-semibold text-gray-800">{ref.name}</p>
-                                                <div className="text-xs text-gray-400 flex justify-between">
-                                                    <span>Gabung: {new Date(ref.joined_at).toLocaleDateString()}</span>
-                                                    <span>Transaksi: {ref.transactions_count}</span>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-xs text-gray-400 italic">Belum ada teman yang diajak</p>
-                                )}
+            <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
+                    {/* Header */}
+                    <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
+                        {/* Left Section (Back Icon + Title) */}
+                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
+                            {/* Back Icon */}
+                            <button
+                                className="shrink-0 w-6 h-6"
+                                onClick={() => window.history.back()}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
+                                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                                </svg>
+                            </button>
+                            {/* Title */}
+                            <div className="font-utama text-white font-bold text-lg">
+                                Kelola Brand
                             </div>
                         </div>
-                    ))}
-
-
-                </div>
-
-                {/* Pagination */}
-                <div className="p-4 flex justify-center space-x-2">
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 bg-gray-300 rounded-lg disabled:bg-gray-100"
-                    >
-                        Prev
-                    </button>
-                    {Array.from({ length: totalPages }, (_, index) => (
                         <button
-                            key={index}
-                            onClick={() => handlePageChange(index + 1)}
-                            className={`px-4 py-2 rounded-lg ${currentPage === index + 1 ? "bg-main text-white" : "bg-gray-100"}`}
+                            onClick={handleSync}
+                            className="flex items-center w-6 h-6"
                         >
-                            {index + 1}
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-6 h-6 text-white">
+                                <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
+                                <path fillRule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
+                            </svg>
                         </button>
-                    ))}
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 bg-gray-300 rounded-lg disabled:bg-gray-100"
-                    >
-                        Next
-                    </button>
+                        {/* Plus Icon */}
+                        <button
+                            onClick={() => {
+                                setEditBrand(null);
+                                reset();
+                                setPreviewImage(null);
+                                setShowModal(true);
+                            }}
+                            className="flex items-center w-6 h-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white">
+                                <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8.01 8.01 0 0 1-8 8" />
+                                <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4z" />
+                            </svg>
+                        </button>
+                    </div>
+                    {/* Search & Filter */}
+                    <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
+                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                            {/* Search Bar */}
+                            <input
+                                id="searchInput"
+                                type="text"
+                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                placeholder="Cari brand"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {/* Search Icon */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                stroke="currentColor"
+                                strokeWidth="0.3"  // Ubah ketebalan stroke di sini
+                                className="w-5 h-5 text-main"
+                            >
+                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                            </svg>
+                        </div>
+                        {/* Sorting & Filter */}
+                        <div className="w-full h-max flex flex-row space-x-4 items-center justify-start">
+                            {/* Sort Button */}
+                            <button
+                                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                                className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2"
+                            >
+                                {sortOrder === "asc" ? (
+                                    // Ikon A-Z (urutan naik)
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                        className="w-4 h-4 text-main"
+                                    >
+                                        <path fillRule="evenodd" d="M10.082 5.629 9.664 7H8.598l1.789-5.332h1.234L13.402 7h-1.12l-.419-1.371zm1.57-.785L11 2.687h-.047l-.652 2.157z" />
+                                        <path d="M12.96 14H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
+                                    </svg>
+                                ) : (
+                                    // Ikon Z-A (urutan turun)
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                        className="w-4 h-4 text-main"
+                                    >
+                                        <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645z" />
+                                        <path fillRule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371zm1.57-.785L11 9.688h-.047l-.652 2.156z" />
+                                        <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293z" />
+                                    </svg>
+                                )}
+                                <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">
+                                    Urutkan
+                                </span>
+                            </button>
+
+                            <div className="shrink-0 w-8 text-main">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1"
+                                    className="w-full h-full"
+                                >
+                                    <line x1="12" y1="4" x2="12" y2="20" />
+                                </svg>
+                            </div>
+                            {/* Filter Button */}
+                            <button className="w-full h-max flex flex-row space-x-2 items-center justify-center px-4 py-2">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                    className="w-4 h-4 text-main"
+                                >
+                                    <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
+                                </svg>
+                                <span className="text-utama text-sm font-thin text-left align-middle text-blue-600">Filter</span>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-between px-4 py-2 bg-neutral-50 border-y border-neutral-200">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.length === filteredBrands.length && filteredBrands.length > 0}
+                                    onChange={toggleSelectAll}
+                                    className="accent-main w-4 h-4"
+                                />
+                                <span className="text-sm font-medium text-gray-700">
+                                    Pilih Semua
+                                </span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                                {selectedIds.length > 0 ? `${selectedIds.length} brand dipilih` : "Tidak ada yang dipilih"}
+                            </div>
+                        </div>
+
+                        <button onClick={() => setShowModalBulk(true)} className="btn-primary">
+                            Edit Massal Brand
+                        </button>
+                    </div>
                 </div>
+
+                <div className="mb-4 min-h-[756px] pt-[263px] bg-white">
+                    <div className="mb-4 min-h-[756px] bg-white">
+                        {filteredBrands.length > 0 ? (
+                            [...filteredBrands]
+                                .filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase())) // 🔍 Search Filter
+                                .sort((a, b) => (sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))) // 🔀 Sorting
+                                .map((brand) => (
+                                    <div
+                                        key={brand.id}
+                                        className="flex space-x-2 justify-between items-center p-4 border-b-2 border-b-neutral-100"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(brand.id)}
+                                            onChange={() => handleSelectBrand(brand.id)}
+                                            className="accent-main w-4 h-4"
+                                        />
+                                        <div className="w-full h-max flex items-center space-x-3 content-start">
+                                            <div className="w-13 h-13 space-x-2 flex items-center justify center p-1 rounded-xl bg-white shadow">
+                                                <img
+                                                    src={brand.image || "storage/categories/default.png"}
+                                                    alt={brand.name}
+                                                    className="w-10 h-10 rounded-xl object-cover"
+                                                />
+                                            </div>
+
+                                            <div className="max-w-[180px] flex flex-col items-start space-y-[2px]">
+                                                <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
+                                                <p className="font-utama text-xs text-gray-500">{categories.find(cat => cat.id === brand.category_id)?.name || "Tidak ada kategori"} / {inputTypes.find(type => type.id === brand.input_type_id)?.name || "Tidak ada tipe input"}</p>
+                                                <div className="w-[180px] h-max px-2 py-[2px] text-xs text-green-600 rounded-3xl bg-green-50 border border-green-600 flex items-center justify-center">
+                                                    {brand.profit_persen}% + Rp{brand.profit_tetap}
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div className="w-12 h-full flex flex-col items-center space-y-2">
+                                            <button
+                                                onClick={() => handleEdit(brand)}
+                                                className="w-full h-max px-2 py-[2px] text-xs text-main rounded-3xl bg-blue-50 border border-main flex items-center justify-center"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => confirmDelete(brand.id)}
+                                                className={`w-full h-max px-2 py-[2px] text-xs rounded-3xl flex items-center justify-center 
+                                                ${brand.is_used
+                                                        ? "text-yellow-600 bg-yellow-50 border border-yellow-600"
+                                                        : "text-red-600 bg-red-50 border border-red-600"
+                                                    }`}
+                                            >
+                                                Hapus
+                                            </button>
+
+
+                                        </div>
+
+                                    </div>
+                                ))
+                        ) : (
+                            <p className="p-4 text-center">Brand tidak ditemukan</p>
+                        )}
+                    </div>
+                </div>
+
+                {isPopupOpen && (
+                    <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                        <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                            <p className="w-full h-max text-utama text-lg font-medium text-center align-middle">
+                                Yakin ingin menghapus brand ini?
+                            </p>
+                            <div className="w-full h-max flex flex-row space-x-2">
+                                <button
+                                    onClick={() => handleDelete(selectedBrandId)}
+                                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+                                >
+                                    Ya
+                                </button>
+                                <button
+                                    onClick={() => setIsPopupOpen(false)}
+                                    className="w-full h-10 flex items-center justify-center px-4 py-2 text-white bg-main rounded-md hover:bg-blue-700"
+                                >
+                                    Tidak
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+
+
+                {/* 🔹 MODAL FORM */}
+                {showModal && (
+                    <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                        {/* <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white"> */}
+                        <div className="w-[328px] h-[643px] overflow-y-auto flex flex-col space-y-2 p-4 rounded-lg bg-white">
+
+                            <div className="w-full h-max flex flex-col">
+                                {/* Ikon silang di kanan atas */}
+                                <button
+                                    className="w-full flex items-end justify-end"
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setErrors({}); // Menghapus error saat modal ditutup
+                                    }}>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                        className="w-7 h-7 text-red-500"
+                                    >
+                                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" />
+                                    </svg>
+                                </button>
+                                {/* Judul di tengah */}
+                                <h2 className="w-full h-max text-utama text-lg font-medium text-center align-middle">
+                                    {editBrand ? "Edit Brand" : "Tambah Brand"}
+                                </h2>
+                            </div>
+                            <form onSubmit={handleSubmit}>
+                                <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
+                                    <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
+                                        <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
+                                            {/* Input file transparan di atas lingkaran */}
+                                            <input
+                                                type="file"
+                                                name="image"
+                                                accept="image/*"
+                                                onChange={handleImageChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            {/* Preview gambar atau placeholder */}
+                                            {previewImage ? (
+                                                <img
+                                                    src={previewImage}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                                                    Pilih Gambar
+                                                </span>
+                                            )}
+                                        </label>
+                                        {/* Error message */}
+                                        {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
+                                        <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Brand</p>
+                                    </div>
+                                    <div className="w-[294px] h-max flex flex-col space-y-2">
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Nama Brand</p>
+                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={data.name.split(" - ")[0]}
+                                                onChange={(e) => setData("name", e.target.value)}
+                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                placeholder="Contoh: Mobile Legends"
+                                                required
+                                            />
+                                        </div>
+                                        {errors.name && (
+                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                        )}
+
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Kategori</p>
+                                        <div className="relative w-full">
+                                            <div
+                                                className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
+                                                onClick={() => setShowCategoryPopup(true)}
+                                            >
+                                                <span>
+                                                    {categories.find(cat => cat.id === data.category_id)?.name || "Pilih kategori"}
+                                                </span>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="w-5 h-5 text-gray-500"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M6 9l6 6 6-6"></path>
+                                                </svg>
+                                            </div>
+                                            {showCategoryPopup && (
+                                                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                                                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                                            {/* Search Bar */}
+                                                            <input
+                                                                id="searchInput"
+                                                                type="text"
+                                                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                                placeholder="Cari kategori"
+                                                                value={searchCategory}
+                                                                onChange={(e) => setSearchCategory(e.target.value)}
+                                                            />
+                                                            {/* Search Icon */}
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                viewBox="0 0 24 24"
+                                                                fill="currentColor"
+                                                                stroke="currentColor"
+                                                                strokeWidth="0.3"  // Ubah ketebalan stroke di sini
+                                                                className="w-5 h-5 text-main"
+                                                            >
+                                                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                                            </svg>
+                                                        </div>
+
+                                                        <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
+                                                            {categories
+                                                                .filter(cat => cat.name.toLowerCase().includes(searchCategory.toLowerCase()))
+                                                                .map((cat) => (
+                                                                    <div
+                                                                        key={cat.id}
+                                                                        className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setData("category_id", cat.id);
+                                                                            setShowCategoryPopup(false);
+                                                                        }}
+                                                                    >
+                                                                        {/* Gambar kategori di sebelah kiri */}
+                                                                        <img
+                                                                            src={cat.image ? `/storage/${cat.image}` : "storage/categories/default.png"}
+                                                                            alt={cat.name}
+                                                                            className="w-8 h-8 border border-gray-300 rounded-full object-cover"
+                                                                        />
+                                                                        <p className="text-utama text-sm text-left align-middle">{cat.name}</p>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setShowCategoryPopup(false)}
+                                                            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"                                                    >
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        
+
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Tipe Input</p>
+                                        <div className="relative w-full">
+                                            <div
+                                                className="flex items-center justify-between w-full h-10 px-4 py-2 bg-white border border-gray-300 rounded-md cursor-pointer"
+                                                onClick={() => setShowInputTypePopup(true)}
+                                            >
+                                                <span>
+                                                    {inputTypes.find(type => type.id === data.input_type_id)?.name || "Pilih tipe input"}
+                                                </span>
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="w-5 h-5 text-gray-500"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M6 9l6 6 6-6"></path>
+                                                </svg>
+                                            </div>
+                                            {showInputTypePopup && (
+                                                <div className="fixed z-30 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                                                    <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                                                        {/* Search Bar */}
+                                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                                            <input
+                                                                id="searchInput"
+                                                                type="text"
+                                                                className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                                placeholder="Cari Input Type..."
+                                                                value={searchInputType}
+                                                                onChange={(e) => setSearchInputType(e.target.value)}
+                                                            />
+                                                            {/* Search Icon */}
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                viewBox="0 0 24 24"
+                                                                fill="currentColor"
+                                                                stroke="currentColor"
+                                                                strokeWidth="0.3"
+                                                                className="w-5 h-5 text-main"
+                                                            >
+                                                                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.471 6.471 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.505 4.505 0 0 1 9.5 14z" />
+                                                            </svg>
+                                                        </div>
+
+                                                        {/* List Input Types */}
+                                                        <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
+                                                            {inputTypes
+                                                                .filter(type => type.name.toLowerCase().includes(searchInputType.toLowerCase()))
+                                                                .map((type) => (
+                                                                    <div
+                                                                        key={type.id}
+                                                                        className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setData("input_type_id", type.id);
+                                                                            setShowInputTypePopup(false);
+                                                                        }}
+                                                                    >
+                                                                        <p className="text-utama text-sm text-left align-middle">{type.name}</p>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+
+                                                        {/* Tombol Tutup */}
+                                                        <button
+                                                            onClick={() => setShowInputTypePopup(false)}
+                                                            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                                                        >
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Persen</p>
+                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={data.profit_persen}
+                                                onChange={(e) => setData("profit_persen", e.target.value)}
+                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                placeholder="Contoh: 2.5"
+                                            />
+                                        </div>
+                                        {errors.name && (
+                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                        )}
+
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Profit Tetap</p>
+                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                            {/* Search Bar */}
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={data.profit_tetap}
+                                                onChange={(e) => setData("profit_tetap", e.target.value)}
+                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                placeholder="Contoh: 1000"
+                                            />
+                                        </div>
+                                        {errors.name && (
+                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                        )}
+
+                                        <p className="w-full h-max text-utama font-medium text-sm text-left align-middle">Contoh ID Pelanggan</p>
+                                        <div className="w-full h-9 flex flex-row mx-auto items-center justify-center rounded-lg bg-neutral-100 border-2 border-gray-200">
+                                            {/* Search Bar */}
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={data.example_id_product || ""} // Ini mencegah undefined
+                                                onChange={(e) => setData("example_id_product", e.target.value)}
+                                                className="bg-transparent text-sm border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
+                                                placeholder="input 1= 24434, input 2=Ms24"
+                                            />
+                                        </div>
+                                        {errors.name && (
+                                            <p className="text-red-600 text-sm">{errors.name}</p>
+                                        )}
+
+                                    </div>
+                                    <div className="w-full h-max flex flex-col space-y-2 items-center justify-center">
+                                        <label className="w-20 h-20 rounded-full cursor-pointer overflow-hidden relative border-2 border-gray-200">
+                                            {/* Input file transparan di atas lingkaran */}
+                                            <input
+                                                type="file"
+                                                name="image"
+                                                accept="image/*"
+                                                onChange={handleExampleImageChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            {/* Preview gambar atau placeholder */}
+                                            {previewExampleImage ? (
+                                                <img
+                                                    src={previewExampleImage}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                                                    Pilih Gambar
+                                                </span>
+                                            )}
+                                        </label>
+                                        {/* Error message */}
+                                        {errors.image && <p className="text-red-500 text-sm">{errors.image}</p>}
+                                        <p className="w-full h-max text-utama font-medium text-sm text-center align-middle">Gambar Contoh ID Pel</p>
+                                    </div>
+                                </div>
+
+                                <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
+                                    <button
+                                        type="submit"
+                                        disabled={processing || !data.name || !data.category_id || !data.input_type_id}
+                                        className={`w-full p-2 rounded transition ${processing || !data.name || !data.category_id || !data.input_type_id
+                                            ? "bg-gray-300 cursor-not-allowed"
+                                            : "bg-blue-600 text-white hover:bg-blue-700"
+                                            }`}
+                                    >
+                                        {editBrand ? "Update" : "Tambah"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
+            {/* Form Bulk Edit */}
+            {showModalBulk && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-4 max-w-[90%] w-[400px] relative z-50">
+                        <h2 className="text-lg font-semibold mb-3">Edit Massal Brand</h2>
+
+                        <div className="mb-2">
+                            <label className="block text-sm font-medium">Profit Persen</label>
+                            <input
+                                type="number"
+                                className="w-full border rounded p-2"
+                                value={bulkEditData.profit_persen || ""}
+                                onChange={(e) => handleBulkEditChange("profit_persen", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="mb-2">
+                            <label className="block text-sm font-medium">Profit Tetap</label>
+                            <input
+                                type="number"
+                                className="w-full border rounded p-2"
+                                value={bulkEditData.profit_tetap || ""}
+                                onChange={(e) => handleBulkEditChange("profit_tetap", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="mb-2">
+                            <label className="block text-sm font-medium">Kategori</label>
+                            <input
+                                type="text"
+                                value={categorySearch}
+                                onChange={(e) => setCategorySearch(e.target.value)}
+                                placeholder="Cari kategori..."
+                                className="w-full border rounded p-2 mb-1 text-sm"
+                            />
+                            <select
+                                value={bulkEditData.category_id || ""}
+                                onChange={(e) => handleBulkEditChange("category_id", e.target.value)}
+                                className="w-full border rounded p-2 text-sm"
+                            >
+                                <option value="">Pilih Kategori</option>
+                                {categories
+                                    .filter(category =>
+                                        category.name.toLowerCase().includes(categorySearch.toLowerCase())
+                                    )
+                                    .map(category => (
+                                        <option key={category.id} value={category.id}>
+                                            {category.name}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+
+
+<div className="mb-2 relative" ref={inputTypeRef}>
+    <label className="block text-sm font-medium mb-1">Tipe Input</label>
+    <input
+        type="text"
+        value={inputTypeSearch}
+        onFocus={() => {
+            setInputTypeSearch(""); // Kosongkan input saat fokus
+            setShowInputTypeOptions(true); // Tampilkan semua
+        }}
+        onChange={(e) => {
+            setInputTypeSearch(e.target.value);
+            setShowInputTypeOptions(true);
+        }}
+        placeholder="Ketik untuk mencari tipe input..."
+        className="w-full border rounded p-2 text-sm"
+    />
+    {showInputTypeOptions && (
+        <div className="absolute z-10 bg-white border border-gray-300 rounded w-full max-h-40 overflow-y-auto mt-1">
+            {inputTypes
+                .filter(type =>
+                    type.name.toLowerCase().includes(inputTypeSearch.toLowerCase())
+                )
+                .map(type => (
+                    <div
+                        key={type.id}
+                        onClick={() => {
+                            handleBulkEditChange("input_type_id", type.id);
+                            setSelectedInputType(type); // Simpan pilihan
+                            setInputTypeSearch(type.name); // Tampilkan nama
+                            setShowInputTypeOptions(false); // Tutup opsi
+                        }}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                    >
+                        {type.name}
+                    </div>
+                ))}
+            {inputTypes.filter(type =>
+                type.name.toLowerCase().includes(inputTypeSearch.toLowerCase())
+            ).length === 0 && (
+                <div className="px-3 py-2 text-gray-500 text-sm">Tidak ditemukan</div>
+            )}
+        </div>
+    )}
+</div>
+
+
+
+
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button onClick={() => setShowModalBulk(false)} className="px-4 py-2 bg-gray-200 rounded">
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleBulkEditSubmit}
+                                className="px-4 py-2 bg-blue-600 text-white rounded"
+                            >
+                                Simpan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

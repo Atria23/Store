@@ -196,7 +196,7 @@ PriceList::whereNotIn('buyer_sku_code', $apiSkuList)
                     'multi' => $item->multi,
                     'start_cut_off' => $item->start_cut_off,
                     'end_cut_off' => $item->end_cut_off,
-                    'desc' => trim($item->desc) ?? '',
+                    // 'desc' => trim($item->desc) ?? '',
                     'updated_at' => now(),
                 ]
             );

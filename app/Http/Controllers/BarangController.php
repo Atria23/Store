@@ -68,7 +68,7 @@ class BarangController extends Controller
         $types = Type::all(['id', 'name', 'brand_id']);
         $inputTypes = InputType::all(['id', 'name']);
     
-        return Inertia::render('ManageBarangs', [
+        return Inertia::render('ManageProducts', [
             'barangs' => $barangs,
             'categories' => $categories,
             'brands' => $brands,
@@ -77,6 +77,34 @@ class BarangController extends Controller
         ]);
     }
 
+    public function bulkUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:barangs,id',
+            'fields' => 'required|array',
+        ]);
+
+        $allowedFields = [
+            'desc',
+            'unlimited_stock',
+            'stock',
+            'multi',
+            'start_cut_off',
+            'end_cut_off',
+            'buyer_product_status',
+        ];
+
+        $updates = collect($validated['fields'])->only($allowedFields)->toArray();
+
+        if (empty($updates)) {
+            return redirect()->back()->with('error', 'Tidak ada field yang dapat diperbarui.');
+        }
+
+        Barang::whereIn('id', $validated['ids'])->update($updates);
+
+        return redirect()->route('products.index')->with('success', 'Pembaruan massal berhasil.');
+    }
     
     public function syncBarangs()
     {
