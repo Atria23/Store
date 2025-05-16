@@ -99,9 +99,10 @@ const TransactionItem = ({
                     <p className="w-full font-utama text-sm">
                         ID Tujuan: {formattedCustomerNo(customer_no)}
                     </p>
-                    <p className="w-full font-utama text-sm">
+                    <p className="w-full max-w-[200px] font-utama text-sm truncate" title={sn}>
                         SN: {sn}
                     </p>
+
                     <p
                         onClick={handleTransactionClick}
                         className="w-full font-utama text-sm text-blue-600 hover:underline cursor-pointer">
