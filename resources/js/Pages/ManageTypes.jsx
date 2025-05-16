@@ -483,7 +483,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                 {/* 🔹 MODAL FORM */}
                 {showModal && (
                     <div className="fixed z-20 inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-                        <div className="w-[328px] h-max flex flex-col space-y-2 items-center justify-center p-4 rounded-lg bg-white">
+                        <div className="w-[328px] max-h-[90vh] overflow-y-auto flex flex-col space-y-2 p-4 rounded-lg bg-white">
                             <div className="w-full h-max flex flex-col">
                                 {/* Ikon silang di kanan atas */}
                                 <button

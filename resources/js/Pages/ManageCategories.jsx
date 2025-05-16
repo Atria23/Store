@@ -122,9 +122,9 @@ export default function CategoryList() {
     };
 
     return (
-        <div className="mx-auto w-full max-w-[412px] max-h-[892px] min-h-screen">
+        <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
             {/* fixed position */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[412px] w-full z-10 bg-main">
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
                 {/* Header */}
                 <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
                     {/* Left Section (Back Icon + Title) */}
