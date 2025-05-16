@@ -160,52 +160,48 @@ class BrandController extends Controller
     }
 
     public function bulkUpdate(Request $request)
-{
-    // Validasi data yang diterima
-    $validated = $request->validate([
-        'brands' => 'required|array',
-        'brands.*.id' => 'required|integer|exists:brands,id',
-        'brands.*.category_id' => 'nullable|exists:categories,id',
-        'brands.*.input_type_id' => 'nullable|exists:input_types,id',
-        'brands.*.profit_persen' => 'nullable|numeric',
-        'brands.*.profit_tetap' => 'nullable|numeric',
-    ]);
+    {
+        // Validasi data yang diterima
+        $validated = $request->validate([
+            'brands' => 'required|array',
+            'brands.*.id' => 'required|integer|exists:brands,id',
+            'brands.*.category_id' => 'nullable|exists:categories,id',
+            'brands.*.input_type_id' => 'nullable|exists:input_types,id',
+            'brands.*.profit_persen' => 'nullable|numeric',
+            'brands.*.profit_tetap' => 'nullable|numeric',
+        ]);
 
-    // Update setiap brand
-    foreach ($validated['brands'] as $brandData) {
-        $brand = Brand::find($brandData['id']);
-        
-        if ($brand) {
-            // Hanya simpan data yang tersedia dalam brandData
-            $updateData = [];
+        // Update setiap brand
+        foreach ($validated['brands'] as $brandData) {
+            $brand = Brand::find($brandData['id']);
+            
+            if ($brand) {
+                // Hanya simpan data yang tersedia dalam brandData
+                $updateData = [];
 
-            if (array_key_exists('category_id', $brandData) && $brandData['category_id'] !== null) {
-                $updateData['category_id'] = $brandData['category_id'];
-            }
-            if (array_key_exists('input_type_id', $brandData) && $brandData['input_type_id'] !== null) {
-                $updateData['input_type_id'] = $brandData['input_type_id'];
-            }
-            if (array_key_exists('profit_persen', $brandData) && $brandData['profit_persen'] !== null) {
-                $updateData['profit_persen'] = $brandData['profit_persen'];
-            }
-            if (array_key_exists('profit_tetap', $brandData) && $brandData['profit_tetap'] !== null) {
-                $updateData['profit_tetap'] = $brandData['profit_tetap'];
-            }
+                if (array_key_exists('category_id', $brandData) && $brandData['category_id'] !== null) {
+                    $updateData['category_id'] = $brandData['category_id'];
+                }
+                if (array_key_exists('input_type_id', $brandData) && $brandData['input_type_id'] !== null) {
+                    $updateData['input_type_id'] = $brandData['input_type_id'];
+                }
+                if (array_key_exists('profit_persen', $brandData) && $brandData['profit_persen'] !== null) {
+                    $updateData['profit_persen'] = $brandData['profit_persen'];
+                }
+                if (array_key_exists('profit_tetap', $brandData) && $brandData['profit_tetap'] !== null) {
+                    $updateData['profit_tetap'] = $brandData['profit_tetap'];
+                }
 
-            // Hanya update jika ada data yang perlu diubah
-            if (!empty($updateData)) {
-                $brand->update($updateData);
+                // Hanya update jika ada data yang perlu diubah
+                if (!empty($updateData)) {
+                    $brand->update($updateData);
+                }
             }
         }
+
+        // Redirect kembali ke halaman index dengan pesan sukses
+        return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
     }
-
-    // Redirect kembali ke halaman index dengan pesan sukses
-    return redirect()->route('brands.index')->with('success', 'Brand berhasil diperbarui.');
-}
-
-
-    
-
 
     public function destroy(Brand $brand)
     {

@@ -23,6 +23,7 @@ class Transaction extends Model
      */
 
     protected $fillable = [
+        'id',
         'user_id',
         'ref_id',
         'buyer_sku_code',

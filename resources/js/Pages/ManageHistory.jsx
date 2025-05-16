@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react";
-import { Head, usePage, useForm } from "@inertiajs/react";
+import { Head, usePage, useForm, router } from "@inertiajs/react";
 
-const TransactionItem = ({ ref_id, product_name, customer_no, price, status, created_at, user_id }) => {
+const TransactionItem = ({
+    id,
+    ref_id,
+    product_name,
+    customer_no,
+    price,
+    status,
+    created_at,
+    user_id,
+    sn,
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+
     const statusClasses = {
         Sukses: "bg-green-100 text-green-600",
         Pending: "bg-yellow-100 text-yellow-600",
@@ -17,6 +29,38 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
         hour12: false,
         timeZone: "Asia/Jakarta",
     });
+
+    const handleEditClick = () => {
+        setIsEditing(true);
+    };
+
+    const { data, setData, post, processing, errors } = useForm({
+        id,
+        status: status || "",
+        sn: sn || "",
+    });
+    
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log("Submit function triggered");
+    
+        post("/transactions/update", {
+            data: {
+                id, // Pastikan ID dikirimkan
+                status: data.status,
+                sn: data.sn,
+            },
+            preserveScroll: true,
+            onSuccess: () => {
+                console.log("Update sukses");
+                setIsEditing(false);
+                router.visit(route("manage.history")); // 🔁 Redirect manual
+            },
+            onError: (error) => {
+                console.error("Terjadi error saat update:", error);
+            },
+        });
+    };
 
     const formattedCustomerNo = (customer_no) => {
         if (customer_no.length >= 6) {
@@ -34,8 +78,7 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
 
     return (
         <div
-            onClick={handleTransactionClick}
-            className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2"
+            className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 w-full gap-2"
         >
             {/* Kiri: Logo dan Informasi Produk */}
             <div className="flex items-center gap-2 w-full">
@@ -56,7 +99,12 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
                     <p className="w-full font-utama text-sm">
                         ID Tujuan: {formattedCustomerNo(customer_no)}
                     </p>
-                    <p className="w-full font-utama text-sm text-gray-500">
+                    <p className="w-full font-utama text-sm">
+                        SN: {sn}
+                    </p>
+                    <p
+                        onClick={handleTransactionClick}
+                        className="w-full font-utama text-sm text-blue-600 hover:underline cursor-pointer">
                         ID: {ref_id}
                     </p>
                 </div>
@@ -64,21 +112,69 @@ const TransactionItem = ({ ref_id, product_name, customer_no, price, status, cre
 
             {/* Kanan: Status dan Tanggal */}
             <div className="w-full flex flex-col items-end justify-end space-y-1">
-            <a
-    href={`/manage-users/${user_id}/edit`}
-    className="text-blue-600 hover:underline text-xs"
-  >
-    User ID: {user_id}
-  </a>
-                <p
-                    className={`hidden w-max-full min-[300px]:flex px-2 py-[2px] text-xs rounded-3xl justify-center ${statusClasses[status]}`}
+                <a
+                    href={`/manage-users/${user_id}/edit`}
+                    className="text-blue-600 hover:underline text-xs"
                 >
-                    {status}
-                </p>
-                <p className="hidden min-[350px]:flex font-utama text-[12px] text-right">{formattedDate}</p>
+                    User ID: {user_id}
+                </a>
+                {isEditing ? (
+                    <form onSubmit={handleSubmit} className="space-y-2 w-full">
+                        <select
+                            value={data.status}
+                            onChange={(e) => setData("status", e.target.value)}
+                            className="w-full p-2 rounded-md border"
+                        >
+                            <option value="Pending">Pending</option>
+                            <option value="Sukses">Sukses</option>
+                            <option value="Gagal">Gagal</option>
+                        </select>
+
+                        <input
+                            type="text"
+                            placeholder="Enter SN"
+                            value={data.sn}
+                            onChange={(e) => setData("sn", e.target.value)}
+                            className="w-full p-2 rounded-md border"
+                        />
+
+                        <div className="flex justify-between space-x-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditing(false)}
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <>
+                        <p
+                            className={`w-max-full min-[300px]:flex px-2 py-[2px] text-xs rounded-3xl justify-center ${statusClasses[status]}`}
+                        >
+                            {status}
+                        </p>
+                        <p className="hidden min-[350px]:flex font-utama text-[12px] text-right">
+                            {formattedDate}
+                        </p>
+
+                        <button
+                            onClick={handleEditClick}
+                            className="text-blue-600 text-sm mt-2"
+                        >
+                            Edit
+                        </button>
+                    </>
+                )}
             </div>
         </div>
-
     );
 };
 

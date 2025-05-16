@@ -14,26 +14,92 @@ use App\Models\User\AffiliateHistory;
 use App\Models\AffiliateProduct; // Pastikan ini ditambahkan
 use App\Models\User\Affiliator; // Pastikan ini ditambahkan
 use Inertia\Inertia;
+use App\Services\TransactionUpdateService;
 
 class TransactionController extends Controller
 {   
-
-    public function makeTransaction(Request $request)
+        
+    public function update(Request $request)
     {
-        $user = Auth::user();
+        \Log::info('Transaction update request:', $request->all());
 
-        if (!$user) {
-            return response()->json(['message' => 'User not authenticated'], 401);
+        $validated = $request->validate([
+            'id' => 'required|exists:transactions,id',
+            'status' => 'required|string',
+            'sn' => 'nullable|string',
+        ]);
+
+        $transaction = Transaction::find($validated['id']);
+        if ($transaction) {
+            $status = strtolower($validated['status']);
+
+            // Tentukan rc dan message berdasarkan status
+            $rc = $status === 'sukses' ? '00' : '99';
+            $message = $status === 'sukses' ? 'Transaksi berhasil' : 'Transaksi gagal';
+
+            $transaction->update([
+                'status' => $validated['status'],
+                'sn' => $validated['sn'] ?? '',
+                'rc' => $rc,
+                'message' => $message,
+            ]);
+
+            \Log::info('Transaksi diperbarui', [
+                'id' => $transaction->id,
+                'status' => $validated['status'],
+                'rc' => $rc,
+                'message' => $message,
+            ]);
+
+            return redirect()->route('manage.history')->with('success', 'Transaksi berhasil diperbarui');
         }
 
-        $username = env('P_U');
-        $apiKey = env('P_AK');
-        $ref_id = uniqid();
-        $buyer_sku_code = $request->input('buyer_sku_code');
-        $customer_no = $request->input('customer_no');
-        $price = $request->input('price');
-        $sign = md5($username . $apiKey . $ref_id);
+        return redirect()->back()->with('error', 'Transaksi tidak ditemukan');
+    }
 
+    public function makeTransaction(Request $request)
+{
+    $user = Auth::user();
+
+    if (!$user) {
+        return response()->json(['message' => 'User not authenticated'], 401);
+    }
+
+    $buyer_sku_code = $request->input('buyer_sku_code');
+    $price = $request->input('price');
+
+    $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
+    if (!$product) {
+        return response()->json(['message' => 'Product not found'], 404);
+    }
+
+    // Cek saldo user, jika kurang langsung return error
+    if ($user->balance < $product->price) {
+        // Jika ingin redirect ke route checkout:
+        return redirect()->route('checkout')->with('error', 'Saldo tidak cukup, silakan isi saldo terlebih dahulu.');
+    }
+
+    $username = env('P_U');
+    $apiKey = env('P_AK');
+    $ref_id = uniqid();
+    $buyer_sku_code = $request->input('buyer_sku_code');
+    $customer_no = $request->input('customer_no');
+    $price = $request->input('price');
+    $sign = md5($username . $apiKey . $ref_id);
+
+    $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
+    if (!$product) {
+        return response()->json(['message' => 'Product not found'], 404);
+    }
+
+    $isManualSku = str_contains($buyer_sku_code, '#');
+    $status = 'Pending';
+    $rc = $isManualSku ? '03' : null;
+    $sn = null;
+    $message = 'Menunggu proses manual';
+
+    // Jika bukan SKU manual, kirim ke API
+    if (!$isManualSku) {
         $data = [
             'username' => $username,
             'buyer_sku_code' => $buyer_sku_code,
@@ -47,77 +113,87 @@ class TransactionController extends Controller
         ])->post('https://api.digiflazz.com/v1/transaction', $data);
 
         $responseData = $response->json();
-        
-        $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
-        if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
 
-        $transaction = Transaction::create([
-            'user_id' => $user->id,
-            'ref_id' => $ref_id,
-            'buyer_sku_code' => $buyer_sku_code,
-            'customer_no' => $customer_no,
-            'status' => $responseData['data']['status'] ?? 'Failed',
-            'price' => $price,
-            'price_product' => $product->price,
-            'product_name' => $product->product_name,
-            'category' => $product->category,
-            'brand' => $product->brand,
-            'type' => $product->type,
-            'rc' => $responseData['data']['rc'] ?? 'UNKNOWN_ERROR',
-            'sn' => $responseData['data']['sn'] ?? null,
-            'buyer_last_saldo' => $user->balance,
-            'message' => $responseData['data']['message'] ?? 'Transaction failed',
-        ]);
+        $status = $responseData['data']['status'] ?? 'Failed';
+        $rc = $responseData['data']['rc'] ?? 'UNKNOWN_ERROR';
+        $sn = $responseData['data']['sn'] ?? null;
+        $message = $responseData['data']['message'] ?? 'Transaction failed';
+    }
 
-        $affiliator = Affiliator::where('user_id', $user->id)->first();
-        $affiliateProduct = AffiliateProduct::where('buyer_sku_code', $buyer_sku_code)->first();
+    $transaction = Transaction::create([
+        'user_id' => $user->id,
+        'ref_id' => $ref_id,
+        'buyer_sku_code' => $buyer_sku_code,
+        'customer_no' => $customer_no,
+        'status' => $status,
+        'price' => $price,
+        'price_product' => $product->price,
+        'product_name' => $product->product_name,
+        'category' => $product->category,
+        'brand' => $product->brand,
+        'type' => $product->type,
+        'rc' => $rc,
+        'sn' => $sn,
+        'buyer_last_saldo' => $user->balance,
+        'message' => $message,
+    ]);
 
-        if (!$affiliateProduct) {
-            Log::error('AffiliateProduct not found for buyer_sku_code: ' . $buyer_sku_code);
-            return response()->json(['error' => 'Affiliate product not found'], 404);
-        }
+    $affiliator = Affiliator::where('user_id', $user->id)->first();
+    $affiliateProduct = AffiliateProduct::where('buyer_sku_code', $buyer_sku_code)->first();
 
-        if (is_null($affiliateProduct->commission)) {
-            Log::error('Commission is NULL for buyer_sku_code: ' . $buyer_sku_code);
-            return response()->json(['error' => 'Commission value is NULL'], 400);
-        }
+    if (!$affiliateProduct) {
+        Log::error('AffiliateProduct not found for buyer_sku_code: ' . $buyer_sku_code);
+        return response()->json(['error' => 'Affiliate product not found'], 404);
+    }
 
-        // Ambil nilai tanpa default
-        $affiliator_id = $affiliator->affiliate_by ?? null;
-        $transaction_id = $transaction->id ?? null;
-        $commission = $affiliateProduct->commission ?? 0.00;
-        $status = $transaction->status ?? 'Pending';
-        $affiliate_product_id = $affiliateProduct->id ?? null;
+    if (is_null($affiliateProduct->commission)) {
+        Log::error('Commission is NULL for buyer_sku_code: ' . $buyer_sku_code);
+        return response()->json(['error' => 'Commission value is NULL'], 400);
+    }
 
-        // Debugging log untuk memastikan data tersedia sebelum insert
-        Log::info('Affiliate History Data:', [
+    $affiliator_id = $affiliator->affiliate_by ?? null;
+    $transaction_id = $transaction->id ?? null;
+    $commission = $affiliateProduct->commission ?? 0.00;
+    $affiliate_product_id = $affiliateProduct->id ?? null;
+
+    Log::info('Affiliate History Data:', [
+        'affiliator_id' => $affiliator_id,
+        'transaction_id' => $transaction_id,
+        'commission' => $commission,
+        'status' => $status,
+        'affiliate_product_id' => $affiliate_product_id
+    ]);
+
+    if ($affiliator_id !== null && $transaction_id !== null && $affiliate_product_id !== null) {
+        AffiliateHistory::create([
             'affiliator_id' => $affiliator_id,
             'transaction_id' => $transaction_id,
+            'affiliate_product_id' => $affiliate_product_id,
             'commission' => $commission,
             'status' => $status,
-            'affiliate_product_id' => $affiliate_product_id
         ]);
+    } else {
+        Log::error('AffiliateHistory insert failed: Missing affiliator_id, transaction_id, or affiliate_product_id');
+    }
 
-        if ($affiliator_id !== null && $transaction_id !== null && $affiliate_product_id !== null) {
-            AffiliateHistory::create([
-                'affiliator_id' => $affiliator_id,
-                'transaction_id' => $transaction_id,
-                'affiliate_product_id' => $affiliate_product_id, // Ditambahkan kolom ini
-                'commission' => $commission, 
-                'status' => $status,
-            ]);
-        } else {
-            Log::error('AffiliateHistory insert failed: Missing affiliator_id, transaction_id, or affiliate_product_id');
-        }
+    // ✅ Tetap potong saldo meskipun SKU manual
+    $user->balance -= $product->price;
+    $user->save();
+    $transaction->buyer_last_saldo = $user->balance;
+    $transaction->save();
 
+    if ($isManualSku) {
+        return response()->json([
+            'message' => 'Transaction pending (manual)',
+            'data' => [
+                'status' => 'Pending',
+                'message' => 'Menunggu proses manual',
+                'ref_id' => $ref_id,
+            ],
+            'balance' => $user->balance,
+        ], 200);
+    } else {
         if ($responseData['data']['status'] !== 'Gagal') {
-            $user->balance -= $product->price;
-            $user->save();
-            $transaction->buyer_last_saldo = $user->balance;
-            $transaction->save();
-
             return response()->json([
                 'message' => 'Transaction successful',
                 'data' => $responseData['data'],
@@ -131,6 +207,9 @@ class TransactionController extends Controller
             ], $response->status());
         }
     }
+    
+}
+
 
     public function verifyPassword(Request $request)
     {
@@ -182,74 +261,14 @@ class TransactionController extends Controller
         ]);
     }
 
-
-    public function updateTransactionStatus(Request $request)
+    public function updateTransactionStatus()
     {
-        $transactionId = $request->input('transaction_id');
-
-        // Cari transaksi dengan status Pending
-        $transaction = Transaction::where('ref_id', $transactionId)->where('status', 'Pending')->first();
-
-        if (!$transaction) {
-            return response()->json([
-                'message' => 'No pending transaction found or invalid ID',
-            ], 404);
-        }
-
-        // Data untuk validasi transaksi
-        $username = env('P_U');
-        $apiKey = env('P_AK');
-        $sign = md5($username . $apiKey . $transaction->ref_id);
-
-        $data = [
-            'username' => $username,
-            'ref_id' => $transaction->ref_id,
-            'sign' => $sign,
-        ];
-
-        // Kirim permintaan ke API
-        try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post('https://api.digiflazz.com/v1/transaction', $data);
-        
-            $responseData = $response->json();
-        } catch (\Exception $e) {
-            Log::error('API request failed', ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => 'Failed to connect to Digiflazz API',
-            ], 500);
-        }
-        
-        // Periksa apakah respons API valid
-        $apiData = $responseData['data'] ?? null;
-
-        if (!$apiData) {
-            return response()->json([
-                'message' => 'Invalid response from API',
-            ], 500);
-        }
-
-        // Update data transaksi di database
-        $transaction->update([
-            'status' => $apiData['status'] ?? 'Failed',
-            'rc' => $apiData['rc'] ?? 'UNKNOWN_ERROR',
-            'sn' => $apiData['sn'] ?? null,
-            'message' => $apiData['message'] ?? 'Transaction failed',
-        ]);
-
-        // Jika status transaksi gagal, kembalikan saldo pengguna
-        if ($apiData['status'] === 'Gagal') {
-            $user = $transaction->user;
-            $user->balance += $transaction->price_product;
-            $user->save();
-        }
+        $service = new TransactionUpdateService();
+        $result = $service->updatePendingTransactions();
 
         return response()->json([
-            'message' => 'Transaction status updated successfully',
-            'data' => $apiData,
-            'balance' => $transaction->user->balance,
-        ], 200);
+            'message' => $result,
+        ]);
     }
     
     public function webhookHandler(Request $request)

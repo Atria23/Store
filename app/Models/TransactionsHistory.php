@@ -21,6 +21,7 @@ class TransactionsHistory extends Model
      * @var array
      */
     protected $fillable = [
+        'id',
         'user_id',
         'ref_id',
         'product_name',
@@ -43,6 +44,7 @@ class TransactionsHistory extends Model
 
 // CREATE VIEW transactions_history AS
 // SELECT
+//     id,
 //     user_id,
 //     ref_id,
 //     product_name,

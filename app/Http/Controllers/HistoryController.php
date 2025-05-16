@@ -27,7 +27,7 @@ class HistoryController extends Controller
 
     public function getAllHistory()
     {
-        $history = TransactionsHistory::select('ref_id', 'product_name', 'customer_no', 'price', 'status', 'created_at', 'user_id')
+        $history = TransactionsHistory::select('id', 'sn', 'ref_id', 'product_name', 'customer_no', 'price', 'status', 'created_at', 'user_id')
             ->orderBy('created_at', 'desc')
             ->get();
 

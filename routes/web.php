@@ -51,15 +51,6 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\AdminDepositNotification;
 use App\Models\Deposit;
 
-Route::get('/test-email', function () {
-    // Ambil salah satu deposit (pastikan id-nya ada)
-    $deposit = Deposit::latest()->first();
-
-    Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'request'));
-
-    return 'Email test berhasil dikirim!';
-});
-
 
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
@@ -233,6 +224,9 @@ Route::middleware(['super-admin'])->group(function () {
     Route::get('/manage-affiliators', [ManageAffiliatorController::class, 'index'])->name('manage-affiliators');
     Route::post('/barang/bulk-update', [BarangController::class, 'bulkUpdate'])->name('barang.bulk-update');
     Route::post('/brands/bulk-update', [BrandController::class, 'bulkUpdate'])->name('brands.bulk-update');
+    Route::post('/types/bulk-update', [TypeController::class, 'bulkUpdate'])->name('types.bulk-update');
+    Route::post('/transactions/update', [TransactionController::class, 'update']);
+
 
     Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
     Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])

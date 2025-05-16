@@ -112,12 +112,15 @@ class Product extends Model
 
 //     it.formula AS input_type,
 
-//     ROUND(
-//         CAST(b.price AS DECIMAL(18,4))  
-//         + (CAST(COALESCE(br.profit_persen, 0) AS DECIMAL(18,4)) * CAST(b.price AS DECIMAL(18,4)) / 100)
-//         + CAST(COALESCE(br.profit_tetap, 0) AS DECIMAL(18,4)),
-//         0
-//     ) AS price,
+// ROUND(
+//     CAST(b.price AS DECIMAL(18,4))  
+//     + (
+//         CAST(COALESCE(t.profit_persen, br.profit_persen, 0) AS DECIMAL(18,4)) 
+//         * CAST(b.price AS DECIMAL(18,4)) / 100
+//     )
+//     + CAST(COALESCE(t.profit_tetap, br.profit_tetap, 0) AS DECIMAL(18,4)),
+//     0
+// ) AS price,
 
 //     COALESCE(b.`desc`, pl.`desc`) AS `description`,
 //     b.seller_name,

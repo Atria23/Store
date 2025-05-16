@@ -95,6 +95,7 @@ export default function ManageBarangs({ barangs = [] }) {
                     multi: "",
                     start_cut_off: "",
                     end_cut_off: "",
+                    seller_product_status: "",
                     buyer_product_status: ""
                 });
             },
@@ -114,6 +115,7 @@ export default function ManageBarangs({ barangs = [] }) {
                 multi: null,
                 start_cut_off: null,
                 end_cut_off: null,
+                seller_product_status: null,
                 buyer_product_status: null,
             },
         }, {
@@ -474,17 +476,31 @@ export default function ManageBarangs({ barangs = [] }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium">Status Produk Buyer</label>
+                                <label className="block text-sm font-medium">Status Produk Buyer & Seller</label>
                                 <select
-                                    value={bulkForm.buyer_product_status}
-                                    onChange={(e) => setBulkForm({ ...bulkForm, buyer_product_status: e.target.value })}
+                                    value={
+                                        bulkForm.buyer_product_status === true ? 'true' :
+                                            bulkForm.buyer_product_status === false ? 'false' : ''
+                                    }
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const status = value === 'true' ? true : value === 'false' ? false : null;
+
+                                        setBulkForm({
+                                            ...bulkForm,
+                                            buyer_product_status: status,
+                                            seller_product_status: status,
+                                        });
+                                    }}
                                     className="w-full border rounded p-2 text-sm"
                                 >
                                     <option value="">-- Pilih status --</option>
-                                    <option value="available">Available</option>
-                                    <option value="hidden">Hidden</option>
+                                    <option value="true">Tersedia</option>
+                                    <option value="false">Gangguan</option>
                                 </select>
                             </div>
+
+
 
                             {/* Tombol Reset */}
                             <button

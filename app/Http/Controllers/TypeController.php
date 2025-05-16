@@ -77,6 +77,8 @@ class TypeController extends Controller
                     'category_id' => $type->category_id,
                     'category_name' => optional($type->category)->name, // Nama kategori lengkap
                     'category_base_name' => $categoryBaseName, // Bagian pertama dari nama kategori
+                    'profit_persen' => $type->profit_persen,
+                    'profit_tetap' => $type->profit_tetap,
                     'input_type_id' => $type->input_type_id,
                     'input_type_name' => optional($type->inputType)->name, // Nama input type
                     'created_at' => $type->created_at,
@@ -203,6 +205,44 @@ class TypeController extends Controller
 
         return redirect()->route('types.index')->with('success', 'Type berhasil diperbarui.');
     }
+
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:types,id',
+            'profit_persen' => 'nullable|numeric',
+            'profit_tetap' => 'nullable|numeric',
+            'category_id' => 'nullable|exists:categories,id',
+            'input_type_id' => 'nullable|exists:input_types,id',
+        ]);
+
+        $updateData = [];
+
+        if ($request->has('profit_persen')) {
+            $updateData['profit_persen'] = $request->profit_persen !== '' ? $request->profit_persen : null;
+        }
+        if ($request->has('profit_tetap')) {
+            $updateData['profit_tetap'] = $request->profit_tetap !== '' ? $request->profit_tetap : null;
+        }
+        
+        if ($request->filled('category_id')) {
+            $updateData['category_id'] = $request->category_id;
+        }
+        if ($request->filled('input_type_id')) {
+            $updateData['input_type_id'] = $request->input_type_id;
+        }
+
+        if (empty($updateData)) {
+            return back()->with('error', 'Tidak ada perubahan data yang dikirim.');
+        }
+
+        // Update only changed data
+        \App\Models\Type::whereIn('id', $request->ids)->update($updateData);
+
+        return back()->with('success', 'Berhasil memperbarui tipe terpilih.');
+    }
+
 
 
     // ✅ 4. Menghapus Type

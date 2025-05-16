@@ -23,7 +23,7 @@ class DepositController extends Controller
         $expiredCount = $service->expireIfPastDue();
         return response()->json(['expired' => $expiredCount]);
     }
-    
+
     // Menampilkan halaman pembuatan deposit
     public function create()
     {
@@ -66,7 +66,8 @@ class DepositController extends Controller
         while (DB::table('deposits')
             ->whereDate('created_at', $today)
             ->where('total_pay', $totalPay)
-            ->exists()) {
+            ->exists()
+        ) {
             $uniqueCode += 1;
             $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
             $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
@@ -180,7 +181,7 @@ class DepositController extends Controller
         // Cek jika ada file yang di-upload
         if ($request->hasFile('proof_of_payment')) {
             $file = $request->file('proof_of_payment');
-            
+
             // Generate nama file unik dengan ekstensi asli
             $uniqueFileName = uniqid() . '.' . $file->getClientOriginalExtension();
 
@@ -202,7 +203,6 @@ class DepositController extends Controller
                 'success' => true,
                 'proof_of_payment' => $path, // Berikan path file yang disimpan
             ]);
-
         }
 
         return response()->json([
@@ -210,7 +210,7 @@ class DepositController extends Controller
             'message' => 'No file uploaded.',
         ]);
     }
-    
+
     public function getProofOfPayment($id)
     {
         // Cari deposit berdasarkan ID
@@ -218,8 +218,8 @@ class DepositController extends Controller
 
         // Pastikan hanya pengunggah atau admin yang dapat mengakses file
         $user = auth()->user();
-        if ($user->id !== $deposit->user_id && !$user->hasRole('super-admin')) {
-            abort(403, 'You are not authorized to view this file.'); 
+        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin'))) {
+            abort(403, 'You are not authorized to view this deposit.');
         }
 
         // Pastikan file ada
@@ -281,9 +281,11 @@ class DepositController extends Controller
 
         // Pastikan deposit tersebut milik user yang sedang login
         $user = auth()->user();
-        if ($user->id !== $deposit->user_id && !$user->hasRole('super-admin')) {
-            abort(403, 'You are not authorized to view this deposit.'); 
+
+        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin'))) {
+            abort(403, 'You are not authorized to view this deposit.');
         }
+
 
         // Siapkan data untuk tampilan detail deposit
         return Inertia::render('User/DepositDetail', [
@@ -303,5 +305,4 @@ class DepositController extends Controller
             ]
         ]);
     }
-
 }

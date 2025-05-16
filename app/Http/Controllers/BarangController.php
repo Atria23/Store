@@ -93,6 +93,7 @@ class BarangController extends Controller
             'start_cut_off',
             'end_cut_off',
             'buyer_product_status',
+            'seller_product_status',
         ];
 
         $updates = collect($validated['fields'])->only($allowedFields)->toArray();

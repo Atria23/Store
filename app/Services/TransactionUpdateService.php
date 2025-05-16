@@ -22,29 +22,35 @@ class TransactionUpdateService
             $pendingTransactions = Transaction::where('status', 'Pending')->get();
 
             foreach ($pendingTransactions as $transaction) {
+                // Lewati jika SKU mengandung '#'
+                if (strpos($transaction->buyer_sku_code, '#') !== false) {
+                    Log::info("Skipped transaction {$transaction->ref_id} because SKU contains #: {$transaction->sku}");
+                    continue;
+                }
+            
                 $username = env('P_U');
                 $apiKey = env('P_AK');
                 $sign = md5($username . $apiKey . $transaction->ref_id);
-
+            
                 $data = [
                     'username' => $username,
                     'ref_id' => $transaction->ref_id,
                     'sign' => $sign,
                 ];
-
+            
                 // Kirim permintaan ke API
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json',
                 ])->post('https://api.digiflazz.com/v1/transaction', $data);
-
+            
                 $responseData = $response->json();
                 $apiData = $responseData['data'] ?? null;
-
+            
                 if (!$apiData) {
                     Log::warning("Invalid response from API for Transaction ID {$transaction->ref_id}");
                     continue;
                 }
-
+            
                 // Update status transaksi
                 $transaction->update([
                     'status' => $apiData['status'] ?? 'Failed',
@@ -52,21 +58,22 @@ class TransactionUpdateService
                     'sn' => $apiData['sn'] ?? null,
                     'message' => $apiData['message'] ?? 'Transaction failed',
                 ]);
-
+            
                 Log::info("Transaction ID {$transaction->ref_id} updated successfully.");
-
+            
                 // Jika transaksi gagal, kembalikan saldo pengguna
                 if ($apiData['status'] === 'Gagal') {
                     $user = $transaction->user;
                     $user->balance += $transaction->price_product;
                     $user->save();
-
+            
                     Log::info("Balance refunded for user ID {$user->id} for Transaction ID {$transaction->ref_id}");
                 }
-
-                // **Update status affiliate history setelah transaksi diperbarui**
+            
+                // Update status affiliate history
                 $this->updateAffiliateHistoryStatus($transaction);
             }
+            
 
             return "Successfully updated all pending transactions.";
         } catch (\Exception $e) {
