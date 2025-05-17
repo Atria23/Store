@@ -51,7 +51,6 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\AdminDepositNotification;
 use App\Models\Deposit;
 
-
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
 Route::post('/deposit/check-expired', [\App\Http\Controllers\DepositController::class, 'checkAndExpire']);

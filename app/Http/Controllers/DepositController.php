@@ -95,7 +95,7 @@ class DepositController extends Controller
         ]);
 
         // Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'create'));
-        $adminEmails = config('custom.admin_emails');
+        $adminEmails = config('custom.admin_deposit_emails');
 
         foreach ($adminEmails as $email) {
             Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'create'));
@@ -192,7 +192,7 @@ class DepositController extends Controller
             $deposit->proof_of_payment = $path;
             $deposit->save();
 
-            $adminEmails = config('custom.admin_emails');
+            $adminEmails = config('custom.admin_deposit_emails');
 
             foreach ($adminEmails as $email) {
                 Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'proof'));

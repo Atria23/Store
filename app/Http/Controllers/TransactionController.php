@@ -15,6 +15,8 @@ use App\Models\AffiliateProduct; // Pastikan ini ditambahkan
 use App\Models\User\Affiliator; // Pastikan ini ditambahkan
 use Inertia\Inertia;
 use App\Services\TransactionUpdateService;
+use App\Mail\AdminTransactionManualNotification;
+use Illuminate\Support\Facades\Mail;
 
 class TransactionController extends Controller
 {   
@@ -31,11 +33,11 @@ class TransactionController extends Controller
 
         $transaction = Transaction::find($validated['id']);
         if ($transaction) {
-            $status = strtolower($validated['status']);
+            $status = $validated['status'];
 
             // Tentukan rc dan message berdasarkan status
-            $rc = $status === 'sukses' ? '00' : '99';
-            $message = $status === 'sukses' ? 'Transaksi berhasil' : 'Transaksi gagal';
+            $rc = $status === 'Sukses' ? '00' : '99';
+            $message = $status === 'Sukses' ? 'Transaksi berhasil' : 'Transaksi gagal';
 
             $transaction->update([
                 'status' => $validated['status'],
@@ -51,6 +53,15 @@ class TransactionController extends Controller
                 'message' => $message,
             ]);
 
+            // Refund saldo jika statusnya gagal dan sebelumnya bukan gagal
+            if ($status === 'Gagal' && strtolower($transaction->getOriginal('status')) !== 'Gagal') {
+                $user = $transaction->user;
+                $user->balance += $transaction->price_product;
+                $user->save();
+
+                \Log::info("Balance refunded for user ID {$user->id} for Transaction ID {$transaction->ref_id}");
+            }
+
             return redirect()->route('manage.history')->with('success', 'Transaksi berhasil diperbarui');
         }
 
@@ -58,157 +69,186 @@ class TransactionController extends Controller
     }
 
     public function makeTransaction(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!$user) {
-        return response()->json(['message' => 'User not authenticated'], 401);
-    }
+        if (!$user) {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
 
-    $buyer_sku_code = $request->input('buyer_sku_code');
-    $price = $request->input('price');
+        $buyer_sku_code = $request->input('buyer_sku_code');
+        $price = $request->input('price');
 
-    $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
-    if (!$product) {
-        return response()->json(['message' => 'Product not found'], 404);
-    }
+        $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
 
-    // Cek saldo user, jika kurang langsung return error
-    if ($user->balance < $product->price) {
-        // Jika ingin redirect ke route checkout:
-        return redirect()->route('checkout')->with('error', 'Saldo tidak cukup, silakan isi saldo terlebih dahulu.');
-    }
+        // Cek saldo user, jika kurang langsung return error
+        if ($user->balance < $product->price) {
+            // Jika ingin redirect ke route checkout:
+            return redirect()->route('checkout')->with('error', 'Saldo tidak cukup, silakan isi saldo terlebih dahulu.');
+        }
 
-    $username = env('P_U');
-    $apiKey = env('P_AK');
-    $ref_id = uniqid();
-    $buyer_sku_code = $request->input('buyer_sku_code');
-    $customer_no = $request->input('customer_no');
-    $price = $request->input('price');
-    $sign = md5($username . $apiKey . $ref_id);
+        $username = env('P_U');
+        $apiKey = env('P_AK');
+        $ref_id = uniqid();
+        $buyer_sku_code = $request->input('buyer_sku_code');
+        $customer_no = $request->input('customer_no');
+        $price = $request->input('price');
+        $sign = md5($username . $apiKey . $ref_id);
 
-    $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
-    if (!$product) {
-        return response()->json(['message' => 'Product not found'], 404);
-    }
+        $product = Product::where('buyer_sku_code', $buyer_sku_code)->first();
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
 
-    $isManualSku = str_contains($buyer_sku_code, '#');
-    $status = 'Pending';
-    $rc = $isManualSku ? '03' : null;
-    $sn = null;
-    $message = 'Menunggu proses manual';
+        $isManualSku = str_contains($buyer_sku_code, '#');
+        $status = 'Pending';
+        $rc = $isManualSku ? '03' : null;
+        $sn = null;
+        $message = 'Menunggu proses manual';
 
-    // Jika bukan SKU manual, kirim ke API
-    if (!$isManualSku) {
-        $data = [
-            'username' => $username,
+        // Jika bukan SKU manual, kirim ke API
+        if (!$isManualSku) {
+            $data = [
+                'username' => $username,
+                'buyer_sku_code' => $buyer_sku_code,
+                'customer_no' => $customer_no,
+                'ref_id' => $ref_id,
+                'sign' => $sign,
+            ];
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post('https://api.digiflazz.com/v1/transaction', $data);
+
+            $responseData = $response->json();
+
+            $status = $responseData['data']['status'] ?? 'Failed';
+            $rc = $responseData['data']['rc'] ?? 'UNKNOWN_ERROR';
+            $sn = $responseData['data']['sn'] ?? null;
+            $message = $responseData['data']['message'] ?? 'Transaction failed';
+        }
+
+        $transaction = Transaction::create([
+            'user_id' => $user->id,
+            'ref_id' => $ref_id,
             'buyer_sku_code' => $buyer_sku_code,
             'customer_no' => $customer_no,
-            'ref_id' => $ref_id,
-            'sign' => $sign,
-        ];
+            'status' => $status,
+            'price' => $price,
+            'price_product' => $product->price,
+            'product_name' => $product->product_name,
+            'category' => $product->category,
+            'brand' => $product->brand,
+            'type' => $product->type,
+            'rc' => $rc,
+            'sn' => $sn,
+            'buyer_last_saldo' => $user->balance,
+            'message' => $message,
+        ]);
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post('https://api.digiflazz.com/v1/transaction', $data);
+        $affiliator = Affiliator::where('user_id', $user->id)->first();
+        $affiliateProduct = AffiliateProduct::where('buyer_sku_code', $buyer_sku_code)->first();
 
-        $responseData = $response->json();
+        if (!$affiliateProduct) {
+            Log::error('AffiliateProduct not found for buyer_sku_code: ' . $buyer_sku_code);
+            return response()->json(['error' => 'Affiliate product not found'], 404);
+        }
 
-        $status = $responseData['data']['status'] ?? 'Failed';
-        $rc = $responseData['data']['rc'] ?? 'UNKNOWN_ERROR';
-        $sn = $responseData['data']['sn'] ?? null;
-        $message = $responseData['data']['message'] ?? 'Transaction failed';
-    }
+        if (is_null($affiliateProduct->commission)) {
+            Log::error('Commission is NULL for buyer_sku_code: ' . $buyer_sku_code);
+            return response()->json(['error' => 'Commission value is NULL'], 400);
+        }
 
-    $transaction = Transaction::create([
-        'user_id' => $user->id,
-        'ref_id' => $ref_id,
-        'buyer_sku_code' => $buyer_sku_code,
-        'customer_no' => $customer_no,
-        'status' => $status,
-        'price' => $price,
-        'price_product' => $product->price,
-        'product_name' => $product->product_name,
-        'category' => $product->category,
-        'brand' => $product->brand,
-        'type' => $product->type,
-        'rc' => $rc,
-        'sn' => $sn,
-        'buyer_last_saldo' => $user->balance,
-        'message' => $message,
-    ]);
+        $affiliator_id = $affiliator->affiliate_by ?? null;
+        $transaction_id = $transaction->id ?? null;
+        $commission = $affiliateProduct->commission ?? 0.00;
+        $affiliate_product_id = $affiliateProduct->id ?? null;
 
-    $affiliator = Affiliator::where('user_id', $user->id)->first();
-    $affiliateProduct = AffiliateProduct::where('buyer_sku_code', $buyer_sku_code)->first();
-
-    if (!$affiliateProduct) {
-        Log::error('AffiliateProduct not found for buyer_sku_code: ' . $buyer_sku_code);
-        return response()->json(['error' => 'Affiliate product not found'], 404);
-    }
-
-    if (is_null($affiliateProduct->commission)) {
-        Log::error('Commission is NULL for buyer_sku_code: ' . $buyer_sku_code);
-        return response()->json(['error' => 'Commission value is NULL'], 400);
-    }
-
-    $affiliator_id = $affiliator->affiliate_by ?? null;
-    $transaction_id = $transaction->id ?? null;
-    $commission = $affiliateProduct->commission ?? 0.00;
-    $affiliate_product_id = $affiliateProduct->id ?? null;
-
-    Log::info('Affiliate History Data:', [
-        'affiliator_id' => $affiliator_id,
-        'transaction_id' => $transaction_id,
-        'commission' => $commission,
-        'status' => $status,
-        'affiliate_product_id' => $affiliate_product_id
-    ]);
-
-    if ($affiliator_id !== null && $transaction_id !== null && $affiliate_product_id !== null) {
-        AffiliateHistory::create([
+        Log::info('Affiliate History Data:', [
             'affiliator_id' => $affiliator_id,
             'transaction_id' => $transaction_id,
-            'affiliate_product_id' => $affiliate_product_id,
             'commission' => $commission,
             'status' => $status,
+            'affiliate_product_id' => $affiliate_product_id
         ]);
-    } else {
-        Log::error('AffiliateHistory insert failed: Missing affiliator_id, transaction_id, or affiliate_product_id');
-    }
 
-    // ✅ Tetap potong saldo meskipun SKU manual
-    $user->balance -= $product->price;
-    $user->save();
-    $transaction->buyer_last_saldo = $user->balance;
-    $transaction->save();
+        if ($affiliator_id !== null && $transaction_id !== null && $affiliate_product_id !== null) {
+            AffiliateHistory::create([
+                'affiliator_id' => $affiliator_id,
+                'transaction_id' => $transaction_id,
+                'affiliate_product_id' => $affiliate_product_id,
+                'commission' => $commission,
+                'status' => $status,
+            ]);
+        } else {
+            Log::error('AffiliateHistory insert failed: Missing affiliator_id, transaction_id, or affiliate_product_id');
+        }
 
-    if ($isManualSku) {
-        return response()->json([
-            'message' => 'Transaction pending (manual)',
-            'data' => [
-                'status' => 'Pending',
-                'message' => 'Menunggu proses manual',
-                'ref_id' => $ref_id,
-            ],
-            'balance' => $user->balance,
-        ], 200);
-    } else {
-        if ($responseData['data']['status'] !== 'Gagal') {
+        $user->balance -= $product->price;
+        $user->save();
+        $transaction->buyer_last_saldo = $user->balance;
+        $transaction->save();
+
+        // if ($responseData['data']['status'] === 'Gagal') {
+        //     $user = $transaction->user;
+        //     $user->balance += $transaction->price_product;
+        //     $user->save();
+    
+        //     Log::info("Balance refunded for user ID {$user->id} for Transaction ID {$transaction->ref_id}");
+        // }
+
+        if ($transaction->status === 'Gagal') {
+            $user = $transaction->user;
+            $user->balance += $transaction->price_product;
+            $user->save();
+        
+            Log::info("Balance refunded for user ID {$user->id} for Transaction ID {$transaction->ref_id}");
+        }
+        
+
+        if ($isManualSku) {
+            \Log::info('Manual SKU terdeteksi, memulai pengiriman email notifikasi...'); // <== ini
+
+            $adminEmails = config('custom.manual_trancastions_emails');
+
+            foreach ($adminEmails as $email) {
+                try {
+                    Mail::to(trim($email))->send(new AdminTransactionManualNotification($transaction));
+                    \Log::info('Email notifikasi transaksi manual berhasil dikirim ke: ' . $email);
+                } catch (\Exception $e) {
+                    \Log::error('Gagal mengirim email ke: ' . $email . '. Error: ' . $e->getMessage());
+                }
+            }            
+
             return response()->json([
-                'message' => 'Transaction successful',
-                'data' => $responseData['data'],
+                'message' => 'Transaction pending (manual)',
+                'data' => [
+                    'status' => 'Pending',
+                    'message' => 'Menunggu proses manual',
+                    'ref_id' => $ref_id,
+                ],
                 'balance' => $user->balance,
             ], 200);
         } else {
-            return response()->json([
-                'message' => 'Transaction failed',
-                'data' => $responseData['data'] ?? null,
-                'balance' => $user->balance,
-            ], $response->status());
+            if ($responseData['data']['status'] !== 'Gagal') {
+                return response()->json([
+                    'message' => 'Transaction successful',
+                    'data' => $responseData['data'],
+                    'balance' => $user->balance,
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'Transaction failed',
+                    'data' => $responseData['data'] ?? null,
+                    'balance' => $user->balance,
+                ], $response->status());
+            }
         }
+        
     }
-    
-}
 
 
     public function verifyPassword(Request $request)
