@@ -484,12 +484,12 @@ const HistoryDetail = () => {
                             <div className="w-full flex flex-row justify-between items-center">
                                 <span className="text-md font-utama font-medium text-gray-700">Total Bayar</span>
                                 <span className="text-md font-utama font-semibold text-black">
-                                    {/* {formatRupiah(
-                                        (isEditing ? Number(price) : Number(String(transaction.price).replace(/\D/g, ""))) +
-                                        (isEditing ? Number(adminFee) : Number(String(transaction.admin_fee).replace(/\D/g, "")))
-                                    )} */}
-                                    {formatRupiah(Number(price) + Number(adminFee))}
-
+                                    {
+                                        formatRupiah(
+                                            Number(price) + Number(adminFee)
+                                            || Number(String(transaction.price).replace(/\D/g, "")) + Number(String(transaction.admin_fee).replace(/\D/g, ""))
+                                        )
+                                    }
                                 </span>
                             </div>
                         </div>
