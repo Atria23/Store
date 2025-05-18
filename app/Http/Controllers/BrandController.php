@@ -62,7 +62,9 @@ class BrandController extends Controller
                     'example_image' => $brand->example_image ? url('storage/' . $brand->example_image) : null,
                     'created_at' => $brand->created_at,
                     'updated_at' => $brand->updated_at,
-                    'is_used' => $isUsed
+                    'is_used' => $isUsed,
+                    'category_name' => optional($brand->category)->name,
+                    'input_type_name' => optional($brand->inputType)->name,
                 ];
             }),
             'categories' => Category::all(),

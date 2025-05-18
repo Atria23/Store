@@ -459,8 +459,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                             <div className="max-w-[180px] flex flex-col items-start space-y-[2px]">
                                                 <p className="font-utama font-semibold text-sm truncate w-full">{brand.name}</p>
                                                 <p className="font-utama text-xs text-gray-500">
-                                                    {categories.find(cat => String(cat.id) === String(brand.category_id))?.name || "Tidak ada kategori"} /
-                                                    {inputTypes.find(type => String(type.id) === String(brand.input_type_id))?.name || "Tidak ada tipe input"}
+                                                    {(brand.category_name || "Tidak ada kategori") + " / " + (brand.input_type_name || "Tidak ada tipe input")}
                                                 </p>
                                                 <div className="w-[180px] h-max px-2 py-[2px] text-xs text-green-600 rounded-3xl bg-green-50 border border-green-600 flex items-center justify-center">
                                                     {brand.profit_persen}% + Rp{brand.profit_tetap}

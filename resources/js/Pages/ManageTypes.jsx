@@ -702,10 +702,10 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
 
                                                             {/* Jika tidak ada hasil */}
                                                             {brands.filter(bra =>
-                                                                (!data.category_id || String(bra.category_id) === String(data.category_id)) &&
-                                                                bra.name.toLowerCase().includes(searchBrand.toLowerCase())
-                                                            )
-                                                                .length === 0 && (
+  (!data.category_id || String(bra.category_id) === String(data.category_id)) &&
+  bra.name.toLowerCase().includes(searchBrand.toLowerCase())
+)
+.length === 0 && (
                                                                     <p className="text-gray-500 text-sm text-center w-full py-2">Brand tidak ditemukan</p>
                                                                 )}
                                                         </div>
