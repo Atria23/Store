@@ -200,7 +200,11 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
 
     useEffect(() => {
         // Reset brand_id hanya jika category_id berubah
-        if (data.category_id && !brands.some(bra => bra.id === data.brand_id && bra.category_id === data.category_id)) {
+        if (data.category_id && !brands.some(bra => 
+            Number(bra.id) === Number(data.brand_id) && 
+            Number(bra.category_id) === Number(data.category_id)
+        ))
+        {
             setData("brand_id", null);
         }
     }, [data.category_id, brands]);
@@ -216,6 +220,16 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
             }
         });
     };
+
+    
+    const [selectedBrand, setSelectedBrand] = useState(null);
+    useEffect(() => {
+        if (showBrandPopup) {
+          const foundBrand = brands.find(bra => Number(bra.id) === Number(data.brand_id));
+          setSelectedBrand(foundBrand || null);
+        }
+      }, [showBrandPopup, data.brand_id, brands]);
+
 
     return (
         <>
@@ -553,7 +567,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowCategoryPopup(true)}
                                             >
                                                 <span>
-                                                    {categories.find(cat => String(cat.id) === String(data.category_id))?.name || "Pilih kategori"}
+                                                    {categories.find(cat => Number(cat.id) === Number(data.category_id))?.name || "Pilih kategori"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -633,7 +647,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowBrandPopup(true)}
                                             >
                                                 <span>
-                                                    {brands.find(bra => String(bra.id) === String(data.brand_id))?.name || "Pilih brand"}
+                                                    {brands.find(bra => Number(bra.id) === Number(data.brand_id))?.name || "Pilih brand"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -677,7 +691,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                         <div className="w-full max-h-[342px] flex flex-col items-start justify-start overflow-y-auto">
                                                             {brands
                                                                 .filter(bra =>
-                                                                    (!data.category_id || bra.category_id === data.category_id) &&  // Filter berdasarkan category_id
+                                                                    (!data.category_id || Number(bra.category_id) === Number(data.category_id)) &&  // Filter berdasarkan category_id
                                                                     bra.name.toLowerCase().includes(searchBrand.toLowerCase()) // Filter berdasarkan pencarian
                                                                 )
                                                                 .map((bra) => (
@@ -686,6 +700,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                                         className="w-full h-max flex flex-row space-x-2 items-center justify-start py-2 border-b border-b-gray-300 cursor-pointer"
                                                                         onClick={() => {
                                                                             setData("brand_id", bra.id);
+                                                                            setSelectedBrand(bra);
                                                                             setShowBrandPopup(false);
                                                                         }}
                                                                     >
@@ -702,10 +717,10 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
 
                                                             {/* Jika tidak ada hasil */}
                                                             {brands.filter(bra =>
-  (!data.category_id || String(bra.category_id) === String(data.category_id)) &&
-  bra.name.toLowerCase().includes(searchBrand.toLowerCase())
-)
-.length === 0 && (
+                                                                (!data.category_id || Number(bra.category_id) === Number(data.category_id)) &&
+                                                                bra.name.toLowerCase().includes(searchBrand.toLowerCase())
+                                                            )
+                                                                .length === 0 && (
                                                                     <p className="text-gray-500 text-sm text-center w-full py-2">Brand tidak ditemukan</p>
                                                                 )}
                                                         </div>
@@ -728,7 +743,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowInputTypePopup(true)}
                                             >
                                                 <span>
-                                                    {inputTypes.find(type => String(type.id) === String(data.input_type_id))?.name || "Pilih tipe input"}
+                                                    {inputTypes.find(type => Number(type.id) === Number(data.input_type_id))?.name || "Pilih tipe input"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
