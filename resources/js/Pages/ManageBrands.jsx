@@ -605,7 +605,8 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                                 onClick={() => setShowCategoryPopup(true)}
                                             >
                                                 <span>
-                                                    {categories.find(cat => cat.id === data.category_id)?.name || "Pilih kategori"}
+                                                    {categories.find(cat => Number(cat.id) === Number(data.category_id))?.name || "Pilih kategori"
+}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -687,7 +688,7 @@ export default function ManageBrands({ brands, categories, inputTypes }) {
                                                 onClick={() => setShowInputTypePopup(true)}
                                             >
                                                 <span>
-                                                    {inputTypes.find(type => type.id === data.input_type_id)?.name || "Pilih tipe input"}
+                                                    {inputTypes.find(type => Number(type.id) === Number(data.input_type_id))?.name || "Pilih tipe input"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
