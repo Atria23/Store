@@ -553,7 +553,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowCategoryPopup(true)}
                                             >
                                                 <span>
-                                                    {categories.find(cat => cat.id === data.category_id)?.name || "Pilih kategori"}
+                                                    {categories.find(cat => String(cat.id) === String(data.category_id))?.name || "Pilih kategori"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -633,7 +633,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowBrandPopup(true)}
                                             >
                                                 <span>
-                                                    {brands.find(bra => bra.id === data.brand_id)?.name || "Pilih brand"}
+                                                    {brands.find(bra => String(bra.id) === String(data.brand_id))?.name || "Pilih brand"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -728,7 +728,7 @@ export default function ManageTypes({ types = [], brands = [], categories = [], 
                                                 onClick={() => setShowInputTypePopup(true)}
                                             >
                                                 <span>
-                                                    {inputTypes.find(type => type.id === data.input_type_id)?.name || "Pilih tipe input"}
+                                                    {inputTypes.find(type => String(type.id) === String(data.input_type_id))?.name || "Pilih tipe input"}
                                                 </span>
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
