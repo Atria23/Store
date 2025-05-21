@@ -121,6 +121,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'otp_expires_at' => 'datetime',
+        'otp_verified_at' => 'datetime',
     ];
     
 

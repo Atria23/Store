@@ -47,8 +47,9 @@ class OtpController extends Controller
         // Reset OTP
         $user->otp = null;
         $user->otp_expires_at = null;
+        $user->otp_verified_at = now();
         $user->save();
-
+        
         Auth::login($user);
         session()->forget('otp_user_id');
 

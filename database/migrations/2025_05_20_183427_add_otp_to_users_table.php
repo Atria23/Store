@@ -9,20 +9,22 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    // database/migrations/xxxx_add_otp_to_users_table.php
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('otp')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
+            $table->timestamp('otp_verified_at')->nullable(); // kolom tambahan untuk validasi middleware
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['otp', 'otp_expires_at']);
+            $table->dropColumn(['otp', 'otp_expires_at', 'otp_verified_at']);
         });
     }
-
 };

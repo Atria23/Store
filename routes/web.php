@@ -109,7 +109,7 @@ Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show
 
 Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
         ->name('verification.email');
@@ -189,7 +189,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
-Route::middleware(['admin-or-super-admin'])->group(function () {
+Route::middleware(['admin-or-super-admin', 'otp.not.expired'])->group(function () {
     Route::get('/admin/deposits', [KelolaDepositController::class, 'index'])->name('admin.deposit');
     Route::post('/admin/deposit/confirm/{id}', [KelolaDepositController::class, 'confirm'])->name('admin.deposit.confirm');
     Route::post('/admin/deposit/cancel-confirm/{id}', [KelolaDepositController::class, 'cancelConfirm']);

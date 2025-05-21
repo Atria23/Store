@@ -11,15 +11,21 @@ use Inertia\Inertia;
 
 class EnsureOtpNotExpired
 {
+
+    protected $otpTimeoutMinutes = 15;
+
     public function handle(Request $request, Closure $next)
     {
         $user = Auth::user();
 
-        if ($user && $user->otp_expires_at && $user->otp_expires_at->isPast()) {
-            Auth::logout();
-            return redirect()->route('otp.form')->withErrors([
-                'otp' => 'Session OTP Anda telah kadaluarsa. Silakan login ulang.'
-            ]);
+         if ($user && $user->otp_verified_at) {
+            // Jika waktu terakhir verifikasi OTP sudah lewat dari batas waktu
+            if ($user->otp_verified_at->addMinutes($this->otpTimeoutMinutes)->isPast()) {
+                Auth::logout();
+                return redirect()->route('login')->withErrors([
+                    'otp' => 'Session Anda telah kadaluarsa. Silakan verifikasi ulang.'
+                ]);
+            }
         }
 
         return $next($request);
