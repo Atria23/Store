@@ -130,7 +130,7 @@ class UserProductController extends Controller
             'brand' => $brand,
             'brands' => $brands,
             'types' => $types,
-            'isPulsaOrData' => in_array($category->name, ['Pulsa', 'Data', 'Masa Aktif']),
+            'isPulsaOrData' => in_array($category->name, ['Pulsa', 'Data', 'Masa Aktif', 'Paket SMS & Telpon']),
             'type' => $type,
             'products' => $products,
             'inputTypes' => $inputTypes,

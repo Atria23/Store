@@ -98,7 +98,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                     {/* Search & Filter */}
                     <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
                         <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
-                            {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") ? (
+                            {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif" || category.name === "Paket SMS & Telpon") ? (
                                 <input
                                     id="searchInput"
                                     type="text"
@@ -136,7 +136,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                 <section className="w-full max-w-[500px] min-h-[828px] flex flex-col space-y-7 items-start justify-start pt-32 pb-4">
                     <div className="w-full flex flex-col space-y-4 items-center justify-start">
                         <div className="w-full px-4 grid grid-cols-4 gap-x-5 gap-y-4 flex items-start justify-center">
-                            {!(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif") && !brand ? (
+                            {!(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif" || category.name === "Paket SMS & Telpon") && !brand ? (
                                 brands
                                     .filter(brandItem => brandItem.name.toLowerCase().includes(searchQuery.toLowerCase()))
                                     .map((brandItem) => (

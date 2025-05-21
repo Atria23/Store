@@ -9,24 +9,7 @@ export default function Login({ canResetPassword }) {
     });
     const isFormValid = data.email && data.password;
     const [showPassword, setShowPassword] = useState(false);
-
-    const [isGuestLogin, setIsGuestLogin] = useState(false);
-    const loginAsGuest = () => {
-        setData({
-            email: 'guest@muvausa.com',
-            password: 'guest',
-            remember: false,
-        });
-        setIsGuestLogin(true);
-    };
-
-    useEffect(() => {
-        if (isGuestLogin && data.email === 'guest@muvausa.com') {
-            post(route('login'));
-            setIsGuestLogin(false); // Reset flag agar tidak infinite loop
-        }
-    }, [data, isGuestLogin]);
-
+    
     useEffect(() => {
         return () => {
             reset('password');
@@ -150,13 +133,14 @@ export default function Login({ canResetPassword }) {
                             <span className="px-3 text-gray-500 text-sm whitespace-nowrap">atau</span>
                             <div className="flex-grow border-t border-gray-300"></div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={loginAsGuest}
-                            className="w-full text-white text-sm p-2 rounded transition bg-main hover:bg-blue-700"
-                        >
-                            Login sebagai Tamu
-                        </button>
+                        <Link href={route('guest.dashboard')}>
+                            <button
+                                type="button"
+                                className="w-full text-white text-sm p-2 rounded transition bg-main hover:bg-blue-700"
+                            >
+                                Login sebagai Tamu
+                            </button>
+                        </Link>
                     </section>
 
                     {/* login */}

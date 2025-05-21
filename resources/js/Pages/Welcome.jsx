@@ -1,35 +1,8 @@
-import { Link, Head, useForm } from '@inertiajs/react';
+import { Link, Head } from '@inertiajs/react';
 import React from "react";
-import { useEffect, useState } from 'react';
 import MockupCarousel from "@/Components/MockupCarousel";
 
 export default function Welcome(props) {
-    const { data, setData, post } = useForm({
-        email: '',
-        password: '',
-        remember: false,
-    });
-    const [isGuestLogin, setIsGuestLogin] = useState(false);
-    const loginAsGuest = () => {
-        setData({
-            email: 'guest@muvausa.com',
-            password: 'guest',
-            remember: false,
-        });
-        setIsGuestLogin(true);
-    };
-
-    useEffect(() => {
-        if (isGuestLogin && data.email === 'guest@muvausa.com') {
-            post(route('login'));
-            setIsGuestLogin(false); // Reset flag agar tidak infinite loop
-        }
-    }, [data, isGuestLogin]);
-
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('login'));
-    };
 
     const benefits = [
         {
@@ -119,9 +92,8 @@ export default function Welcome(props) {
                                     </div>
                                 </div>
 
-                                <Link href={route('login')}>
+                                <Link href={route('guest.dashboard')}>
                                     <button
-                                        onClick={loginAsGuest}
                                         className="flex items-center justify-center gap-2 px-8 py-4 bg-transparent border-2 border-main text-main font-extrabold text-sm rounded-xl hover:bg-main hover:text-white transition-all duration-300"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-7 h-7" viewBox="0 0 16 16">

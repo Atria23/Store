@@ -52,8 +52,11 @@ use App\Mail\AdminDepositNotification;
 use App\Models\Deposit;
 
 use App\Http\Controllers\Auth\OtpController;
+use App\Http\Controllers\Guest\GuestDashboardController;
 
 Route::middleware('guest')->group(function () {
+    Route::get('/guest-dashboard', [GuestDashboardController::class, 'index'])->name('guest.dashboard');
+
 // web.php
 Route::get('/otp', [OtpController::class, 'showForm'])->name('otp.form');
     Route::post('/otp', [OtpController::class, 'verify'])->name('otp.verify');
