@@ -119,4 +119,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(\App\Models\Transaction::class);
     }
 
+    protected $casts = [
+        'otp_expires_at' => 'datetime',
+    ];
+    
+
 }

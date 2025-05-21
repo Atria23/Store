@@ -51,6 +51,17 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\AdminDepositNotification;
 use App\Models\Deposit;
 
+use App\Http\Controllers\Auth\OtpController;
+
+Route::middleware('guest')->group(function () {
+// web.php
+Route::get('/otp', [OtpController::class, 'showForm'])->name('otp.form');
+    Route::post('/otp', [OtpController::class, 'verify'])->name('otp.verify');
+    // routes/web.php
+Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
+
+});
+
 Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
 Route::post('/deposit/check-expired', [\App\Http\Controllers\DepositController::class, 'checkAndExpire']);
@@ -187,7 +198,7 @@ Route::middleware(['admin-or-super-admin'])->group(function () {
     Route::post('/deposit-account', [AdminController::class, 'update'])->name('admin.update');
 });
 
-Route::middleware(['super-admin'])->group(function () {
+Route::middleware(['super-admin', 'otp.not.expired'])->group(function () {
     // Halaman edit QRIS
     Route::get('/qris', [AdminController::class, 'editQris'])->name('admin.editQris');
     // Update data QRIS (untuk super admin)
@@ -225,9 +236,9 @@ Route::middleware(['super-admin'])->group(function () {
     Route::post('/brands/bulk-update', [BrandController::class, 'bulkUpdate'])->name('brands.bulk-update');
     Route::post('/types/bulk-update', [TypeController::class, 'bulkUpdate'])->name('types.bulk-update');
     Route::post('/transactions/update', [TransactionController::class, 'update']);
+        Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
+    
 
-
-    Route::get('/mimin/dashboard', [DashboardController::class, 'index'])->name('mimin.dashboard');
     Route::get('/affiliate-history/user={affiliator_id}', [AffiliateHistoryController::class, 'showForAdmin'])
             ->name('affiliate.history.admin');
 

@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super-admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class, // Tambahkan ini
             'admin-or-super-admin' => \App\Http\Middleware\AdminOrSuperAdminMiddleware::class,
+            'otp.not.expired' => \App\Http\Middleware\EnsureOtpNotExpired::class,
         ]);
         
     })

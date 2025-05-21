@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use App\Notifications\SendOtpNotification;
+
+
 class AuthenticatedSessionController extends Controller
 {
     /**
@@ -29,23 +34,31 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $request->authenticate();    // Ini akan cek login email & password
         $request->session()->regenerate();
 
         $user = Auth::user();
 
-        // Redirect based on roles
-        if ($user->hasRole('super-admin')) {
-            return redirect()->intended(route('mimin.dashboard')); // Super-admin dashboard
-        } elseif ($user->hasRole('admin')) {
-            return redirect()->intended(route('admin.dashboard')); // Admin dashboard
-        } elseif ($user->hasRole('user')) {
-            return redirect()->intended(route('user.dashboard')); // User dashboard
-        } else {
-            return redirect()->intended(route('user.dashboard')); // User dashboard
-        }
-    }
+        // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
+        Auth::logout();
 
+        // Generate OTP 6 digit random
+        $otp = random_int(100000, 999999);
+
+        // Hash OTP dan simpan di user, plus expiry 5 menit
+        $user->otp = Hash::make($otp);
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        // Kirim OTP via email (pakai Notification)
+        $user->notify(new SendOtpNotification($otp));
+
+        // Simpan ID user di session untuk validasi OTP nanti
+        session(['otp_user_id' => $user->id]);
+
+        // Redirect ke halaman input OTP
+        return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+    }
 
     /**
      * Destroy an authenticated session.
