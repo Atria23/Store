@@ -86,6 +86,14 @@ export default function TypePage() {
     const [selectedCommission, setSelectedCommission] = useState(0);
     const { user } = usePage().props;
 
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+    if (inputRef.current) {
+        inputRef.current.focus();
+    }
+    }, []);
+
     const [showLottie, setShowLottie] = useState(false);
 
     const handleCopyLink = () => {
@@ -165,19 +173,18 @@ export default function TypePage() {
             detectBrandByPrefix(cleanedPhone);
         }
     }, []);
-
+    
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
-
-        if (typingTimeout) clearTimeout(typingTimeout);
-
-        setTypingTimeout(setTimeout(() => {
-            detectBrandByPrefix(cleanedNumber);
-            updateUrl({ phone: cleanedNumber });
-        }, 2000));
-    };
+    
+        detectBrandByPrefix(cleanedNumber);
+        updateUrl({ phone: cleanedNumber });
+    
+        // Fokus input lagi supaya tetap nyala
+        inputRef.current?.focus();
+      };
 
     const normalizePhoneNumber = (number) => {
         if (!number) return "";
@@ -386,6 +393,7 @@ export default function TypePage() {
                                     <div className="flex-grow"
                                     >
                                         <input
+                                            ref={inputRef}
                                             type="tel"
                                             className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
                                             placeholder="Masukkan nomor HP"

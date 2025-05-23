@@ -42,23 +42,17 @@ const CategoryPage = ({ category, brands, brand }) => {
     const [phoneNumber, setPhoneNumber] = useState(formatPhoneNumber(initialPhoneNumber));
     const [searchQuery, setSearchQuery] = useState("");
     const [detectedOperator, setDetectedOperator] = useState(detectOperator(phoneNumber));
+    
+useEffect(() => {
+    if (phoneNumber.length >= 4) {
+        const operator = detectOperator(phoneNumber);
+        setDetectedOperator(operator);
 
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            if (phoneNumber.length >= 4) {
-                const operator = detectOperator(phoneNumber);
-                setDetectedOperator(operator);
-
-                if (operator) {
-                    window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
-                }
-            }
-        }, 2000);
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [phoneNumber, category.name]);
+        if (operator) {
+            window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
+        }
+    }
+}, [phoneNumber, category.name]);
 
 
     useEffect(() => {
