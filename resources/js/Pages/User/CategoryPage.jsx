@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Head, Link, usePage } from "@inertiajs/react";
+import { Head, Link, usePage, router } from "@inertiajs/react";
 
 const operatorPrefixes = {
     "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
@@ -65,7 +65,11 @@ const CategoryPage = ({ category, brands, brand }) => {
         if (detectedOperator) {
             const matchedBrands = brands.filter(b => b.name.toLowerCase().startsWith(detectedOperator.toLowerCase()));
             if (matchedBrands.length > 0) {
-                window.location.href = `/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`;
+                // window.location.href = `/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`;
+                router.visit(`/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`, {
+                    preserveScroll: true,
+                    preserveState: true,
+                  });
             }
         }
     }, [detectedOperator, brands, category.name, phoneNumber]);
@@ -101,7 +105,7 @@ const CategoryPage = ({ category, brands, brand }) => {
                             {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif" || category.name === "Paket SMS & Telpon") ? (
                                 <input
                                     id="searchInput"
-                                    type="text"
+                                    type="tel"
                                     className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                     value={phoneNumber}
                                     onChange={handlePhoneInputChange}

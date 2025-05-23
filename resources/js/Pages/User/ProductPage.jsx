@@ -396,6 +396,7 @@ export default function TypePage() {
                                         <input
                                             ref={inputRef}
                                             type="tel"
+                                            inputMode="numeric"
                                             className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
                                             placeholder="Masukkan nomor HP"
                                             value={phone}
