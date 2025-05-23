@@ -86,6 +86,16 @@ export default function TypePage() {
     const [selectedCommission, setSelectedCommission] = useState(0);
     const { user } = usePage().props;
 
+    const inputRef = useRef(null);
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    inputRef.current?.focus();
+  }, 100); // Delay kecil agar DOM benar-benar siap
+
+  return () => clearTimeout(timeout);
+}, []);
+
     const [showLottie, setShowLottie] = useState(false);
 
     const handleCopyLink = () => {
@@ -165,43 +175,18 @@ export default function TypePage() {
             detectBrandByPrefix(cleanedPhone);
         }
     }, []);
-
     
-
-    const inputRef = useRef(null);
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100); // delay kecil agar DOM siap
-    
-        return () => clearTimeout(timeout);
-    }, []);
-    
-    // useEffect(() => {
-    //     // Fokus sekali saat mount
-    //     inputRef.current?.focus();
-    //   }, []);
-    
-    // const handlePhoneChange = (e) => {
-    //     const rawNumber = e.target.value;
-    //     const cleanedNumber = normalizePhoneNumber(rawNumber);
-    //     setPhone(cleanedNumber);
-    
-    //     detectBrandByPrefix(cleanedNumber);
-    //     updateUrl({ phone: cleanedNumber });
-    //   };
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
     
-        if (typingTimeout) clearTimeout(typingTimeout);
+        detectBrandByPrefix(cleanedNumber);
+        updateUrl({ phone: cleanedNumber });
     
-        setTypingTimeout(setTimeout(() => {
-            detectBrandByPrefix(cleanedNumber);
-            updateUrl({ phone: cleanedNumber });
-        }, 1500)); // delay 500ms, bisa disesuaikan
-    };
+        // Fokus input lagi supaya tetap nyala
+        inputRef.current?.focus();
+      };
 
     const normalizePhoneNumber = (number) => {
         if (!number) return "";
@@ -410,16 +395,17 @@ export default function TypePage() {
                                     <div className="flex-grow"
                                     >
                                         <input
-                                            ref={inputRef}
-                                            type="tel"
-                                            inputMode="numeric"
-                                            autoFocus
-                                            className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
-                                            placeholder="Masukkan nomor HP"
-                                            value={phone}
-                                            onChange={handlePhoneChange}
-                                            autoComplete="off"
-                                        />
+  ref={inputRef}
+  type="tel"
+  inputMode="numeric" // membantu Android menampilkan keyboard angka
+  autoFocus // bisa bantu browser tertentu (tidak semua)
+  className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
+  placeholder="Masukkan nomor HP"
+  value={phone}
+  onChange={handlePhoneChange}
+  autoComplete="off"
+/>
+
                                     </div>
                                 )}
 

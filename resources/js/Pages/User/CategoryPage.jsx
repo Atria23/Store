@@ -52,6 +52,9 @@ useEffect(() => {
         if (operator) {
             window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
         }
+
+        // Fokus input supaya keyboard tetap muncul
+        inputRef.current?.focus();
       }
 }, [phoneNumber, category.name]);
 
