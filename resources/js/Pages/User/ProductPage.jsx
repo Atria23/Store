@@ -86,14 +86,6 @@ export default function TypePage() {
     const [selectedCommission, setSelectedCommission] = useState(0);
     const { user } = usePage().props;
 
-    const inputRef = useRef(null);
-
-    useEffect(() => {
-    if (inputRef.current) {
-        inputRef.current.focus();
-    }
-    }, []);
-
     const [showLottie, setShowLottie] = useState(false);
 
     const handleCopyLink = () => {
@@ -173,17 +165,41 @@ export default function TypePage() {
             detectBrandByPrefix(cleanedPhone);
         }
     }, []);
+
     
+
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+    if (inputRef.current) {
+        inputRef.current.focus();
+    }
+    }, []);
+    
+    // const handlePhoneChange = (e) => {
+    //     const rawNumber = e.target.value;
+    //     const cleanedNumber = normalizePhoneNumber(rawNumber);
+    //     setPhone(cleanedNumber);
+    
+    //     detectBrandByPrefix(cleanedNumber);
+    //     updateUrl({ phone: cleanedNumber });
+    //   };
+
+    const lastPrefixRef = useRef("");
+
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
-    
+
+        // Cek prefix 4 digit
+    const currentPrefix = cleanedNumber.substring(0, 4);
+
+    if (currentPrefix !== lastPrefixRef.current) {
+        lastPrefixRef.current = currentPrefix;
         detectBrandByPrefix(cleanedNumber);
         updateUrl({ phone: cleanedNumber });
-    
-        // Fokus input lagi supaya tetap nyala
-        inputRef.current?.focus();
+    }
       };
 
     const normalizePhoneNumber = (number) => {
@@ -399,6 +415,7 @@ export default function TypePage() {
                                             placeholder="Masukkan nomor HP"
                                             value={phone}
                                             onChange={handlePhoneChange}
+                                            autoComplete="off"
                                         />
                                     </div>
                                 )}
