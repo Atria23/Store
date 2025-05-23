@@ -65,8 +65,11 @@ const CategoryPage = ({ category, brands, brand }) => {
         if (detectedOperator) {
             const matchedBrands = brands.filter(b => b.name.toLowerCase().startsWith(detectedOperator.toLowerCase()));
             if (matchedBrands.length > 0) {
-                window.location.href = `/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`;
-            
+                // window.location.href = `/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`;
+                router.visit(`/c=${category.name}/b=${matchedBrands[0].name}?phone=${phoneNumber}`, {
+                    preserveScroll: true,
+                    preserveState: true,
+                  });
             }
         }
     }, [detectedOperator, brands, category.name, phoneNumber]);
