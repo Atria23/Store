@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 
 const operatorPrefixes = {
@@ -42,21 +42,23 @@ const CategoryPage = ({ category, brands, brand }) => {
     const [phoneNumber, setPhoneNumber] = useState(formatPhoneNumber(initialPhoneNumber));
     const [searchQuery, setSearchQuery] = useState("");
     const [detectedOperator, setDetectedOperator] = useState(detectOperator(phoneNumber));
-    const inputRef = useRef(null);
 
-useEffect(() => {
-    if (phoneNumber.length >= 4) {
-        const operator = detectOperator(phoneNumber);
-        setDetectedOperator(operator);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (phoneNumber.length >= 4) {
+                const operator = detectOperator(phoneNumber);
+                setDetectedOperator(operator);
 
-        if (operator) {
-            window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
-        }
+                if (operator) {
+                    window.history.replaceState(null, "", `/c=${category.name}/b=${operator}?phone=${phoneNumber}`);
+                }
+            }
+        }, 2000);
 
-        // Fokus input supaya keyboard tetap muncul
-        inputRef.current?.focus();
-      }
-}, [phoneNumber, category.name]);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [phoneNumber, category.name]);
 
 
     useEffect(() => {
@@ -98,9 +100,8 @@ useEffect(() => {
                         <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
                             {(category.name === "Pulsa" || category.name === "Data" || category.name === "Masa Aktif" || category.name === "Paket SMS & Telpon") ? (
                                 <input
-                                    ref={inputRef}
                                     id="searchInput"
-                                    type="tel"
+                                    type="text"
                                     className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400"
                                     value={phoneNumber}
                                     onChange={handlePhoneInputChange}

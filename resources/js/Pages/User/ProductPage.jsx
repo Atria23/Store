@@ -88,13 +88,11 @@ export default function TypePage() {
 
     const inputRef = useRef(null);
 
-useEffect(() => {
-  const timeout = setTimeout(() => {
-    inputRef.current?.focus();
-  }, 100); // Delay kecil agar DOM benar-benar siap
-
-  return () => clearTimeout(timeout);
-}, []);
+    useEffect(() => {
+        if (isPulsaOrData) {
+            inputRef.current?.focus();
+        }
+      }, [isPulsaOrData]);
 
     const [showLottie, setShowLottie] = useState(false);
 
@@ -175,18 +173,19 @@ useEffect(() => {
             detectBrandByPrefix(cleanedPhone);
         }
     }, []);
-    
+
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
-    
-        detectBrandByPrefix(cleanedNumber);
-        updateUrl({ phone: cleanedNumber });
-    
-        // Fokus input lagi supaya tetap nyala
-        inputRef.current?.focus();
-      };
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        setTypingTimeout(setTimeout(() => {
+            detectBrandByPrefix(cleanedNumber);
+            updateUrl({ phone: cleanedNumber });
+        }, 2000));
+    };
 
     const normalizePhoneNumber = (number) => {
         if (!number) return "";
@@ -395,17 +394,14 @@ useEffect(() => {
                                     <div className="flex-grow"
                                     >
                                         <input
-  ref={inputRef}
-  type="tel"
-  inputMode="numeric" // membantu Android menampilkan keyboard angka
-  autoFocus // bisa bantu browser tertentu (tidak semua)
-  className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
-  placeholder="Masukkan nomor HP"
-  value={phone}
-  onChange={handlePhoneChange}
-  autoComplete="off"
-/>
-
+                                            ref={inputRef}
+                                            type="tel"
+                                            className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
+                                            placeholder="Masukkan nomor HP"
+                                            value={phone}
+                                            onChange={handlePhoneChange}
+                                            autoComplete="off"
+                                        />
                                     </div>
                                 )}
 
