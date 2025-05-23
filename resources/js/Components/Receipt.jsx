@@ -109,7 +109,11 @@ const Receipt = ({ storeData, transaction, price, adminFee, ref_id, formattedDat
                 <div className="flex flex-col gap-1 w-full">
                     {[
                         ['Admin', formatRupiah(adminFee)],
-                        ['Total', formatRupiah((parseFloat(price) || transaction.price) + (parseFloat(adminFee) || 0))],
+                        ['Total', formatRupiah(
+                            (Number(price) || Number(String(transaction.price).replace(/\D/g, ''))) +
+                            (Number(adminFee) || Number(String(transaction.admin_fee).replace(/\D/g, '')))
+                          )
+                        ],                          
                     ].map(([label, value], idx) => (
                         <div
                             key={idx}

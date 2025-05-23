@@ -12,7 +12,7 @@ use Inertia\Inertia;
 class EnsureOtpNotExpired
 {
 
-    protected $otpTimeoutMinutes = 15;
+    protected $otpTimeoutMinutes = 120;
 
     public function handle(Request $request, Closure $next)
     {
