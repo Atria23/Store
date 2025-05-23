@@ -169,21 +169,39 @@ export default function TypePage() {
     
 
     const inputRef = useRef(null);
-
     useEffect(() => {
-    if (inputRef.current) {
-        inputRef.current.focus();
-    }
+        const timeout = setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100); // delay kecil agar DOM siap
+    
+        return () => clearTimeout(timeout);
     }, []);
     
+    // useEffect(() => {
+    //     // Fokus sekali saat mount
+    //     inputRef.current?.focus();
+    //   }, []);
+    
+    // const handlePhoneChange = (e) => {
+    //     const rawNumber = e.target.value;
+    //     const cleanedNumber = normalizePhoneNumber(rawNumber);
+    //     setPhone(cleanedNumber);
+    
+    //     detectBrandByPrefix(cleanedNumber);
+    //     updateUrl({ phone: cleanedNumber });
+    //   };
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
     
-        detectBrandByPrefix(cleanedNumber);
-        updateUrl({ phone: cleanedNumber });
-      };
+        if (typingTimeout) clearTimeout(typingTimeout);
+    
+        setTypingTimeout(setTimeout(() => {
+            detectBrandByPrefix(cleanedNumber);
+            updateUrl({ phone: cleanedNumber });
+        }, 1500)); // delay 500ms, bisa disesuaikan
+    };
 
     const normalizePhoneNumber = (number) => {
         if (!number) return "";
@@ -394,6 +412,8 @@ export default function TypePage() {
                                         <input
                                             ref={inputRef}
                                             type="tel"
+                                            inputMode="numeric"
+                                            autoFocus
                                             className="rounded-lg bg-neutral-100 border-2 border-gray-200 px-3 w-full focus:outline-none focus:ring-0 placeholder-gray-400"
                                             placeholder="Masukkan nomor HP"
                                             value={phone}
