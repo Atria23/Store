@@ -176,30 +176,13 @@ export default function TypePage() {
     }
     }, []);
     
-    // const handlePhoneChange = (e) => {
-    //     const rawNumber = e.target.value;
-    //     const cleanedNumber = normalizePhoneNumber(rawNumber);
-    //     setPhone(cleanedNumber);
-    
-    //     detectBrandByPrefix(cleanedNumber);
-    //     updateUrl({ phone: cleanedNumber });
-    //   };
-
-    const lastPrefixRef = useRef("");
-
     const handlePhoneChange = (e) => {
         const rawNumber = e.target.value;
         const cleanedNumber = normalizePhoneNumber(rawNumber);
         setPhone(cleanedNumber);
-
-        // Cek prefix 4 digit
-    const currentPrefix = cleanedNumber.substring(0, 4);
-
-    if (currentPrefix !== lastPrefixRef.current) {
-        lastPrefixRef.current = currentPrefix;
+    
         detectBrandByPrefix(cleanedNumber);
         updateUrl({ phone: cleanedNumber });
-    }
       };
 
     const normalizePhoneNumber = (number) => {
