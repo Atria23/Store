@@ -9,9 +9,9 @@ const RequestDeposit = () => {
     { label: 'GoPay (Bebas Biaya Admin)', value: 'gopay', logo: '/storage/payment_method/gopay.png' },
     { label: 'OVO (Bebas Biaya Admin)', value: 'ovo', logo: '/storage/payment_method/ovo.png' },
     { label: 'LinkAja (Bebas Biaya Admin)', value: 'linkaja', logo: '/storage/payment_method/linkaja.png' },
-    { label: 'QRIS Otomatis (Biaya Admin 0.7%)', value: 'qris_otomatis', logo: '/storage/payment_method/qris_otomatis.png' },
+    { label: 'QRIS Otomatis (Bebas Biaya Admin)', value: 'qris_otomatis', logo: '/storage/payment_method/qris_otomatis.png' },
     { label: 'QRIS Dana (Bebas Biaya Admin)', value: 'qris_dana', logo: '/storage/payment_method/qris_dana.png' },
-    { label: 'Qris Shopeepay (Bebas Biaya Admin)', value: 'qris_shopeepay', logo: '/storage/payment_method/qris_shopeepay.png' },
+    // { label: 'Qris Shopeepay (Bebas Biaya Admin)', value: 'qris_shopeepay', logo: '/storage/payment_method/qris_shopeepay.png' },
     { label: 'Qris Ovo (Biaya Admin 0.7%)', value: 'qris_ovo', logo: '/storage/payment_method/qris_ovo.png' },
     { label: 'Qris Gopay (Biaya Admin 0.3%)', value: 'qris_gopay', logo: '/storage/payment_method/qris_gopay.png' },
   ];
@@ -22,7 +22,7 @@ const RequestDeposit = () => {
 
   const { post, data, setData, processing, errors } = useForm({
     amount: "",
-    payment_method: "shopeepay", // Set default payment method
+    payment_method: "qris_otomatis", // Set default payment method
   });
 
   const [adminFee, setAdminFee] = useState(0); // State untuk Biaya Admin
@@ -41,7 +41,7 @@ const RequestDeposit = () => {
         fee = Math.ceil((data.amount || 0) * 0.003); // Biaya Admin 0.4% untuk QRIS GoPay
         break;
       case "qris_otomatis":
-        fee = Math.ceil((data.amount || 0) * 0.007); // Biaya Admin 0.7% untuk QRIS standar
+        fee = Math.ceil((data.amount || 0) * 0.000); // Biaya Admin 0.7% untuk QRIS standar
         break;
       default:
         fee = 0;
@@ -68,7 +68,7 @@ const RequestDeposit = () => {
         fee = Math.ceil(data.amount * 0.003); // Biaya Admin 0.4% for QRIS GoPay
         break;
       case "qris_otomatis":
-        fee = Math.ceil(data.amount * 0.007); // Biaya Admin 0.7% for QRIS
+        fee = Math.ceil(data.amount * 0.000); // Biaya Admin 0.7% for QRIS
         break;
       default:
         fee = 0; // Bebas Biaya Admin for other methods

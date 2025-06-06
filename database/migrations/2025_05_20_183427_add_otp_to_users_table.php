@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('otp')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
             $table->timestamp('otp_verified_at')->nullable(); // kolom tambahan untuk validasi middleware
+            $table->string('device_token')->nullable();
         });
     }
 
@@ -24,7 +25,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['otp', 'otp_expires_at', 'otp_verified_at']);
+            $table->dropColumn(['otp', 'otp_expires_at', 'otp_verified_at', 'device_token']);
         });
     }
 };

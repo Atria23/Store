@@ -36,7 +36,12 @@ class OtpController extends Controller
 
         $user = User::find($userId);
 
-        if (!$user || !$user->otp || !$user->otp_expires_at || $user->otp_expires_at->isPast()) {
+        if (
+            !$user ||
+            !$user->otp ||
+            !$user->otp_expires_at ||
+            $user->otp_expires_at->isPast()
+        ) {
             return back()->withErrors(['otp' => 'OTP tidak valid atau kadaluarsa.']);
         }
 
@@ -44,26 +49,36 @@ class OtpController extends Controller
             return back()->withErrors(['otp' => 'OTP salah.']);
         }
 
-        // Reset OTP
+        // Berhasil → buat token device baru
+        $newDeviceToken = hash('sha256', $request->userAgent() . now());
+
         $user->otp = null;
         $user->otp_expires_at = null;
         $user->otp_verified_at = now();
+        $user->device_token = $newDeviceToken;
         $user->save();
-        
+
+        // Login & set cookie 30 hari
         Auth::login($user);
         session()->forget('otp_user_id');
 
-        // Redirect berdasarkan role user
-        if ($user->hasRole('super-admin')) {
-            return redirect()->intended(route('mimin.dashboard'));
-        } elseif ($user->hasRole('admin')) {
-            return redirect()->intended(route('admin.dashboard'));
-        } else {
-            return redirect()->intended(route('user.dashboard'));
-        }
+        // Set cookie device_token (30 hari)
+        cookie()->queue(cookie('device_token', $newDeviceToken, 60 * 24 * 30));
 
-        return redirect()->intended('/');
+        return redirect()->intended($this->routeMatchByRole($user));
     }
+
+    private function routeMatchByRole($user): string
+    {
+        if ($user->hasRole('super-admin')) {
+            return route('mimin.dashboard');
+        } elseif ($user->hasRole('admin')) {
+            return route('admin.dashboard');
+        } else {
+            return route('user.dashboard');
+        }
+    }
+
 
     // app/Http/Controllers/OtpController.php
     public function resend(Request $request)

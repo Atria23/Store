@@ -32,33 +32,76 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
+    // public function store(LoginRequest $request): RedirectResponse
+    // {
+    //     $request->authenticate();    // Ini akan cek login email & password
+    //     $request->session()->regenerate();
+
+    //     $user = Auth::user();
+
+    //     // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
+    //     Auth::logout();
+
+    //     // Generate OTP 6 digit random
+    //     $otp = random_int(100000, 999999);
+
+    //     // Hash OTP dan simpan di user, plus expiry 5 menit
+    //     $user->otp = Hash::make($otp);
+    //     $user->otp_expires_at = now()->addMinutes(5);
+    //     $user->save();
+
+    //     // Kirim OTP via email (pakai Notification)
+    //     $user->notify(new SendOtpNotification($otp));
+
+    //     // Simpan ID user di session untuk validasi OTP nanti
+    //     session(['otp_user_id' => $user->id]);
+
+    //     // Redirect ke halaman input OTP
+    //     return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+    // }
     public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();    // Ini akan cek login email & password
-        $request->session()->regenerate();
+{
+    $request->authenticate();    
+    $request->session()->regenerate();
 
-        $user = Auth::user();
+    $user = Auth::user();
+    $deviceToken = $request->cookie('device_token'); // token device lama (jika ada)
 
-        // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
-        Auth::logout();
+    // Jika device_token cocok dan masih dalam 30 hari, login langsung
+    if (
+        $deviceToken &&
+        $user->device_token === $deviceToken &&
+        $user->otp_verified_at &&
+        $user->otp_verified_at->gt(now()->subDays(30))
+    ) {
+        if ($user->hasRole('super-admin')) {
+            return redirect()->intended(route('mimin.dashboard'));
+        } elseif ($user->hasRole('admin')) {
+            return redirect()->intended(route('admin.dashboard'));
+        } else {
+            return redirect()->intended(route('user.dashboard'));
+        }    }
 
-        // Generate OTP 6 digit random
-        $otp = random_int(100000, 999999);
+    // Device baru → butuh OTP
+    Auth::logout(); // logout sementara, tunggu OTP
 
-        // Hash OTP dan simpan di user, plus expiry 5 menit
-        $user->otp = Hash::make($otp);
-        $user->otp_expires_at = now()->addMinutes(5);
-        $user->save();
+    // Generate OTP baru
+    $otp = random_int(100000, 999999);
 
-        // Kirim OTP via email (pakai Notification)
-        $user->notify(new SendOtpNotification($otp));
+    $user->otp = Hash::make($otp);
+    $user->otp_expires_at = now()->addMinutes(5);
+    $user->otp_verified_at = null; // reset verifikasi
+    $user->device_token = null;    // reset device lama
+    $user->save();
 
-        // Simpan ID user di session untuk validasi OTP nanti
-        session(['otp_user_id' => $user->id]);
+    // Kirim OTP
+    $user->notify(new SendOtpNotification($otp));
 
-        // Redirect ke halaman input OTP
-        return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
-    }
+    session(['otp_user_id' => $user->id]);
+
+    return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+}
+
 
     /**
      * Destroy an authenticated session.

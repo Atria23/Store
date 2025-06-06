@@ -47,7 +47,7 @@ class DepositController extends Controller
 
         // Deteksi metode QRIS dan tetapkan admin fee
         $qrisFees = [
-            'qris_otomatis' => 0.7,
+            'qris_otomatis' => 0,
             'qris_shopeepay' => 0,
             'qris_ovo' => 0.7,
             'qris_gopay' => 0.3,
