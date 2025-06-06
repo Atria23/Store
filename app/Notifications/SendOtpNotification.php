@@ -23,8 +23,8 @@ class SendOtpNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Kode OTP Login Anda')
-            ->line("Gunakan kode berikut untuk melanjutkan login:")
+            ->subject('Kode OTP Login')
+            ->line("JANGAN BERIKAN KODE OTP KEPADA SIAPAPUN, TERMASUK PIHAK MUVAUSA!. Gunakan kode berikut untuk melanjutkan login:")
             ->line("**{$this->otp}**")
             ->line('Kode berlaku selama 5 menit.');
     }
