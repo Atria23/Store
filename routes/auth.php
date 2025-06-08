@@ -17,12 +17,12 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-                ->name('login');
-
     // Route::post('login', [AuthenticatedSessionController::class, 'store']);
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('throttle:10,1'); // maks 10 request per menit per IP
+    ->middleware('throttle:10,1')->name('login-post'); // maks 10 request per menit per IP
+
+    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+                ->name('login');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
                 ->name('password.reset');

@@ -18,8 +18,12 @@ export default function Login({ canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('login'));
-    };
+        post(route('login-post'), {
+            onError: (errors) => {
+                console.log(errors); // Cek validasi error di console
+            },
+        });
+            };
 
 
     return (

@@ -22,6 +22,7 @@ class Deposit extends Model
         'proof_of_payment',
         'has_admin_fee',
         'admin_account',
+        'qris_dinamis',
     ];
 
     protected $casts = [

@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 use App\Notifications\SendOtpNotification;
 
@@ -22,51 +24,125 @@ class OtpController extends Controller
         ]);
     }
 
+    // public function verify(Request $request)
+    // {
+    //     $request->validate([
+    //         'otp' => 'required|digits:6',
+    //     ]);
+
+    //     $userId = session()->get('otp_user_id');
+
+    //     if (!$userId) {
+    //         return back()->withErrors(['otp' => 'Session OTP tidak ditemukan.']);
+    //     }
+
+    //     $user = User::find($userId);
+
+    //     if (
+    //         !$user ||
+    //         !$user->otp ||
+    //         !$user->otp_expires_at ||
+    //         $user->otp_expires_at->isPast()
+    //     ) {
+    //         return back()->withErrors(['otp' => 'OTP tidak valid atau kadaluarsa.']);
+    //     }
+
+    //     if (!Hash::check($request->otp, $user->otp)) {
+    //         return back()->withErrors(['otp' => 'OTP salah.']);
+    //     }
+
+    //     // Berhasil → buat token device baru
+    //     $newDeviceToken = hash('sha256', $request->userAgent() . now());
+
+    //     $user->otp = null;
+    //     $user->otp_expires_at = null;
+    //     $user->otp_verified_at = now();
+    //     $user->device_token = null; // pastikan kosong sebelum diganti
+    //     $user->save();
+
+    //     // Set token baru
+    //     $user->device_token = $newDeviceToken;
+    //     $user->save();
+
+    //     // Login & set cookie 30 hari
+    //     Auth::login($user);
+
+    //     // Regenerate session agar fresh dan user_id tersimpan
+    //     $request->session()->regenerate();
+        
+    //     session()->forget('otp_user_id');
+
+    //     // Set cookie device_token (30 hari)
+    //     cookie()->queue(cookie('device_token', $newDeviceToken, 60 * 24 * 30));
+
+    //     return redirect()->intended($this->routeMatchByRole($user));
+    // }
     public function verify(Request $request)
     {
-        $request->validate([
-            'otp' => 'required|digits:6',
-        ]);
-
+        $deviceTokenCookie = $request->cookie('device_token');
+    
+        if ($deviceTokenCookie) {
+            $user = User::where('device_token', $deviceTokenCookie)->first();
+    
+            if ($user) {
+                $otpVerifiedValid = $user->otp_verified_at && $user->otp_verified_at->gt(now()->subDays(30));
+    
+                if ($otpVerifiedValid) {
+                    Auth::login($user);
+                    $request->session()->regenerate();
+                    session()->forget('otp_user_id');
+    
+                    return redirect()->intended('/')
+                        ->withCookie(cookie('device_token', $user->device_token, 60 * 24 * 30));
+                }
+            }
+        }
+    
         $userId = session()->get('otp_user_id');
-
+    
         if (!$userId) {
-            return back()->withErrors(['otp' => 'Session OTP tidak ditemukan.']);
+            return back()->withErrors(['otp' => 'Session Anda telah kadaluarsa. Silakan verifikasi ulang.']);
         }
 
-        $user = User::find($userId);
+    $user = User::find($userId);
 
-        if (
-            !$user ||
-            !$user->otp ||
-            !$user->otp_expires_at ||
-            $user->otp_expires_at->isPast()
-        ) {
-            return back()->withErrors(['otp' => 'OTP tidak valid atau kadaluarsa.']);
-        }
-
-        if (!Hash::check($request->otp, $user->otp)) {
-            return back()->withErrors(['otp' => 'OTP salah.']);
-        }
-
-        // Berhasil → buat token device baru
-        $newDeviceToken = hash('sha256', $request->userAgent() . now());
-
-        $user->otp = null;
-        $user->otp_expires_at = null;
-        $user->otp_verified_at = now();
-        $user->device_token = $newDeviceToken;
-        $user->save();
-
-        // Login & set cookie 30 hari
-        Auth::login($user);
-        session()->forget('otp_user_id');
-
-        // Set cookie device_token (30 hari)
-        cookie()->queue(cookie('device_token', $newDeviceToken, 60 * 24 * 30));
-
-        return redirect()->intended($this->routeMatchByRole($user));
+    if (!$user) {
+        return back()->withErrors(['otp' => 'User tidak ditemukan.']);
     }
+
+    $request->validate([
+        'otp' => 'required|digits:6',
+    ]);
+
+    if (
+        !$user->otp ||
+        !$user->otp_expires_at ||
+        $user->otp_expires_at->isPast()
+    ) {
+        return back()->withErrors(['otp' => 'OTP tidak valid atau kadaluarsa.']);
+    }
+
+    if (!Hash::check($request->otp, $user->otp)) {
+        return back()->withErrors(['otp' => 'OTP salah.']);
+    }
+
+    // OTP valid, buat token device baru
+    $newDeviceToken = hash('sha256', $request->userAgent() . now());
+
+    $user->otp = null;
+    $user->otp_expires_at = null;
+    $user->otp_verified_at = now();
+    $user->device_token = $newDeviceToken;
+    $user->save();
+
+    Auth::login($user);
+    $request->session()->regenerate();
+    session()->forget('otp_user_id');
+
+    return redirect()->intended($this->routeMatchByRole($user))
+        ->withCookie(cookie('device_token', $newDeviceToken, 60 * 24 * 30));
+}
+
 
     private function routeMatchByRole($user): string
     {

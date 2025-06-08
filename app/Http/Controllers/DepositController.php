@@ -30,80 +30,216 @@ class DepositController extends Controller
         return Inertia::render('User/RequestDeposit');
     }
 
+    // public function store(Request $request)
+    // {
+    //     // Validasi input
+    //     $validated = $request->validate([
+    //         'amount' => 'required|numeric|min:1000',
+    //         'payment_method' => 'required|string|in:shopeepay,dana,gopay,ovo,linkaja,qris_otomatis,qris_dana,qris_shopeepay,qris_gopay,qris_ovo',
+    //     ]);
+
+    //     $admin = Admin::where('admin_status', true)
+    //         ->where('wallet_is_active', true)
+    //         ->where($validated['payment_method'] . '_status', true)
+    //         ->orderBy('user_id', 'asc')
+    //         ->first();
+
+    //     // Deteksi metode QRIS dan tetapkan admin fee
+    //     $qrisFees = [
+    //         'qris_otomatis' => 0,
+    //         'qris_shopeepay' => 0,
+    //         'qris_ovo' => 0.7,
+    //         'qris_gopay' => 0.3,
+    //     ];
+
+    //     $uniqueCode = 1;
+    //     $isQris = array_key_exists($validated['payment_method'], $qrisFees);
+    //     $adminFeePercentage = $isQris ? $qrisFees[$validated['payment_method']] / 100 : 0;
+    //     $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
+
+    //     // Hitung total yang harus dibayar
+    //     $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
+
+    //     // Pastikan total_pay unik pada tanggal yang sama
+    //     $today = now()->toDateString();
+    //     while (DB::table('deposits')
+    //         ->whereDate('created_at', $today)
+    //         ->where('total_pay', $totalPay)
+    //         ->exists()
+    //     ) {
+    //         $uniqueCode += 1;
+    //         $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
+    //         $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
+    //     }
+
+    //     // Total saldo diterima user (tanpa admin fee)
+    //     $totalSaldo = $validated['amount'] + $uniqueCode;
+
+    //     // Set expired time
+    //     $expiresAt = $isQris ? now()->addMinutes(10) : now()->addMinutes(11);
+
+    //     // Simpan data deposit
+    //     $deposit = Deposit::create([
+    //         'user_id' => auth()->id(),
+    //         'amount' => $validated['amount'],
+    //         'unique_code' => $uniqueCode,
+    //         'admin_fee' => $adminFee,
+    //         'get_saldo' => $totalSaldo,
+    //         'total_pay' => $totalPay,
+    //         'status' => 'pending',
+    //         'expires_at' => $expiresAt,
+    //         'payment_method' => $validated['payment_method'],
+    //         'has_admin_fee' => $isQris,
+    //         'admin_account' => $admin->{$validated['payment_method']} ?? null,
+    //     ]);
+
+    //     // Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'create'));
+    //     $adminEmails = config('custom.admin_deposit_emails');
+
+    //     foreach ($adminEmails as $email) {
+    //         Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'create'));
+    //     }
+
+    //     return redirect()->route('deposit.history')
+    //         ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
+    // }
+
     public function store(Request $request)
-    {
-        // Validasi input
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:shopeepay,dana,gopay,ovo,linkaja,qris_otomatis,qris_dana,qris_shopeepay,qris_gopay,qris_ovo',
-        ]);
+{
+    // Validasi input
+    $validated = $request->validate([
+        'amount' => 'required|numeric|min:1000',
+        'payment_method' => 'required|string|in:shopeepay,dana,gopay,ovo,linkaja,qris_otomatis,qris_dana,qris_shopeepay,qris_gopay,qris_ovo',
+    ]);
 
-        // Pilih admin berdasarkan prioritas (kecuali untuk QRIS manual)
-        $admin = Admin::where('admin_status', true)
-            ->where('wallet_is_active', true)
-            ->where($validated['payment_method'] . '_status', true)
-            ->orderBy('user_id', 'asc')
-            ->first();
+    $admin = Admin::where('admin_status', true)
+        ->where('wallet_is_active', true)
+        ->where($validated['payment_method'] . '_status', true)
+        ->orderBy('user_id', 'asc')
+        ->first();
 
-        // Deteksi metode QRIS dan tetapkan admin fee
-        $qrisFees = [
-            'qris_otomatis' => 0,
-            'qris_shopeepay' => 0,
-            'qris_ovo' => 0.7,
-            'qris_gopay' => 0.3,
-        ];
-
-        $uniqueCode = 1;
-        $isQris = array_key_exists($validated['payment_method'], $qrisFees);
-        $adminFeePercentage = $isQris ? $qrisFees[$validated['payment_method']] / 100 : 0;
-        $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
-
-        // Hitung total yang harus dibayar
-        $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
-
-        // Pastikan total_pay unik pada tanggal yang sama
-        $today = now()->toDateString();
-        while (DB::table('deposits')
-            ->whereDate('created_at', $today)
-            ->where('total_pay', $totalPay)
-            ->exists()
-        ) {
-            $uniqueCode += 1;
-            $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
-            $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
-        }
-
-        // Total saldo diterima user (tanpa admin fee)
-        $totalSaldo = $validated['amount'] + $uniqueCode;
-
-        // Set expired time
-        $expiresAt = $isQris ? now()->addMinutes(10) : now()->addMinutes(11);
-
-        // Simpan data deposit
-        $deposit = Deposit::create([
-            'user_id' => auth()->id(),
-            'amount' => $validated['amount'],
-            'unique_code' => $uniqueCode,
-            'admin_fee' => $adminFee,
-            'get_saldo' => $totalSaldo,
-            'total_pay' => $totalPay,
-            'status' => 'pending',
-            'expires_at' => $expiresAt,
-            'payment_method' => $validated['payment_method'],
-            'has_admin_fee' => $isQris,
-            'admin_account' => $admin->{$validated['payment_method']} ?? null,
-        ]);
-
-        // Mail::to('muvausastore1@gmail.com')->send(new AdminDepositNotification($deposit, 'create'));
-        $adminEmails = config('custom.admin_deposit_emails');
-
-        foreach ($adminEmails as $email) {
-            Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'create'));
-        }
-
-        return redirect()->route('deposit.history')
-            ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
+    if (!$admin) {
+        \Log::warning('No active admin found for method: ' . $validated['payment_method']);
+        return back()->withErrors(['payment_method' => 'No admin available for this method.']);
     }
+
+    // Deteksi metode QRIS dan tetapkan admin fee
+    $qrisFees = [
+        'qris_otomatis' => 0,
+        'qris_shopeepay' => 0,
+        'qris_ovo' => 0.7,
+        'qris_gopay' => 0.3,
+    ];
+
+    $uniqueCode = 1;
+    $isQris = array_key_exists($validated['payment_method'], $qrisFees);
+    $adminFeePercentage = $isQris ? $qrisFees[$validated['payment_method']] / 100 : 0;
+    $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
+
+    // Hitung total yang harus dibayar
+    $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
+
+    // Pastikan total_pay unik pada tanggal yang sama
+    $today = now()->toDateString();
+    while (DB::table('deposits')
+        ->whereDate('created_at', $today)
+        ->where('total_pay', $totalPay)
+        ->exists()
+    ) {
+        $uniqueCode += 1;
+        $adminFee = $isQris ? ceil(($validated['amount'] + $uniqueCode) * $adminFeePercentage) : 0;
+        $totalPay = $validated['amount'] + $uniqueCode + $adminFee;
+    }
+
+    // Total saldo diterima user (tanpa admin fee)
+    $totalSaldo = $validated['amount'] + $uniqueCode;
+
+    // Set expired time
+    $expiresAt = $isQris ? now()->addMinutes(10) : now()->addMinutes(11);
+
+    $qrisString = null;
+
+    if ($isQris) {
+        $qrisColumn = $validated['payment_method'] . '_string';
+        $qrisTemplate = $admin->{$qrisColumn} ?? null;
+
+        \Log::info("QRIS COLUMN: $qrisColumn");
+        \Log::info("QRIS TEMPLATE RAW: " . ($qrisTemplate ?? 'NULL'));
+
+        if ($qrisTemplate) {
+            $feeType = $adminFee > 0 ? 'p' : null;
+            $feeValue = $adminFee > 0 ? $adminFee : null;
+
+            $qrisString = $this->generateDynamicQris($qrisTemplate, $totalPay, $feeType, $feeValue);
+
+            \Log::info("QRIS GENERATED STRING: $qrisString");
+        }
+    }
+
+    // Simpan data deposit
+    $deposit = Deposit::create([
+        'user_id' => auth()->id(),
+        'amount' => $validated['amount'],
+        'unique_code' => $uniqueCode,
+        'admin_fee' => $adminFee,
+        'get_saldo' => $totalSaldo,
+        'total_pay' => $totalPay,
+        'status' => 'pending',
+        'expires_at' => $expiresAt,
+        'payment_method' => $validated['payment_method'],
+        'has_admin_fee' => $isQris,
+        'admin_account' => $admin->{$validated['payment_method']} ?? null,
+        'qris_dinamis' => $qrisString,
+    ]);
+
+    // Kirim notifikasi ke admin
+    $adminEmails = config('custom.admin_deposit_emails');
+    foreach ($adminEmails as $email) {
+        Mail::to(trim($email))->send(new AdminDepositNotification($deposit, 'create'));
+    }
+
+    return redirect()->route('deposit.history')
+        ->with('success', 'Deposit requested successfully. Please pay the total amount: ' . $totalPay);
+}
+private function generateDynamicQris($qris, $amount, $feeType = null, $feeValue = null)
+{
+    $qris = substr($qris, 0, -4);
+    $step1 = str_replace("010211", "010212", $qris);
+    $step2 = explode("5802ID", $step1);
+    $uang = "54" . sprintf("%02d", strlen($amount)) . $amount;
+
+    if ($feeType && $feeValue) {
+        if ($feeType === 'r') {
+            $uang .= "55020256" . sprintf("%02d", strlen($feeValue)) . $feeValue;
+        } elseif ($feeType === 'p') {
+            $uang .= "55020357" . sprintf("%02d", strlen($feeValue)) . $feeValue;
+        }
+    }
+
+    $uang .= "5802ID";
+    $fix = trim($step2[0]) . $uang . trim($step2[1]);
+    $fix .= $this->convertCRC16($fix);
+
+    return $fix;
+}
+
+private function convertCRC16($str)
+{
+    $crc = 0xFFFF;
+    for ($c = 0; $c < strlen($str); $c++) {
+        $crc ^= ord($str[$c]) << 8;
+        for ($i = 0; $i < 8; $i++) {
+            if ($crc & 0x8000) {
+                $crc = ($crc << 1) ^ 0x1021;
+            } else {
+                $crc <<= 1;
+            }
+        }
+    }
+    $hex = strtoupper(dechex($crc & 0xFFFF));
+    return str_pad($hex, 4, '0', STR_PAD_LEFT);
+}
+
 
     // Tampilkan riwayat deposit
     public function index()
@@ -134,39 +270,45 @@ class DepositController extends Controller
 
     // Konfirmasi deposit berdasarkan mutasi
     public function confirm($id)
-    {
-        $deposit = Deposit::findOrFail($id);
+{
+    $deposit = Deposit::findOrFail($id);
 
-        // Ambil data mutasi dari API
-        $response = Http::withHeaders([
-            'Cookie' => env('API_MUTASI_COOKIE'),
-        ])->get(env('API_MUTASI_URL'));
-
-        if ($response->failed()) {
-            return response()->json(['success' => false, 'error' => 'Failed to fetch transactions'], 500);
-        }
-
-        $mutasiData = $response->json();
-
-        // Periksa apakah 'data' ada dan berupa array
-        if (!isset($mutasiData['data']) || !is_array($mutasiData['data'])) {
-            return response()->json(['success' => false, 'error' => 'Invalid data structure from API'], 500);
-        }
-
-        foreach ($mutasiData['data'] as $item) {
-            if ($item['amount'] == ($deposit->amount + $deposit->unique_code + $deposit->admin_fee)) {
-                $deposit->update(['status' => 'confirmed']);
-
-                // Tambahkan saldo ke user
-                $user = User::find($deposit->user_id);
-                $user->increment('balance', $deposit->get_saldo);
-
-                return response()->json(['success' => true]);
-            }
-        }
-
-        return response()->json(['success' => false], 400);
+    // Cegah konfirmasi ulang
+    if ($deposit->status === 'confirmed') {
+        return response()->json(['success' => false, 'error' => 'Deposit already confirmed'], 400);
     }
+
+    // Ambil data mutasi dari API
+    $response = Http::withHeaders([
+        'Cookie' => env('API_MUTASI_COOKIE'),
+    ])->get(env('API_MUTASI_URL'));
+
+    if ($response->failed()) {
+        return response()->json(['success' => false, 'error' => 'Failed to fetch transactions'], 500);
+    }
+
+    $mutasiData = $response->json();
+
+    // Validasi struktur data
+    if (!isset($mutasiData['data']) || !is_array($mutasiData['data'])) {
+        return response()->json(['success' => false, 'error' => 'Invalid data structure from API'], 500);
+    }
+
+    foreach ($mutasiData['data'] as $item) {
+        if ($item['amount'] == ($deposit->amount + $deposit->unique_code + $deposit->admin_fee)) {
+            $deposit->update(['status' => 'confirmed']);
+
+            // Tambah saldo user
+            $user = User::find($deposit->user_id);
+            $user->increment('balance', $deposit->get_saldo);
+
+            return response()->json(['success' => true]);
+        }
+    }
+
+    return response()->json(['success' => false, 'error' => 'Matching transaction not found'], 400);
+}
+
 
     public function uploadProof($id, Request $request)
     {
@@ -302,7 +444,17 @@ class DepositController extends Controller
                 'payment_method' => $deposit->payment_method,
                 'proof_of_payment' => $deposit->proof_of_payment,
                 'admin_account' => $deposit->admin_account,
+                'qris_dinamis' => $deposit->qris_dinamis, // <-- tambahkan ini
             ]
         ]);
     }
+
+    public function tutorial(Request $request)
+{
+    $method = $request->input('method', 'shopeepay');
+    return Inertia::render('User/DepositTutorial', [
+        'method' => $method
+    ]);
+}
+
 }

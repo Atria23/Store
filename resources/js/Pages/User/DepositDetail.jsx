@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const DepositDetail = ({ deposit }) => {
     const [isImageOpen, setIsImageOpen] = useState(false);
@@ -233,7 +234,7 @@ const DepositDetail = ({ deposit }) => {
                     {/* Pesan saat status Pending */}
                     {deposit.status === "pending" && (
                         <div className="w-full text-justify bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-3 text-sm rounded-xl">
-                            Pastikan melakukan pembayaran deposit sebelum batas pembayaran. Jika terdapat kesalahan nominal pembayaran, maka jumlah saldo masuk akan dikurangi 5%.
+                            Pastikan melakukan pembayaran deposit sebelum batas pembayaran. <b>Wajib membayar sebesar {formatRupiah(deposit.total_pay)}</b>. Jika terdapat kesalahan nominal pembayaran, maka jumlah saldo diterima akan dikurangi 5%.
                         </div>
                     )}
 
@@ -466,29 +467,68 @@ const DepositDetail = ({ deposit }) => {
                         deposit.payment_method === "qris_gopay") &&
                         deposit.admin_account ? (
                         <>
+
+
                             {/* bg putih */}
+                            {/*
+ * QRIS Canvas Generator
+ *
+ * Source adapted from: https://github.com/verssache/qris-dinamis
+ * Licensed under the MIT License
+ * Copyright (c) 2020 Gidhan Bagus Algary
+ */
+                            }
                             <div className="w-full flex flex-col space-y-4 items-center justify-center p-4 rounded-3xl bg-white shadow-md">
                                 <div className="w-full h-max flex flex-col space-y-4 items-start justify-center">
                                     <p className="w-full font-utama font-semibold text-xl break-words text-wrap text-center">Rekening QRIS</p>
                                 </div>
                                 <div className="w-full h-px bg-gray-600" />
-                                <img
+                                {/* <img
                                     src={`/storage/${deposit.admin_account}`}
                                     alt={`QRIS ${deposit.payment_method}`}
                                     className="w-64 object-cover cursor-pointer rounded"
                                     onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
-                                />
+                                /> */}
+                                {deposit.qris_dinamis ? (
+                                    <div className="flex flex-col items-center mt-6">
+                                        <QRCodeCanvas
+                                            value={deposit.qris_dinamis}
+                                            size={300}
+                                            bgColor="#ffffff"
+                                            fgColor="#000000"
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                        <p className="text-center text-sm text-gray-500">
+                                            Scan QRIS dengan e-wallet/M-Banking anda
+                                        </p>
+                                    </div>
+                                ) : deposit.admin_account ? (
+                                    <div className="flex flex-col items-center mt-6">
+                                        <img
+                                            src={`/storage/${deposit.admin_account}`}
+                                            alt={`QRIS ${deposit.payment_method}`}
+                                            className="w-64 object-cover cursor-pointer rounded"
+                                            onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                                        />
+                                        <p className="mt-4 text-center text-sm text-gray-500">
+                                            Scan QR dari gambar di atas
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-red-500">QRIS tidak tersedia untuk deposit ini.</p>
+                                )}
 
 
                                 {/* Tombol Simpan */}
-                                <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
-                                    <button
-                                        onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
-                                        className="w-full bg-main text-white p-2 rounded-xl hover:bg-blue-700 transition"
-                                    >
-                                        PERBESAR GAMBAR
-                                    </button>
-                                </div>
+                                {/* <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
+                                        <button
+                                            onClick={() => handleImageClick(`/storage/${deposit.admin_account}`)}
+                                            className="w-full bg-main text-white p-2 rounded-xl hover:bg-blue-700 transition"
+                                        >
+                                            PERBESAR GAMBAR
+                                        </button>
+                                    </div> */}
                             </div>
                         </>
                     ) : (

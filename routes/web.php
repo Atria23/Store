@@ -53,6 +53,13 @@ use App\Models\Deposit;
 
 use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Guest\GuestDashboardController;
+use App\Http\Controllers\QrisConverterController;
+
+Route::get('/qris-converter', [QrisConverterController::class, 'index'])->name('qris.index');
+Route::post('/qris-converter', [QrisConverterController::class, 'convert'])->name('qris.convert');
+
+Route::get('/deposit/tutorial', [DepositController::class, 'tutorial'])->name('deposit.tutorial');
+
 
 Route::middleware('guest')->group(function () {
     Route::get('/guest-dashboard', [GuestDashboardController::class, 'index'])->name('guest.dashboard');
