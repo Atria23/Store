@@ -223,7 +223,7 @@ const RequestDeposit = () => {
             </select>
 
             {/* Visual List */}
-            {/* <div className="flex flex-col divide-y divide-gray-300">
+            <div className="flex flex-col divide-y divide-gray-300">
               {paymentMethods.map((pm) => (
                 <div
                   key={pm.value}
@@ -231,30 +231,6 @@ const RequestDeposit = () => {
                   className={`cursor-pointer flex flex-row items-center space-x-4 p-4 transition rounded-md 
                     ${data.payment_method === pm.value ? 'bg-blue-50 border-l-4 border-gray-300' : 'bg-white'}
                   `}
-                >
-                  <img src={pm.logo} alt="Logo" className="w-[50px] h-auto object-contain" />
-                  <div className="flex flex-col space-y-1">
-                    <p className="font-utama font-medium text-base text-gray-800">{pm.label.split(' (')[0]}</p>
-                    <p className="text-xs text-gray-500">{pm.label.includes('(') ? pm.label.split(' (')[1].replace(')', '') : ''}</p>
-                    <Link
-      key={pm.value}
-      href={route('deposit.tutorial')} // menuju 1 halaman yang sama
-      data={{ method: pm.value }} // kirim metode
-      className="text-xs text-gray-500">
-      Tutorial
-    </Link>
-                  </div>
-                </div>
-              ))}
-            </div> */}
-            <div className="flex flex-col divide-y divide-gray-300">
-              {paymentMethods.map((pm) => (
-                <div
-                  key={pm.value}
-                  onClick={() => handlePaymentMethodChange({ target: { value: pm.value } })}
-                  className={`cursor-pointer flex flex-row items-center space-x-4 p-4 transition rounded-md 
-        ${data.payment_method === pm.value ? 'bg-blue-50 border-l-4 border-gray-300' : 'bg-white'}
-      `}
                 >
                   <img src={pm.logo} alt="Logo" className="w-[50px] h-auto object-contain" />
                   <div className="flex flex-col space-y-1 flex-1">
@@ -270,8 +246,8 @@ const RequestDeposit = () => {
                       className="inline-flex items-center gap-1 text-[11px] text-blue-500 hover:underline w-fit"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-3 h-3" viewBox="0 0 16 16">
-  <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-</svg>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2" />
+                      </svg>
                       Lihat tutorial
                     </Link>
                   </div>

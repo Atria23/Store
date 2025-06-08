@@ -32,34 +32,70 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    // public function store(LoginRequest $request): RedirectResponse
-    // {
-    //     $request->authenticate();    // Ini akan cek login email & password
-    //     $request->session()->regenerate();
+      public function store(LoginRequest $request): RedirectResponse
+    {
+        $request->authenticate();    // Ini akan cek login email & password
+        $request->session()->regenerate();
 
-    //     $user = Auth::user();
+        $user = Auth::user();
 
-    //     // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
-    //     Auth::logout();
+        // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
+        Auth::logout();
 
-    //     // Generate OTP 6 digit random
-    //     $otp = random_int(100000, 999999);
+        // Generate OTP 6 digit random
+        $otp = random_int(100000, 999999);
 
-    //     // Hash OTP dan simpan di user, plus expiry 5 menit
-    //     $user->otp = Hash::make($otp);
-    //     $user->otp_expires_at = now()->addMinutes(5);
-    //     $user->save();
+        // Hash OTP dan simpan di user, plus expiry 5 menit
+        $user->otp = Hash::make($otp);
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
 
-    //     // Kirim OTP via email (pakai Notification)
-    //     $user->notify(new SendOtpNotification($otp));
+        // Kirim OTP via email (pakai Notification)
+        $user->notify(new SendOtpNotification($otp));
 
-    //     // Simpan ID user di session untuk validasi OTP nanti
-    //     session(['otp_user_id' => $user->id]);
+        // Simpan ID user di session untuk validasi OTP nanti
+        session(['otp_user_id' => $user->id]);
 
-    //     // Redirect ke halaman input OTP
-    //     return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
-    // }
+        // Redirect ke halaman input OTP
+        return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+    }
+    
+    
+    
+    
+    
+    
+    
+//     public function store(LoginRequest $request): RedirectResponse
+// {
+//     $request->authenticate(); // Autentikasi email & password
+//     $request->session()->regenerate();
 
+//     $user = Auth::user();
+
+//     // Ambil device token dari cookie
+//     $deviceToken = $request->cookie('device_token');
+
+//     // Jika device token cocok, login langsung
+//     if ($deviceToken && $user->device_token && hash_equals($user->device_token, $deviceToken)) {
+//         Auth::login($user);
+//         $request->session()->regenerate();
+//         return redirect()->intended('/'); // Arahkan ke dashboard
+//     }
+
+//     // Jika tidak cocok, logout dan kirim OTP
+//     Auth::logout();
+//     $otp = random_int(100000, 999999);
+//     $user->otp = Hash::make($otp);
+//     $user->otp_expires_at = now()->addMinutes(5);
+//     $user->save();
+
+//     $user->notify(new SendOtpNotification($otp));
+
+//     session(['otp_user_id' => $user->id]);
+
+//     return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+// }
 
 
 
@@ -288,45 +324,45 @@ class AuthenticatedSessionController extends Controller
 
 //     return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
 // }
-public function store(LoginRequest $request): RedirectResponse
-{
-    $request->authenticate();    
-    $request->session()->regenerate();
+// public function store(LoginRequest $request): RedirectResponse
+// {
+//     $request->authenticate();    
+//     $request->session()->regenerate();
 
-    $user = Auth::user();
-    $deviceToken = $request->cookie('device_token');
+//     $user = Auth::user();
+//     $deviceToken = $request->cookie('device_token');
 
-    $otpMasihValid = $user->otp_verified_at && $user->otp_verified_at->gt(now()->subDays(30));
-    $deviceSama = $user->device_token && $user->device_token === $deviceToken;
-    // dd([
-    //     'user_id' => $user->id,
-    //     'user_email' => $user->email,
-    //     'user_device_token' => $user->device_token,
-    //     'request_device_token' => $deviceToken,
-    //     'otp_verified_at' => $user->otp_verified_at,
-    //     'otpMasihValid' => $user->otp_verified_at && $user->otp_verified_at->gt(now()->subDays(30)),
-    //     'deviceSama' => $user->device_token && $user->device_token === $deviceToken,
-    // ]);
-    if ($deviceSama && $otpMasihValid) {
-        // Langsung redirect ke tujuan tanpa minta OTP
-        return redirect()->intended('/');
-    }
+//     $otpMasihValid = $user->otp_verified_at && $user->otp_verified_at->gt(now()->subDays(30));
+//     $deviceSama = $user->device_token && $user->device_token === $deviceToken;
+//     // dd([
+//     //     'user_id' => $user->id,
+//     //     'user_email' => $user->email,
+//     //     'user_device_token' => $user->device_token,
+//     //     'request_device_token' => $deviceToken,
+//     //     'otp_verified_at' => $user->otp_verified_at,
+//     //     'otpMasihValid' => $user->otp_verified_at && $user->otp_verified_at->gt(now()->subDays(30)),
+//     //     'deviceSama' => $user->device_token && $user->device_token === $deviceToken,
+//     // ]);
+//     if ($deviceSama && $otpMasihValid) {
+//         // Langsung redirect ke tujuan tanpa minta OTP
+//         return redirect()->intended('/');
+//     }
 
-    Auth::logout();
+//     Auth::logout();
 
-    $otp = random_int(100000, 999999);
-    $user->otp = Hash::make($otp);
-    $user->otp_expires_at = now()->addMinutes(5);
-    $user->otp_verified_at = null;
-    $user->device_token = null;
-    $user->save();
+//     $otp = random_int(100000, 999999);
+//     $user->otp = Hash::make($otp);
+//     $user->otp_expires_at = now()->addMinutes(5);
+//     $user->otp_verified_at = null;
+//     $user->device_token = null;
+//     $user->save();
 
-    $user->notify(new SendOtpNotification($otp));
+//     $user->notify(new SendOtpNotification($otp));
 
-    session(['otp_user_id' => $user->id]);
+//     session(['otp_user_id' => $user->id]);
 
-    return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
-}
+//     return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+// }
 
 
 
