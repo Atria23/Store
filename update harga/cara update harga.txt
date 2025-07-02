@@ -1,0 +1,16 @@
+1. import file csv dari tab "import harga csv pulsa tf web"
+
+2. buat table dengan struktur berikut
+CREATE TABLE temp_price_update (
+  buyer_sku_code VARCHAR(255) NOT NULL,
+  price VARCHAR(255)
+);
+
+3. import file csv ke table
+
+4. masukkan perintah berikut
+UPDATE barangs
+JOIN temp_price_update ON barangs.buyer_sku_code = temp_price_update.buyer_sku_code
+SET
+  barangs.price = temp_price_update.price,
+  barangs.updated_at = NOW();

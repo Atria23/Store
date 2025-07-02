@@ -35,6 +35,11 @@ class Admin extends Model
         'qris_ovo',
         'qris_ovo_status',
         'admin_status',
+        'qris_otomatis_string',
+        'qris_gopay_string',
+        'qris_dana_string',
+        'qris_ovo_string',
+        'qris_shopeepay_string',
     ];
 
     // Relasi ke User
