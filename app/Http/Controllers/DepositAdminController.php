@@ -42,7 +42,7 @@ class DepositAdminController extends Controller
         ]);
 
         // Send request to the API
-        $response = Http::post('https://api.digiflazz.com/v1/deposit', [
+        $response = Http::post(config('services.api_server') . 'v1/deposit', [
             'username' => $username,
             'amount' => intval($request->input('amount')),
             'bank' => strtoupper($request->bank),

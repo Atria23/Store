@@ -24,7 +24,6 @@ class TransactionUpdateService
             foreach ($pendingTransactions as $transaction) {
                 // Lewati jika SKU mengandung '#'
                 if (strpos($transaction->buyer_sku_code, '#') !== false) {
-                    Log::info("Skipped transaction {$transaction->ref_id} because SKU contains #: {$transaction->sku}");
                     continue;
                 }
             
@@ -41,7 +40,7 @@ class TransactionUpdateService
                 // Kirim permintaan ke API
                 $response = Http::withHeaders([
                     'Content-Type' => 'application/json',
-                ])->post('https://api.digiflazz.com/v1/transaction', $data);
+                ])->post(config('services.api_server') . 'v1/transaction', $data);
             
                 $responseData = $response->json();
                 $apiData = $responseData['data'] ?? null;
@@ -85,7 +84,6 @@ class TransactionUpdateService
     public function updateAffiliateHistoryStatus()
     {
         try {
-            Log::info("=== Mulai Cek dan Update Semua Affiliate History dengan Status Pending ===");
 
             // Ambil semua affiliate history dengan status 'Pending'
             $pendingHistories = AffiliateHistory::where('status', 'Pending')->get();
@@ -94,7 +92,6 @@ class TransactionUpdateService
                 $transaction = \App\Models\Transaction::find($affiliateHistory->transaction_id);
 
                 if (!$transaction) {
-                    Log::warning("Transaction not found for Affiliate History ID {$affiliateHistory->id}");
                     continue;
                 }
 
@@ -131,7 +128,6 @@ class TransactionUpdateService
 
             // Ambil user berdasarkan user_id dari affiliator
             $user = \App\Models\User::find($affiliator->user_id);
-            Log::info("Looking for user with ID: {$affiliator->user_id}");
 
             if (!$user) {
                 Log::warning("User not found for Affiliator ID {$affiliator->id}");

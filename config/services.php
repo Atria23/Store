@@ -31,4 +31,6 @@ return [
         ],
     ],
 
+    'api_server' => env('API_SERVER', 'https://api.muvausaserver.com'),
+
 ];

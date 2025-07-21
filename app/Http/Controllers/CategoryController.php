@@ -7,7 +7,6 @@ use App\Models\PriceList;
 use App\Models\Category;
 use App\Models\Brand;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller

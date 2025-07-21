@@ -121,7 +121,7 @@ class TransactionController extends Controller
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://api.digiflazz.com/v1/transaction', $data);
+            ])->post(config('services.api_server') . 'v1/transaction', $data);
 
             $responseData = $response->json();
 
@@ -316,7 +316,7 @@ class TransactionController extends Controller
         Log::info('Webhook function triggered');
 
         try {
-            $secret = env('DIGIFLAZZ_WEBHOOK_SECRET');
+            $secret = env('SERVER_WEBHOOK_SECRET');
 
             if (!$secret) {
                 Log::error('Webhook secret is not set');

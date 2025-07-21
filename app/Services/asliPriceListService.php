@@ -45,7 +45,7 @@ class PriceListService
         $apiKey = env('P_AK');
         $sign = md5($username . $apiKey . "pricelist");
 
-        $response = Http::post('https://api.digiflazz.com/v1/price-list', [
+        $response = Http::post(config('services.api_server') . 'v1/price-list', [
             'cmd' => 'prepaid',
             'username' => $username,
             'sign' => $sign,

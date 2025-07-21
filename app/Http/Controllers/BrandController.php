@@ -9,7 +9,6 @@ use App\Models\InputType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 
 class BrandController extends Controller
 {

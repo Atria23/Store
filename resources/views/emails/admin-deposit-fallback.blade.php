@@ -3,6 +3,7 @@
 <p>Segera lakukan deposit dengan rincian:</p>
 
 <ul>
+    <p><strong>Ditujukan Untuk:</strong> {{ $ownerName }}</p>
     <li><strong>Bank:</strong> {{ $bank }}</li>
     <li><strong>Nominal:</strong> Rp {{ number_format($amount, 0, ',', '.') }}</li>
     <li><strong>Keterangan:</strong> {{ $notes }}</li>
