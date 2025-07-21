@@ -121,7 +121,7 @@ class TransactionController extends Controller
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post(config('services.api_server') . 'v1/transaction', $data);
+            ])->post(config('services.api_server') . '/v1/transaction', $data);
 
             $responseData = $response->json();
 

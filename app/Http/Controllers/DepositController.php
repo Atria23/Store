@@ -110,7 +110,7 @@ class DepositController extends Controller
             $apiKey = env('P_AK');
             $sign = md5($username . $apiKey . 'depo');
         
-            $responseSaldo = Http::post(config('services.api_server') . 'v1/cek-saldo', [
+            $responseSaldo = Http::post(config('services.api_server') . '/v1/cek-saldo', [
                 'cmd' => 'deposit',
                 'username' => $username,
                 'sign' => $sign,
@@ -126,7 +126,7 @@ class DepositController extends Controller
                     $adminEmails = config('custom.admin_deposit_emails');
         
                     // === Kirim deposit ke userA (BCA)
-                    $responseA = Http::post(config('services.api_server') . 'v1/deposit', [
+                    $responseA = Http::post(config('services.api_server') . '/v1/deposit', [
                         'username' => $username,
                         'amount' => $nominal,
                         'bank' => 'BCA',
@@ -154,7 +154,7 @@ class DepositController extends Controller
                     }
         
                     // === Kirim deposit ke userB (BRI)
-                    $responseB = Http::post(config('services.api_server') . 'v1/deposit', [
+                    $responseB = Http::post(config('services.api_server') . '/v1/deposit', [
                         'username' => $username,
                         'amount' => $nominal,
                         'bank' => 'BRI',

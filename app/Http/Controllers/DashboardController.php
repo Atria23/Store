@@ -25,7 +25,7 @@ class DashboardController extends Controller
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post(config('services.api_server') . 'v1/cek-saldo', $data);
+            ])->post(config('services.api_server') . '/v1/cek-saldo', $data);
 
             if ($response->successful()) {
                 $deposit = $response['data']['deposit'] ?? null;
