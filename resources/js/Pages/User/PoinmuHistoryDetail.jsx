@@ -166,7 +166,7 @@ export default function PoinmuHistoryDetail({ history }) {
                                 <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
                                     <span
                                         className={`
-    px-2 rounded-full text-xs font-semibold w-fit
+    px-2 rounded-full text-xs w-fit
     ${history.status === 'pending'
                                                 ? 'border border-yellow-600 bg-yellow-100 text-yellow-600'
                                                 : history.status === 'sukses'

@@ -123,7 +123,7 @@
 //   );
 // }
 import { useState, useEffect } from "react";
-import { Head, usePage, useForm, router } from "@inertiajs/react";
+import { Head, usePage, Link } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 
 const History = () => {
@@ -260,9 +260,12 @@ const History = () => {
                             >
                                 {/* Kiri: Info User */}
                                 <div className="flex flex-col w-full space-y-1">
-                                    <p className="font-utama font-semibold text-sm truncate w-full max-w-[200px]">
+                                    <Link
+                                        href={`/poinmu-history/${item.id}`}
+                                        className="font-utama font-semibold text-sm truncate w-full max-w-[200px] text-blue-600 hover:underline"
+                                    >
                                         ID #{item.id}
-                                    </p>
+                                    </Link>
                                     <p className="font-utama text-sm text-gray-600 truncate">
                                         User: {item.user?.name || "-"}
                                     </p>
@@ -272,27 +275,27 @@ const History = () => {
                                 </div>
 
                                 {/* Kanan: Status */}
-                                <div className="w-max">
-                                    <select
-                                        value={item.status || ""}
-                                        onChange={(e) => updateStatus(item.id, e.target.value || null)}
-                                        className={`px-4 pr-8 py-[2px] rounded-full text-[11px] font-medium w-fit
-                                                    ${item.status === "pending"
-                                                                                                ? "border border-yellow-600 bg-yellow-100 text-yellow-600"
-                                                                                                : item.status === "sukses"
-                                                                                                    ? "border border-green-600 bg-green-100 text-green-600"
-                                                                                                    : item.status === "gagal"
-                                                                                                        ? "border border-red-600 bg-red-100 text-red-600"
-                                                                                                        : "border border-gray-300 bg-gray-100 text-gray-500"
-                                                                                            }
-                                                    `}
-                                    >
-                                        <option value="">-- Pilih Status --</option>
-                                        <option value="sukses">Sukses</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="gagal">Gagal</option>
-                                    </select>
-                                </div>
+                                <div className="inline-block">
+    <select
+        value={item.status || ""}
+        onChange={(e) => updateStatus(item.id, e.target.value || null)}
+        className={`appearance-none px-4 py-[2px] rounded-full text-[11px] font-medium
+            ${item.status === "pending"
+                ? "border border-yellow-600 bg-yellow-100 text-yellow-600"
+                : item.status === "sukses"
+                    ? "border border-green-600 bg-green-100 text-green-600"
+                    : item.status === "gagal"
+                        ? "border border-red-600 bg-red-100 text-red-600"
+                        : "border border-gray-300 bg-gray-100 text-gray-500"
+            }`}
+    >
+        <option value="">-- Pilih Status --</option>
+        <option value="sukses">Sukses</option>
+        <option value="pending">Pending</option>
+        <option value="gagal">Gagal</option>
+    </select>
+</div>
+
 
                             </div>
                         ))
@@ -304,25 +307,25 @@ const History = () => {
                 </div>
 
                 {totalPages > 1 && (
-  <div className="w-full px-4 pb-8 flex justify-center items-center flex-wrap gap-2">
-    {Array.from({ length: totalPages }, (_, i) => (
-      <button
-        key={i}
-        onClick={() => {
-          setCurrentPage(i + 1);
-          window.scrollTo({ top: 0, behavior: "smooth" }); // opsional biar scroll ke atas
-        }}
-        className={`px-3 py-1 text-sm rounded-md border transition-all
+                    <div className="w-full px-4 pb-8 flex justify-center items-center flex-wrap gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => {
+                                    setCurrentPage(i + 1);
+                                    window.scrollTo({ top: 0, behavior: "smooth" }); // opsional biar scroll ke atas
+                                }}
+                                className={`px-3 py-1 text-sm rounded-md border transition-all
           ${currentPage === i + 1
-            ? 'bg-main text-white border-main'
-            : 'bg-white text-gray-700 border-gray-300 hover:border-main hover:text-main'
-          }`}
-      >
-        {i + 1}
-      </button>
-    ))}
-  </div>
-)}
+                                        ? 'bg-main text-white border-main'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:border-main hover:text-main'
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
             </div>
         </>

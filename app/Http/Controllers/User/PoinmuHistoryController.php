@@ -31,21 +31,42 @@ class PoinmuHistoryController extends Controller
         ]);
     }
 
+    // public function show($id)
+    // {
+    //     $user = auth()->user();
+
+    //     $history = PoinmuHistory::where('user_id', $user->id)
+    //         ->where('id', $id)
+    //         ->firstOrFail();
+
+    //     $redeemAccounts = RedeemAccount::where('user_id', auth()->id())->get()->keyBy('redeem_method');
+
+    //     return Inertia::render('User/PoinmuHistoryDetail', [
+    //         'history' => $history,
+    //         'redeemAccounts' => $redeemAccounts,
+    //     ]);
+    // }
     public function show($id)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $history = PoinmuHistory::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+    $history = PoinmuHistory::with('user')->findOrFail($id);
 
-        $redeemAccounts = RedeemAccount::where('user_id', auth()->id())->get()->keyBy('redeem_method');
-
-        return Inertia::render('User/PoinmuHistoryDetail', [
-            'history' => $history,
-            'redeemAccounts' => $redeemAccounts,
-        ]);
+    // Validasi akses: hanya pemilik atau super-admin atau admin
+    if (!($user->id == $history->user_id || $user->hasRole('super-admin'))) {
+        abort(403, 'Unauthorized');
     }
+
+    $redeemAccounts = RedeemAccount::where('user_id', $history->user_id)
+        ->get()
+        ->keyBy('redeem_method');
+
+    return Inertia::render('User/PoinmuHistoryDetail', [
+        'history' => $history,
+        'redeemAccounts' => $redeemAccounts,
+    ]);
+}
+
 
     public function manage()
     {
