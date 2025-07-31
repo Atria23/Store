@@ -44,8 +44,10 @@ class DepositController extends Controller
         $admin = Admin::where('admin_status', true)
             ->where('wallet_is_active', true)
             ->where($validated['payment_method'] . '_status', true)
-            ->orderBy('user_id', 'asc')
+            ->whereNotNull($validated['payment_method']) // ini yang belum ada
+            ->orderBy('created_at', 'asc') // lebih tepat daripada user_id
             ->first();
+
 
         if (!$admin) {
             \Log::warning('No active admin found for method: ' . $validated['payment_method']);
@@ -158,7 +160,7 @@ class DepositController extends Controller
                         'username' => $username,
                         'amount' => $nominal,
                         'bank' => 'BRI',
-                        'owner_name' => 'Dian Setyawati',
+                        'owner_name' => 'Dian',
                         'sign' => md5($username . $apiKey . 'deposit'),
                     ]);
         
@@ -172,7 +174,7 @@ class DepositController extends Controller
                                 $notes,
                                 '213501000291307',
                                 'BRI',
-                                'Dian Setyawati'
+                                'Dian'
                             ));
                         }
                     } else {
@@ -372,8 +374,8 @@ class DepositController extends Controller
 
         // Pastikan hanya pengunggah atau admin yang dapat mengakses file
         $user = auth()->user();
-        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin'))) {
-            abort(403, 'You are not authorized to view this deposit.');
+        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin') || $user->hasRole('admin'))) {
+            abort(403, 'You are not authorized to view this proof of deposit payment.');
         }
 
         // Pastikan file ada
@@ -436,7 +438,7 @@ class DepositController extends Controller
         // Pastikan deposit tersebut milik user yang sedang login
         $user = auth()->user();
 
-        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin'))) {
+        if (!($user->id == $deposit->user_id || $user->hasRole('super-admin') || $user->hasRole('admin'))) {
             abort(403, 'You are not authorized to view this deposit.');
         }
 

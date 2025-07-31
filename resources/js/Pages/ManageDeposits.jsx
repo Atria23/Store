@@ -58,9 +58,9 @@ const ManageDeposits = ({ deposits: initialDeposits }) => {
   const filteredDeposits = deposits
     .filter((d) => {
       const match =
-      d.id?.toString().includes(searchQuery.toLowerCase()) || // tambahkan ini
-      d.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.total_pay?.toString().includes(searchQuery.toLowerCase());
+        d.id?.toString().includes(searchQuery.toLowerCase()) || // tambahkan ini
+        d.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.total_pay?.toString().includes(searchQuery.toLowerCase());
       const date = new Date(d.created_at);
       const inRange =
         (!dateRange.start || date >= new Date(dateRange.start)) &&
@@ -261,9 +261,8 @@ const ManageDeposits = ({ deposits: initialDeposits }) => {
                 className="flex justify-between items-center p-3 border-b border-neutral-200 cursor-pointer"
               >
                 {/* kiri */}
-                <div className="flex items-center gap-2 w-full">
-                  <div className="flex flex-col items-start w-max space-y-[2px]">
-
+                <div className="flex flex-col items-start justify-between w-full h-[120px] py-2">
+                  <div className="items-start flex flex-col">
                     <p className="text-xs text-gray-500">
                       ID: {d.id}
                     </p>
@@ -273,96 +272,72 @@ const ManageDeposits = ({ deposits: initialDeposits }) => {
                     <p className="text-xs text-gray-500">
                       Rp{d.total_pay.toLocaleString()} ({d.payment_method || "Tidak Ada"})
                     </p>
-                    {d.payment_method === "qris_otomatis" && d.admin_account ? (
-                      <div>
-                        <button
-                          onClick={() => handleImageClick(`/storage/${d.admin_account}`)}
-                          className="flex items-center text-xs px-2 py-1 text-blue-600 border border-blue-600 rounded-lg font-medium whitespace-nowrap"
-                        >
-                          Lihat Rekening
-                        </button>
-                      </div>
-                    ) : ["qris_shopeepay", "qris_ovo", "qris_dana", "qris_gopay"].includes(d.payment_method) && d.admin_account ? (
-                      <div>
-                        <button
-                          onClick={() => handleImageClick(`/storage/${d.admin_account}`)}
-                          className="flex items-center text-xs px-2 py-1 text-blue-600 border border-blue-600 rounded-lg font-medium whitespace-nowrap"
-                        >
-                          Lihat Rekening
-                        </button>
-                      </div>
-                    ) : (
-                      <p
-                        className="flex items-center text-xs px-2 py-1 text-blue-600 border border-blue-600 rounded-lg font-medium whitespace-nowrap"
-                      >
-                        {d.admin_account}
-                      </p>
-                      || "N/A"
-                    )}
-                    <p className="flex items-center text-xs px-2 py-1 text-green-600 bg-green-100 border border-green-600 rounded-lg font-medium whitespace-nowrap">
-                      Saldo Masuk: Rp{d.get_saldo?.toLocaleString() || "0"}
-                    </p>
                   </div>
-
+                  <p className="flex items-center text-xs px-2 py-1 text-green-600 bg-green-100 border border-green-600 rounded-lg font-medium whitespace-nowrap">
+                    Saldo Masuk: Rp{(d.get_saldo || 0).toLocaleString("id-ID", { maximumFractionDigits: 0 })}
+                  </p>
                 </div>
 
                 {/* kanan */}
-                <div className="flex flex-col space-y-1 items-end justify-center w-full">
-                  <span className="text-xs font-semibold px-2 py-[2px] rounded-2xl capitalize bg-yellow-100 text-yellow-600">Exp:
-                    {new Date(d.expires_at).toLocaleString("id-ID", {
-                      year: "numeric",
-                      month: "short",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}
-                  </span>
-                  <div className={`text-xs font-semibold px-2 py-[2px] rounded-2xl capitalize
-                                  ${d.status === "pending"
-                      ? "bg-yellow-100 text-yellow-600"
-                      : d.status === "confirmed"
-                        ? "bg-green-100 text-green-600"
-                        : d.status === "expired"
-                          ? "bg-red-100 text-red-600"
-                          : ""
-                    }`
-                  }
-                  >
-                    {d.status}
+                <div className="flex flex-col justify-between items-end w-full h-[120px] py-2">
+                  {/* Komponen 1 - Mepet Atas */}
+                  <div className="items-end flex flex-col space-y-2">
+                    <span className="text-xs font-semibold px-2 py-[2px] rounded-2xl capitalize bg-yellow-100 text-yellow-600">
+                      Exp: {new Date(d.expires_at).toLocaleString("id-ID", {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}
+                    </span>
+
+                    {/* Komponen 2 - Tengah */}
+                    <div className={`text-xs font-semibold px-2 py-[2px] rounded-2xl capitalize
+    ${d.status === "pending"
+                        ? "bg-yellow-100 text-yellow-600"
+                        : d.status === "confirmed"
+                          ? "bg-green-100 text-green-600"
+                          : d.status === "expired"
+                            ? "bg-red-100 text-red-600"
+                            : ""}`}>
+                      {d.status}
+                    </div>
                   </div>
-                  {d.status !== "confirmed" ? (
-                    <button
-                      onClick={() => handleConfirm(d.id)}
-                      className="text-[11px] mt-1 bg-blue-500 hover:bg-blue-600 text-white px-2 py-[2px] rounded"
-                      disabled={processing && data.depositId === d.id}
-                    >
-                      {processing && data.depositId === d.id
-                        ? "Memproses..."
-                        : "Konfirmasi"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleCancelConfirm(d.id)}
-                      className="text-[11px] mt-1 bg-red-500 hover:bg-red-600 text-white px-2 py-[2px] rounded"
-                      disabled={processing && data.depositId === d.id}
-                    >
-                      {processing && data.depositId === d.id
-                        ? "Memproses..."
-                        : "Batalkan Konfirmasi"}
-                    </button>
-                  )}
-                  {d.proof_of_payment && (
-                    <a
-                      href={`/proof-of-payment/${d.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs rounded text-blue-600 hover:bg-gray-100 transition"
-                    >
-                      Lihat Bukti
-                    </a>
-                  )}
+
+                  {/* Komponen 3 - Mepet Bawah */}
+                  <div className="flex flex-col items-end space-y-1">
+                    {d.status !== "confirmed" ? (
+                      <button
+                        onClick={() => handleConfirm(d.id)}
+                        className="text-[11px] bg-blue-500 hover:bg-blue-600 text-white px-2 py-[2px] rounded"
+                        disabled={processing && data.depositId === d.id}
+                      >
+                        {processing && data.depositId === d.id ? "Memproses..." : "Konfirmasi"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCancelConfirm(d.id)}
+                        className="text-[11px] bg-red-500 hover:bg-red-600 text-white px-2 py-[2px] rounded"
+                        disabled={processing && data.depositId === d.id}
+                      >
+                        {processing && data.depositId === d.id ? "Memproses..." : "Batalkan Konfirmasi"}
+                      </button>
+                    )}
+                    {d.proof_of_payment && (
+                      <a
+                        href={`/proof-of-payment/${d.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs rounded text-blue-600 hover:bg-gray-100 transition"
+                      >
+                        Lihat Bukti
+                      </a>
+                    )}
+                  </div>
                 </div>
+
 
               </div>
             ))

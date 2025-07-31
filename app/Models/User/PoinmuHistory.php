@@ -22,7 +22,10 @@ class PoinmuHistory extends Model
         'points',
         'previous_points',
         'new_points',
-        'description'
+        'description',
+        'redeem_method',
+        'destination',
+        'status',
     ];
 
     public function user()

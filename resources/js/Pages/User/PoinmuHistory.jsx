@@ -221,43 +221,80 @@ export default function PoinmuHistory({ poinmuHistory }) {
             {/* Main Content */}
             <main className="w-full px-4 pt-4 pb-16">
                 {paginatedHistory.length > 0 ? (
-                    paginatedHistory.map((history) => (
-                        <Link key={history.id} href={`/poinmu-history/${history.id}`}>
-                            <div className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2">
-                                {/* Left: Icon and Info */}
-                                <div className="flex items-center gap-2 w-full">
-                                    <div className="w-14 p-3 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-full h-full text-main" viewBox="0 0 16 16">
-                                            <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
-                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                                            <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
-                                        </svg>
+                    paginatedHistory.map((history) => {
+                        const match = history.description?.match(/ke\s+([\w]+)/i);
+                        const iconKey = match ? match[1].toLowerCase() : null;
+
+
+                        return (
+                            <Link key={history.id} href={`/poinmu-history/${history.id}`}>
+                                <div className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2">
+                                    {/* Left: Icon and Info */}
+                                    <div className="flex items-center gap-2 w-full">
+                                        {/* Dynamic Icon */}
+                                        <div className="w-14 h-14 p-2 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
+                                            {iconKey ? (
+                                                <img
+                                                    src={`/storage/redeem_account/${iconKey}.png`}
+                                                    alt={iconKey}
+                                                    className="w-full h-full object-contain"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = '/storage/redeem_account/dompetmu.png';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-full h-full text-main" viewBox="0 0 16 16">
+                                                    <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+                                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                                    <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
+                                                </svg>
+                                            )}
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex flex-col items-start w-max space-y-[2px]">
+                                            <p className="font-utama font-semibold text-sm truncate max-w-[200px]">
+                                                {history.type
+                                                    ? history.type.charAt(0).toUpperCase() + history.type.slice(1)
+                                                    : '-'}
+                                            </p>
+                                           <span
+                                                        className={`
+    px-2 rounded-full text-xs font-normal w-fit
+    ${history.status === 'pending'
+                                                                ? 'border border-yellow-600 bg-yellow-100 text-yellow-600'
+                                                                : history.status === 'sukses'
+                                                                    ? 'border border-green-600 bg-green-100 text-green-600'
+                                                                    : 'border border-red-600 bg-red-100 text-red-600'}
+  `}
+                                                    >
+                                                {history.status
+                                                    ? history.status.charAt(0).toUpperCase() + history.status.slice(1)
+                                                    : '-'}
+                                            </span>
+                                            <p className="w-full font-utama text-sm text-gray-500">
+                                                {formatDate(history.created_at)}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="flex flex-col items-start w-max space-y-[2px]">
-                                        <p className="font-utama font-semibold text-sm truncate max-w-[200px]">
-                                            {history.type}
-                                        </p>
-                                        <p className="w-full max-w-[180px] truncate font-utama text-sm">
-                                            Deskripsi: {history.description}
-                                        </p>
-                                        <p className="w-full font-utama text-sm text-gray-500">
-                                            {formatDate(history.created_at)}
-                                        </p>
-                                    </div>
+                                    {/* Right: Points Status */}
+                                    <p
+                                        className={`hidden min-[315px]:flex w-[110px] items-center justify-center py-2 text-xs rounded-3xl text-center border 
+                                ${history.points < 0
+                                                ? 'border-red-600 bg-red-100 text-red-600'
+                                                : 'border-green-600 bg-green-100 text-green-600'
+                                            }`}
+                                        title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
+                                    >
+                                        {history.points > 0 ? '+' : ''}
+                                        {history.points.toLocaleString('id-ID')}
+                                    </p>
                                 </div>
-
-                                {/* Right: Points Status */}
-                                <p
-                                    className={`hidden min-[315px]:flex w-[110px] items-center justify-center py-2 text-xs rounded-3xl text-center border 
-                                    ${history.points < 0 ? 'border-red-600 bg-red-100 text-red-600' : 'border-green-600 bg-green-100 text-green-600'}`}
-                                    title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
-                                >
-                                    {history.points > 0 ? '+' : ''}{history.points.toLocaleString('id-ID')}
-                                </p>
-                            </div>
-                        </Link>
-                    ))
+                            </Link>
+                        );
+                    })
                 ) : (
                     <p className="text-gray-500 text-center">Belum ada riwayat PoinMu.</p>
                 )}
@@ -275,6 +312,7 @@ export default function PoinmuHistory({ poinmuHistory }) {
                     ))}
                 </div>
             </main>
+
         </div>
     );
 }

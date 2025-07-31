@@ -39,11 +39,11 @@ const TransactionItem = ({
         status: status || "",
         sn: sn || "",
     });
-    
+
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log("Submit function triggered");
-    
+
         post("/transactions/update", {
             data: {
                 id, // Pastikan ID dikirimkan

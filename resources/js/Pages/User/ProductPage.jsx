@@ -92,7 +92,7 @@ export default function TypePage() {
         if (isPulsaOrData) {
             inputRef.current?.focus();
         }
-      }, [isPulsaOrData]);
+    }, [isPulsaOrData]);
 
     const [showLottie, setShowLottie] = useState(false);
 
@@ -140,19 +140,19 @@ export default function TypePage() {
             router.visit('/login');
             return;
         }
-    
+
         if (!customerNo && !phone) {
             alert("Masukkan ID Tujuan terlebih dahulu!");
             return;
         }
-    
+
         router.get(`/checkout`, {
             id: product.id,
             customerNo,
             phone
         });
     };
-    
+
 
     const brandPrefixes = {
         "Telkomsel": ["0811", "0812", "0813", "0821", "0822", "0823", "0852", "0853"],
@@ -432,24 +432,29 @@ export default function TypePage() {
                                                 </h2>
                                             </div>
 
-                                            {exampleImage ? (
-                                                <img src={`/storage/${exampleImage}`} alt="Contoh ID Pelanggan" className="w-full" />
-                                            ) : (
+                                            {!exampleImage && !exampleIdProduct ? (
                                                 <p className="text-gray-500 italic w-full text-center text-md">
-                                                    Gambar contoh ID pelanggan tidak tersedia.
+                                                    Contoh ID Pelanggan tidak tersedia.
                                                 </p>
+                                            ) : (
+                                                <>
+                                                    {exampleImage && (
+                                                        <img
+                                                            src={`/storage/${exampleImage}`}
+                                                            alt="Contoh ID Pelanggan"
+                                                            className="w-full"
+                                                        />
+                                                    )}
+
+                                                    {exampleIdProduct && (
+                                                        <p className="text-gray-700 w-full text-center text-md font-medium">
+                                                            Contoh ID Pelanggan:<br />
+                                                            <span className="font-semibold">{exampleIdProduct}</span>
+                                                        </p>
+                                                    )}
+                                                </>
                                             )}
 
-                                            {exampleIdProduct ? (
-                                                <p className="text-gray-700 w-full text-center text-md font-medium">
-                                                    Contoh ID Pelanggan:<br />
-                                                    <span className="font-semibold">{exampleIdProduct}</span>
-                                                </p>
-                                            ) : (
-                                                <p className="text-gray-500 italic w-full text-center text-md">
-                                                    Contoh  ID pelanggan tidak tersedia.
-                                                </p>
-                                            )}
 
 
                                             <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
@@ -583,7 +588,9 @@ export default function TypePage() {
                             const startCutOff = new Date(`${todayDate}T${product.start_cut_off}`);
                             const endCutOff = new Date(`${todayDate}T${product.end_cut_off}`);
                             endCutOff.setMinutes(endCutOff.getMinutes() + 1);
-                            const isDisabled = product.seller_product_status === 0 || (now >= startCutOff && now <= endCutOff);
+                            const isDisabled = Number(product.seller_product_status) === 0 ||
+                                Number(product.buyer_product_status) === 0 ||
+                                (now >= startCutOff && now <= endCutOff);
 
                             return (
                                 <div
@@ -697,8 +704,8 @@ export default function TypePage() {
                                 <div className="w-full max-h-[150px] overflow-y-auto">
                                     <div>
                                         <p className="text-gray-600 text-xs font-thin text-justify break-words my-2">
-                                        Komisi hanya diberikan untuk setiap pesanan yang berhasil diselesaikan oleh teman yang diundang,
-                                        pastikan kamu telah terdaftar sebagai affiliator Muvausa Store.{" "}
+                                            Komisi hanya diberikan untuk setiap pesanan yang berhasil diselesaikan oleh teman yang diundang,
+                                            pastikan kamu telah terdaftar sebagai affiliator Muvausa Store.{" "}
                                             <a
                                                 href="/affiliator"
                                                 className="text-blue-600 hover:text-blue-800 transition"

@@ -120,6 +120,11 @@ Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show
 Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
 Route::middleware(['auth', 'otp.not.expired'])->group(function () {
+    Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
+        Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+    });
+
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
         ->name('verification.email');
@@ -203,12 +208,15 @@ Route::middleware(['admin-or-super-admin', 'otp.not.expired'])->group(function (
     Route::get('/admin/deposits', [KelolaDepositController::class, 'index'])->name('admin.deposit');
     Route::post('/admin/deposit/confirm/{id}', [KelolaDepositController::class, 'confirm'])->name('admin.deposit.confirm');
     Route::post('/admin/deposit/cancel-confirm/{id}', [KelolaDepositController::class, 'cancelConfirm']);
-    Route::get('/mutasi-qris', [MutasiQrisController::class, 'index'])->name('mutasi-qris.index');
     Route::get('/deposit-account', [AdminController::class, 'edit'])->name('admin.edit');
     Route::post('/deposit-account', [AdminController::class, 'update'])->name('admin.update');
 });
 
 Route::middleware(['super-admin', 'otp.not.expired'])->group(function () {
+    Route::get('/manage-poinmu-history', [PoinmuHistoryController::class, 'manage'])->name('poinmu.manage');
+    Route::put('/poinmu-history/{id}/status', [PoinmuHistoryController::class, 'updateStatus'])->name('poinmu.updateStatus');
+
+    Route::get('/mutasi-qris', [MutasiQrisController::class, 'index'])->name('mutasi-qris.index');
     // Halaman edit QRIS
     Route::get('/qris', [AdminController::class, 'editQris'])->name('admin.editQris');
     // Update data QRIS (untuk super admin)

@@ -70,7 +70,7 @@ function Dashboard({ user, categories }) {
                   <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
                 </svg>
                 {/* <p className="font-utama text-md font-semibold text-left">{user.points.toLocaleString('id-ID')}</p> */}
-                <p className="font-utama text-md font-semibold text-left">{showBalance ? `Rp${parseFloat(user.points).toLocaleString('id-ID')}` : "••••••••"}</p>
+                <p className="font-utama text-md font-semibold text-left">{showBalance ? `${parseFloat(user.points).toLocaleString('id-ID')}` : "••••••••"}</p>
               </div>
               <a href={route('poinmu.dashboard')}>
                 <div className="w-[103px] h-[26px] flex flex-row space-x-4 items-center justify-center px-4 py-2 rounded-[8px] bg-main">

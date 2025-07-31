@@ -8,7 +8,7 @@ const RequestDeposit = () => {
     { label: 'Dana (Bebas Biaya Admin)', value: 'dana', logo: '/storage/payment_method/dana.png' },
     { label: 'GoPay (Bebas Biaya Admin)', value: 'gopay', logo: '/storage/payment_method/gopay.png' },
     { label: 'OVO (Bebas Biaya Admin)', value: 'ovo', logo: '/storage/payment_method/ovo.png' },
-    { label: 'LinkAja (Bebas Biaya Admin)', value: 'linkaja', logo: '/storage/payment_method/linkaja.png' },
+    // { label: 'LinkAja (Bebas Biaya Admin)', value: 'linkaja', logo: '/storage/payment_method/linkaja.png' },
     { label: 'QRIS Otomatis (Bebas Biaya Admin)', value: 'qris_otomatis', logo: '/storage/payment_method/qris_otomatis.png' },
     { label: 'QRIS Dana (Bebas Biaya Admin)', value: 'qris_dana', logo: '/storage/payment_method/qris_dana.png' },
     // { label: 'Qris Shopeepay (Bebas Biaya Admin)', value: 'qris_shopeepay', logo: '/storage/payment_method/qris_shopeepay.png' },

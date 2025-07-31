@@ -1,36 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { Head, usePage, Link } from '@inertiajs/react';
 
 export default function PoinmuDashboard() {
-    const { user, poinmuHistory } = usePage().props;
+    const { user, poinmuHistory, redeemAccounts } = usePage().props;
     const [redeemPoints, setRedeemPoints] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
+    const [redeemMethod, setRedeemMethod] = useState('dompetmu');
+    const [destination, setDestination] = useState('');
+    const [accountName, setAccountName] = useState('');
+
+    useEffect(() => {
+        if (redeemMethod !== 'dompetmu') {
+            const previous = redeemAccounts[redeemMethod];
+            if (previous) {
+                setDestination(previous.destination || '');
+                setAccountName(previous.account_name || '');
+            } else {
+                setDestination('');
+                setAccountName('');
+            }
+        } else {
+            setDestination('');
+            setAccountName('');
+        }
+    }, [redeemMethod]);
+
+    const redeemOptions = [
+        { value: 'dompetmu', label: 'Dompetmu (Saldo)', icon: '/storage/redeem_account/dompetmu.png' },
+        { value: 'bri', label: 'BRI', icon: '/storage/redeem_account/bri.png' },
+        { value: 'seabank', label: 'SeaBank', icon: '/storage/redeem_account/seabank.png' },
+        { value: 'shopeepay', label: 'ShopeePay', icon: '/storage/redeem_account/shopeepay.png' },
+        { value: 'dana', label: 'DANA', icon: '/storage/redeem_account/dana.png' },
+    ];
+
 
     const handleRedeem = () => {
-        if (!redeemPoints || parseInt(redeemPoints.replace(/\./g, '')) <= 0) {
+        const numericPoints = parseInt(redeemPoints.replace(/\./g, '')) || 0;
+
+        if (numericPoints <= 0) {
             alert('Masukkan jumlah poin yang valid.');
             return;
         }
-        if (parseInt(redeemPoints.replace(/\./g, '')) > user.points) {
+
+        if (numericPoints > user.points) {
             alert('Poin tidak cukup untuk diredeem.');
             return;
         }
 
-        setShowConfirm(true); // Tampilkan modal konfirmasi
+        if (['bri', 'seabank'].includes(redeemMethod) && numericPoints < 10000) {
+            alert('Minimal redeem ke BRI atau SeaBank adalah 10.000 poin.');
+            return;
+        }
+
+        if (redeemMethod !== 'dompetmu' && (!destination || !accountName)) {
+            alert('Harap isi nomor tujuan dan nama pemilik akun.');
+            return;
+        }
+
+        setShowConfirm(true);
     };
 
+
     const confirmRedeem = () => {
-        Inertia.post('/poinmu/redeem', { points: parseInt(redeemPoints.replace(/\./g, '')) }, {
+        const points = parseInt(redeemPoints.replace(/\./g, '')) || 0;
+        Inertia.post('/poinmu/redeem', {
+            points,
+            redeem_method: redeemMethod,
+            destination: redeemMethod === 'dompetmu' ? null : destination,
+            account_name: redeemMethod === 'dompetmu' ? null : accountName,
+        }, {
             onSuccess: () => {
                 setRedeemPoints('');
-                setShowConfirm(false); // Tutup modal setelah sukses
+                setDestination('');
+                setAccountName('');
+                setRedeemMethod('dompetmu');
+                setShowConfirm(false);
             },
             onError: (errors) => {
                 alert(errors.error || 'Terjadi kesalahan.');
             }
         });
     };
+
 
     return (
         <>
@@ -56,44 +108,101 @@ export default function PoinmuDashboard() {
                 <main className="w-full flex flex-col items-center justify-center">
 
                     {/* Informasi Pengguna */}
+                    <section className="w-full px-4 pt-6">
+                        <div className="w-full bg-white rounded-xl shadow-md p-6 space-y-6">
 
-                    <section className="w-full flex flex-col justify-center items-center space-y-4 px-8 pt-8">
-                        <div className="w-full flex justify-center items-center">
-                            <div className="flex flex-col justify-center items-center">
-                                <p className="font-utama font-semibold text-4xl text-main">PoinMu</p>
-                                <p className="font-utama font-bold text-5xl text-main">{user.points.toLocaleString('id-ID')}</p>
+                            {/* Bagian PoinMu */}
+                            <div className="flex flex-col items-center">
+                                <p className="font-utama text-lg font-semibold text-gray-700">PoinMu Saat Ini</p>
+                                <p className="font-utama text-5xl font-bold text-main">
+                                    {user.points.toLocaleString('id-ID')}
+                                </p>
+                                <span className="mt-2 px-2 py-1 text-xs bg-main/10 text-main rounded-full">
+                                    1 PoinMu = Rp1
+                                </span>
                             </div>
-                        </div>
 
-                        <div className="p-4 w-full flex justify-center items-center rounded-xl border-[3px] border-main">
-                            <div className="flex flex-col justify-center items-center">
-                                <p className="font-utama font-semibold text-4xl text-main">1 PoinMu = Rp1</p>
+                            {/* Form Redeem */}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700">Jumlah Poin yang akan diredeem</label>
+                                    <input
+                                        type="text"
+                                        value={redeemPoints}
+                                        onChange={(e) => {
+                                            const raw = e.target.value.replace(/[^\d]/g, '');
+                                            const formatted = parseInt(raw || '0', 10).toLocaleString('id-ID');
+                                            setRedeemPoints(formatted);
+                                        }}
+                                        className="mt-1 border border-gray-300 rounded-md px-3 py-2 w-full text-sm bg-neutral-100"
+                                        placeholder="Contoh: 10.000"
+                                    />
+                                </div>
+
+                                <div className="relative">
+                                    <label className="text-sm font-medium text-gray-700 mb-1 block">Metode Redeem</label>
+
+                                    <div className="flex items-center border border-gray-300 rounded bg-neutral-100 px-3 py-2 text-sm w-full">
+                                        {/* Ikon metode terpilih */}
+                                        <img
+                                            src={`/storage/redeem_account/${redeemMethod}.png`}
+                                            alt={redeemMethod}
+                                            className="w-8 h-8 mr-2 object-contain"
+                                        />
+
+                                        {/* Select */}
+                                        <select
+                                            value={redeemMethod}
+                                            onChange={(e) => setRedeemMethod(e.target.value)}
+                                            className="bg-transparent focus:outline-none border-none w-full text-sm"
+                                        >
+                                            <option value="dompetmu">DompetMu (Saldo)</option>
+                                            <option value="bri">BRI</option>
+                                            <option value="seabank">SeaBank</option>
+                                            <option value="shopeepay">ShopeePay</option>
+                                            <option value="dana">DANA</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+                                {redeemMethod !== 'dompetmu' && (
+                                    <>
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">Nomor Tujuan</label>
+                                            <input
+                                                type="text"
+                                                value={destination}
+                                                onChange={(e) => setDestination(e.target.value)}
+                                                className="mt-1 border border-gray-300 rounded-md px-3 py-2 w-full text-sm bg-neutral-100"
+                                                placeholder="Nomor rekening / e-wallet"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700">Nama Pemilik Akun</label>
+                                            <input
+                                                type="text"
+                                                value={accountName}
+                                                onChange={(e) => setAccountName(e.target.value)}
+                                                className="mt-1 border border-gray-300 rounded-md px-3 py-2 w-full text-sm bg-neutral-100"
+                                                placeholder="Contoh: Budi Santoso"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                <button
+                                    onClick={handleRedeem}
+                                    className="w-full bg-main hover:bg-main/90 text-white px-4 py-2 rounded-md font-semibold text-sm transition"
+                                >
+                                    Redeem Poin
+                                </button>
                             </div>
                         </div>
                     </section>
 
-                    {/* Redeem Poin */}
-                    <section className="w-full bg-white px-8 p-4 rounded-xl shadow-xl space-y-3">
-                        <label className="w-full flex text-center text-md font-medium">Jumlah Poin yang akan diredeem</label>
-                        <input
-                            type="text"
-                            value={redeemPoints}
-                            onChange={(e) => {
-                                const raw = e.target.value.replace(/[^\d]/g, '');
-                                const formatted = parseInt(raw || '0', 10).toLocaleString('id-ID');
-                                setRedeemPoints(formatted);
-                            }}
-                            className="border border-gray-300 rounded px-3 py-2 w-full text-sm bg-neutral-100"
-                            placeholder="Contoh: 1.000"
-                        />
 
-                        <button
-                            onClick={handleRedeem}
-                            className="w-full bg-main text-white px-4 py-2 rounded font-semibold text-sm"
-                        >
-                            Redeem Poin
-                        </button>
-                    </section>
 
                     {/* Riwayat Poin */}
                     <section className="w-full p-2 py-4">
@@ -106,77 +215,103 @@ export default function PoinmuDashboard() {
                                 Lihat Semua
                             </Link>
                         </div>
+
                         {poinmuHistory.length > 0 ? (
-                            poinmuHistory.slice(0, 8).map((history) => (
+                            poinmuHistory.slice(0, 8).map((history) => {
+                                const getRedeemIconKeyFromDescription = (description) => {
+                                    const match = history.description?.match(/ke\s+([\w]+)/i);
+                                    return match ? match[1].toLowerCase() : 'default';
+                                };
+                                const iconKey = getRedeemIconKeyFromDescription(history.description);
+                                const [isImageError, setIsImageError] = useState(false);
 
-                                <Link
-                                    key={history.id}
-                                    href={`/poinmu-history/${history.id}`}>
+                                return (
+                                    <Link key={history.id} href={`/poinmu-history/${history.id}`}>
+                                        <div className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2">
+                                            {/* Kiri: Logo dan Informasi Produk */}
+                                            <div className="flex items-center gap-2 w-full">
+                                                {/* Logo Produk dari storage/redeem_account */}
+                                                <div className="w-14 h-14 p-2 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
+                                                    {!isImageError ? (
+                                                        <img
+                                                            src={`/storage/redeem_account/${iconKey}.png`}
+                                                            alt={iconKey}
+                                                            className="w-full h-full object-contain"
+                                                            onError={() => setIsImageError(true)}
+                                                        />
+                                                    ) : (
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="currentColor"
+                                                            className="w-full h-full text-main"
+                                                            viewBox="0 0 16 16"
+                                                        >
+                                                            <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+                                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                                            <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
+                                                        </svg>
+                                                    )}
+                                                </div>
 
-                                    <div
-                                        className="flex justify-between items-center p-3 border-b-2 border-b-neutral-100 cursor-pointer w-full gap-2"
-                                    >
-                                        {/* Kiri: Logo dan Informasi Produk */}
-                                        <div className="flex items-center gap-2 w-full">
-                                            {/* Logo Produk */}
-                                            <div className="w-14 p-3 bg-white shadow hidden min-[350px]:flex items-center justify-center rounded-xl">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-full h-full text-main" viewBox="0 0 16 16">
-                                                    <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
-                                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                                                    <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
-                                                </svg>
+                                                {/* Informasi Produk */}
+                                                <div className="flex flex-col items-start w-max space-y-[2px]">
+                                                    <p className="font-utama font-semibold text-sm truncate w-full max-w-[150px] [@media(max-width:315px)]:max-w-[250px]">
+                                                        {history.type.charAt(0).toUpperCase() + history.type.slice(1)}
+                                                    </p>
+                                                    <span
+                                                        className={`
+    px-2 rounded-full text-xs font-normal w-fit
+    ${history.status === 'pending'
+                                                                ? 'border border-yellow-600 bg-yellow-100 text-yellow-600'
+                                                                : history.status === 'sukses'
+                                                                    ? 'border border-green-600 bg-green-100 text-green-600'
+                                                                    : 'border border-red-600 bg-red-100 text-red-600'}
+  `}
+                                                    >
+                                                        {(history.status ?? '-').charAt(0).toUpperCase() + (history.status ?? '-').slice(1)}
+                                                    </span>
+
+                                                    <p className="w-full font-utama text-sm text-gray-500">
+                                                        {new Date(history.created_at).toLocaleDateString('id-ID', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: '2-digit',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            hour12: false,
+                                                            timeZone: 'Asia/Jakarta',
+                                                        })}
+                                                    </p>
+                                                </div>
                                             </div>
 
-                                            {/* Informasi Produk */}
-                                            <div className="flex flex-col items-start w-max space-y-[2px]">
-                                                <p className="font-utama font-semibold text-sm truncate w-full max-w-[150px] [@media(max-width:315px)]:max-w-[250px]">
-                                                    {history.type}
-                                                </p>
-                                                {/* <p className="w-full font-utama text-sm w-max-200">Deskripsi: {history.description}</p> */}
-                                                <p className="w-full max-w-[150px] truncate font-utama text-sm">
-                                                    {history.description}
-                                                </p>
-
-                                                <p className="w-full font-utama text-sm text-gray-500">
-                                                    {new Date(history.created_at).toLocaleDateString("id-ID", {
-                                                        year: "numeric",
-                                                        month: "short",
-                                                        day: "2-digit",
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                        hour12: false,
-                                                        timeZone: "Asia/Jakarta",
-                                                    })}
-                                                </p>
-                                            </div>
+                                            {/* Kanan: Status */}
+                                            <p
+                                                className={`hidden min-[350px]:flex w-[150px] items-center justify-center py-2 text-xs rounded-3xl border 
+                ${history.points < 0
+                                                        ? 'border-red-600 bg-red-100 text-red-600'
+                                                        : 'border-green-600 bg-green-100 text-green-600'
+                                                    }`}
+                                                title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
+                                            >
+                                                {history.points > 0 ? '+' : ''}
+                                                {
+                                                    history.points.toLocaleString('id-ID').length > 10
+                                                        ? `${history.points.toLocaleString('id-ID').slice(0, 5)}...`
+                                                        : history.points.toLocaleString('id-ID')
+                                                }
+                                            </p>
                                         </div>
-
-                                        {/* Kanan: Status */}
-                                        <p
-                                            className={`hidden min-[350px]:flex w-[150px] items-center justify-center py-2 text-xs rounded-3xl border 
-                                            ${history.points < 0 ? 'border-red-600 bg-red-100 text-red-600' : 'border-green-600 bg-green-100 text-green-600'}`}
-                                            title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
-                                        >
-                                            {history.points > 0 ? '+' : ''}
-                                            {
-                                                history.points.toLocaleString('id-ID').length > 10
-                                                    ? `${history.points.toLocaleString('id-ID').slice(0, 5)}...`
-                                                    : history.points.toLocaleString('id-ID')
-                                            }
-                                            {
-                                                history.points.toLocaleString('id-ID').replace(/\D/g, '').length <= 3 && ' PoinMu'
-                                            }
-                                        </p>
-
-                                    </div>
-                                </Link>
-                            ))
+                                    </Link>
+                                );
+                            })
                         ) : (
                             <div className="flex flex-col items-center justify-center h-[100px]">
                                 <p className="text-gray-500 px-4 text-center">Belum ada riwayat PoinMu.</p>
                             </div>
                         )}
                     </section>
+
 
                     {/* Modal Konfirmasi */}
                     {showConfirm && (
