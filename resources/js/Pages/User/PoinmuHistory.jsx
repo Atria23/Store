@@ -281,16 +281,17 @@ export default function PoinmuHistory({ poinmuHistory }) {
 
                                     {/* Right: Points Status */}
                                     <p
-                                        className={`hidden min-[315px]:flex w-[110px] items-center justify-center py-2 text-xs rounded-3xl text-center border 
-                                ${history.points < 0
-                                                ? 'border-red-600 bg-red-100 text-red-600'
-                                                : 'border-green-600 bg-green-100 text-green-600'
-                                            }`}
-                                        title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
-                                    >
-                                        {history.points > 0 ? '+' : ''}
-                                        {history.points.toLocaleString('id-ID')}
-                                    </p>
+  className={`hidden min-[315px]:flex w-[110px] items-center justify-center py-2 text-xs rounded-3xl text-center border 
+    ${Number(history.points) < 0
+      ? 'border-red-600 bg-red-100 text-red-600'
+      : 'border-green-600 bg-green-100 text-green-600'
+    }`}
+  title={`${Number(history.points) > 0 ? '+' : ''}${Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })} PoinMu`}
+>
+  {Number(history.points) > 0 ? '+' : ''}
+  {Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+</p>
+
                                 </div>
                             </Link>
                         );

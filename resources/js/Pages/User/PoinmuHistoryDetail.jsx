@@ -63,36 +63,38 @@ export default function PoinmuHistoryDetail({ history }) {
                                     </div>
                                 )} */}
                                 {(() => {
-                        const match = history.description?.match(/ke\s+([\w]+)/i);
-  const iconKey = match ? match[1].toLowerCase() : null;
+                                    const match = history.description?.match(/ke\s+([\w]+)/i);
+                                    const iconKey = match ? match[1].toLowerCase() : null;
 
-  return (
-    <div className="w-24 h-24 border border-gray-300 rounded-full flex items-center justify-center">
-      {iconKey ? (
-        <img
-          src={`/storage/redeem_account/${iconKey}.png`}
-          alt={iconKey}
-          className="w-14 h-14 object-contain"
-        />
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-14 h-14 text-main" viewBox="0 0 16 16">
-          <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
-          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-          <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
-        </svg>
-      )}
-    </div>
-  );
-})()}
+                                    return (
+                                        <div className="w-24 h-24 border border-gray-300 rounded-full flex items-center justify-center">
+                                            {iconKey ? (
+                                                <img
+                                                    src={`/storage/redeem_account/${iconKey}.png`}
+                                                    alt={iconKey}
+                                                    className="w-14 h-14 object-contain"
+                                                />
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-14 h-14 text-main" viewBox="0 0 16 16">
+                                                    <path d="M5.5 9.511c.076.954.83 1.697 2.182 1.785V12h.6v-.709c1.4-.098 2.218-.846 2.218-1.932 0-.987-.626-1.496-1.745-1.76l-.473-.112V5.57c.6.068.982.396 1.074.85h1.052c-.076-.919-.864-1.638-2.126-1.716V4h-.6v.719c-1.195.117-2.01.836-2.01 1.853 0 .9.606 1.472 1.613 1.707l.397.098v2.034c-.615-.093-1.022-.43-1.114-.9zm2.177-2.166c-.59-.137-.91-.416-.91-.836 0-.47.345-.822.915-.925v1.76h-.005zm.692 1.193c.717.166 1.048.435 1.048.91 0 .542-.412.914-1.135.982V8.518z" />
+                                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                                    <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
                             </div>
 
                             <div className="w-full flex items-center justify-center">
                                 <p className={`w-max text-center text-xl font-medium px-4 py-1 rounded-full border
-                                    ${history.points < 0
+  ${Number(history.points) < 0
                                         ? 'border-red-600 bg-red-100 text-red-600'
                                         : 'border-green-600 bg-green-100 text-green-600'}`}>
-                                    {history.points > 0 ? `+${history.points.toLocaleString('id-ID')}` : history.points.toLocaleString('id-ID')} <span className="text-sm">PoinMu</span>
+                                    {Number(history.points) > 0 ? `+${Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`
+                                        : Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                                    <span className="text-sm"> PoinMu</span>
                                 </p>
 
                             </div>
@@ -156,28 +158,28 @@ export default function PoinmuHistoryDetail({ history }) {
                                 </div>
                             </div>
 
-  {/* Status */}
-  <div className="w-full flex flex-row">
-    <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
-      Status
-    </div>
-    <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
-      <span
-                                                        className={`
+                            {/* Status */}
+                            <div className="w-full flex flex-row">
+                                <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
+                                    Status
+                                </div>
+                                <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
+                                    <span
+                                        className={`
     px-2 rounded-full text-xs font-semibold w-fit
     ${history.status === 'pending'
-                                                                ? 'border border-yellow-600 bg-yellow-100 text-yellow-600'
-                                                                : history.status === 'sukses'
-                                                                    ? 'border border-green-600 bg-green-100 text-green-600'
-                                                                    : 'border border-red-600 bg-red-100 text-red-600'}
+                                                ? 'border border-yellow-600 bg-yellow-100 text-yellow-600'
+                                                : history.status === 'sukses'
+                                                    ? 'border border-green-600 bg-green-100 text-green-600'
+                                                    : 'border border-red-600 bg-red-100 text-red-600'}
   `}
-                                                    >
-        {history.status
-          ? history.status.charAt(0).toUpperCase() + history.status.slice(1)
-          : '-'}
-      </span>
-    </div>
-  </div>
+                                    >
+                                        {history.status
+                                            ? history.status.charAt(0).toUpperCase() + history.status.slice(1)
+                                            : '-'}
+                                    </span>
+                                </div>
+                            </div>
                             <div className="w-full h-px border border-dashed border-gray-400 my-4" />
                             <div className="w-full flex flex-row">
                                 <div className="text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">
@@ -194,17 +196,19 @@ export default function PoinmuHistoryDetail({ history }) {
                                     Poin Sebelumnya
                                 </div>
                                 <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
-                                    {history.previous_points.toLocaleString('id-ID')}
+                                    {Number(history.previous_points).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                 </div>
                             </div>
+
                             <div className="w-full flex flex-row">
                                 <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-semibold tracking-[0.25px] break-words">
                                     Poin Sekarang
                                 </div>
                                 <div className="w-1/2 text-right font-utama text-sm font-semibold tracking-[0.1px] break-words">
-                                    {history.new_points.toLocaleString('id-ID')}
+                                    {Number(history.new_points).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </main>

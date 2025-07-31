@@ -115,7 +115,7 @@ export default function PoinmuDashboard() {
                             <div className="flex flex-col items-center">
                                 <p className="font-utama text-lg font-semibold text-gray-700">PoinMu Saat Ini</p>
                                 <p className="font-utama text-5xl font-bold text-main">
-                                    {user.points.toLocaleString('id-ID')}
+                                    {Number(user.points).toLocaleString('id-ID')}
                                 </p>
                                 <span className="mt-2 px-2 py-1 text-xs bg-main/10 text-main rounded-full">
                                     1 PoinMu = Rp1
@@ -288,19 +288,20 @@ export default function PoinmuDashboard() {
                                             {/* Kanan: Status */}
                                             <p
                                                 className={`hidden min-[350px]:flex w-[150px] items-center justify-center py-2 text-xs rounded-3xl border 
-                ${history.points < 0
+    ${Number(history.points) < 0
                                                         ? 'border-red-600 bg-red-100 text-red-600'
                                                         : 'border-green-600 bg-green-100 text-green-600'
                                                     }`}
-                                                title={`${history.points > 0 ? '+' : ''}${history.points.toLocaleString('id-ID')} PoinMu`}
+                                                title={`${Number(history.points) > 0 ? '+' : ''}${Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })} PoinMu`}
                                             >
-                                                {history.points > 0 ? '+' : ''}
+                                                {Number(history.points) > 0 ? '+' : ''}
                                                 {
-                                                    history.points.toLocaleString('id-ID').length > 10
-                                                        ? `${history.points.toLocaleString('id-ID').slice(0, 5)}...`
-                                                        : history.points.toLocaleString('id-ID')
+                                                    Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 }).length > 10
+                                                        ? `${Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 }).slice(0, 5)}...`
+                                                        : Number(history.points).toLocaleString('id-ID', { maximumFractionDigits: 0 })
                                                 }
                                             </p>
+
                                         </div>
                                     </Link>
                                 );
