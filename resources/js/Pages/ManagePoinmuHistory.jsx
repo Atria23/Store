@@ -187,35 +187,6 @@ const History = () => {
                             </div>
                         </div>
                     </div>
-                    {/* <div className="bg-white p-4 space-y-3">
-                        <input
-                            type="text"
-                            className="w-full border rounded px-3 py-2 text-sm"
-                            placeholder="Cari berdasarkan ID atau nama user"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                            <select
-                                className="w-full border rounded px-2 py-1 text-sm"
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                            >
-                                <option value="">Semua Status</option>
-                                <option value="sukses">Sukses</option>
-                                <option value="pending">Pending</option>
-                                <option value="gagal">Gagal</option>
-                            </select>
-                            <select
-                                className="w-full border rounded px-2 py-1 text-sm"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                            >
-                                <option value="desc">Terbaru</option>
-                                <option value="asc">Terlama</option>
-                            </select>
-                        </div>
-                    </div> */}
                     {/* Search & Filter */}
                     <div className="w-full h-max flex flex-col space-y-4 items-center justify-start p-4 bg-white shadow-lg">
                         {/* Search Bar */}
@@ -301,51 +272,27 @@ const History = () => {
                                 </div>
 
                                 {/* Kanan: Status */}
-                                {/* <div className="w-max">
+                                <div className="w-max">
                                     <select
                                         value={item.status || ""}
                                         onChange={(e) => updateStatus(item.id, e.target.value || null)}
-                                        className={`px-4 pr-6 rounded-full text-xs font-normal w-fit
-    ${item.status === "pending"
-                                                ? "border border-yellow-600 bg-yellow-100 text-yellow-600"
-                                                : item.status === "sukses"
-                                                    ? "border border-green-600 bg-green-100 text-green-600"
-                                                    : item.status === "gagal"
-                                                        ? "border border-red-600 bg-red-100 text-red-600"
-                                                        : "border border-gray-300 bg-gray-100 text-gray-500"
-                                            }
-  `}
+                                        className={`px-4 pr-8 py-[2px] rounded-full text-[11px] font-medium w-fit
+                                                    ${item.status === "pending"
+                                                                                                ? "border border-yellow-600 bg-yellow-100 text-yellow-600"
+                                                                                                : item.status === "sukses"
+                                                                                                    ? "border border-green-600 bg-green-100 text-green-600"
+                                                                                                    : item.status === "gagal"
+                                                                                                        ? "border border-red-600 bg-red-100 text-red-600"
+                                                                                                        : "border border-gray-300 bg-gray-100 text-gray-500"
+                                                                                            }
+                                                    `}
                                     >
                                         <option value="">-- Pilih Status --</option>
                                         <option value="sukses">Sukses</option>
                                         <option value="pending">Pending</option>
                                         <option value="gagal">Gagal</option>
                                     </select>
-
-
-                                </div> */}
-                                <div className="w-max">
-  <select
-    value={item.status || ""}
-    onChange={(e) => updateStatus(item.id, e.target.value || null)}
-    className={`px-4 pr-8 py-[2px] rounded-full text-[11px] font-medium w-fit
-      ${
-        item.status === "pending"
-          ? "border border-yellow-600 bg-yellow-100 text-yellow-600"
-          : item.status === "sukses"
-          ? "border border-green-600 bg-green-100 text-green-600"
-          : item.status === "gagal"
-          ? "border border-red-600 bg-red-100 text-red-600"
-          : "border border-gray-300 bg-gray-100 text-gray-500"
-      }
-    `}
-  >
-    <option value="">-- Pilih Status --</option>
-    <option value="sukses">Sukses</option>
-    <option value="pending">Pending</option>
-    <option value="gagal">Gagal</option>
-  </select>
-</div>
+                                </div>
 
                             </div>
                         ))
@@ -356,23 +303,27 @@ const History = () => {
                     )}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex justify-center gap-2 mt-6">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`px-3 py-1 rounded border text-sm ${currentPage === page
-                                    ? "bg-main text-white"
-                                    : "bg-gray-100 text-gray-800"
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                    </div>
-                )}
+  <div className="w-full px-4 pb-8 flex justify-center items-center flex-wrap gap-2">
+    {Array.from({ length: totalPages }, (_, i) => (
+      <button
+        key={i}
+        onClick={() => {
+          setCurrentPage(i + 1);
+          window.scrollTo({ top: 0, behavior: "smooth" }); // opsional biar scroll ke atas
+        }}
+        className={`px-3 py-1 text-sm rounded-md border transition-all
+          ${currentPage === i + 1
+            ? 'bg-main text-white border-main'
+            : 'bg-white text-gray-700 border-gray-300 hover:border-main hover:text-main'
+          }`}
+      >
+        {i + 1}
+      </button>
+    ))}
+  </div>
+)}
+
             </div>
         </>
     );
