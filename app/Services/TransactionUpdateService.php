@@ -163,6 +163,7 @@ class TransactionUpdateService
                 'previous_points' => $previousPoints,
                 'new_points' => $newPoints,
                 'description' => "Komisi dari riwayat afiliasi dengan ID: {$affiliateHistory->id}",
+                'status' => strtolower($transaction->status), // otomatis lowercase
             ]);
 
             // Update points di tabel users

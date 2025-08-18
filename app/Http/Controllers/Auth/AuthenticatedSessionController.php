@@ -18,6 +18,14 @@ use App\Notifications\SendOtpNotification;
 
 class AuthenticatedSessionController extends Controller
 {
+    
+    protected $otpTimeoutMinutes;//jika ini diganti, maka app\Http\Middleware\EnsureOtpNotExpired.php juga diganti
+
+    public function __construct()
+    {
+        $this->otpTimeoutMinutes = config('otp.timeout_minutes');
+    }
+     
     /**
      * Display the login view.
      */
@@ -38,9 +46,58 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
+    $cookieToken = $request->cookie('device_token');
+
+        if ($user && $user->otp_verified_at) {
+            // Jika waktu terakhir verifikasi OTP sudah lewat dari batas waktu
+            if ($user->otp_verified_at->addMinutes($this->otpTimeoutMinutes)->isPast()) {
+            Auth::logout();
+            // Generate OTP 6 digit random
+        $otp = random_int(100000, 999999);
+
+        // Hash OTP dan simpan di user, plus expiry 5 menit
+        $user->otp = Hash::make($otp);
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        // Kirim OTP via email (pakai Notification)
+        $user->notify(new SendOtpNotification($otp));
+
+        // Simpan ID user di session untuk validasi OTP nanti
+        session(['otp_user_id' => $user->id]);
+
+        // Redirect ke halaman input OTP
+        return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+            }
+
+            if (!$cookieToken || $cookieToken !== $user->device_token) {
+            Auth::logout();
+            // Generate OTP 6 digit random
+        $otp = random_int(100000, 999999);
+
+        // Hash OTP dan simpan di user, plus expiry 5 menit
+        $user->otp = Hash::make($otp);
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        // Kirim OTP via email (pakai Notification)
+        $user->notify(new SendOtpNotification($otp));
+
+        // Simpan ID user di session untuk validasi OTP nanti
+        session(['otp_user_id' => $user->id]);
+
+        // Redirect ke halaman input OTP
+        return redirect()->route('otp.form')->with('status', 'Kode OTP telah dikirim ke emailmu.');
+        }
+    return redirect('/');
+        }
+        // 🔐 Bandingkan device_token dari cookie dengan yang tersimpan di database
+        
 
         // Logout sementara supaya belum dianggap fully logged in sebelum OTP verified
-        Auth::logout();
+        // Auth::logout();
+
+        // baris 22 & 44-49 harusnya gak ada, dan 52 haruse nyala
 
         // Generate OTP 6 digit random
         $otp = random_int(100000, 999999);

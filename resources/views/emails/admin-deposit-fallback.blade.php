@@ -1,4 +1,4 @@
-<h2>SEGERA TOP UP SALDO ADMIN</h2>
+<!-- <h2>SEGERA TOP UP SALDO ADMIN</h2>
 
 <p>Segera lakukan deposit dengan rincian:</p>
 
@@ -8,6 +8,20 @@
     <li><strong>Nominal:</strong> Rp {{ number_format($amount, 0, ',', '.') }}</li>
     <li><strong>Keterangan:</strong> {{ $notes }}</li>
     <li><strong>No. Rekening:</strong> {{ $accountNumber }}</li>
+</ul>
+
+<p>Harap lakukan secepatnya agar transaksi user tidak tertunda.</p> -->
+<h2>SEGERA TOP UP SALDO ADMIN</h2>
+
+<p>Segera lakukan deposit dengan rincian:</p>
+
+<ul>
+    <p><strong>Ditujukan Untuk:</strong> {{ $ownerName }}</p>
+    <li><strong>Bank:</strong> {{ $bank }}</li>
+    <li><strong>Metode Pembayaran:</strong> {{ $paymentMethod }}</li>
+    <li><strong>No. Rekening:</strong> {{ $accountNumber }}</li>
+    <li><strong>Nominal:</strong> Rp {{ number_format($amount, 0, ',', '.') }}</li>
+    <li><strong>Keterangan:</strong> {{ $notes }}</li>
 </ul>
 
 <p>Harap lakukan secepatnya agar transaksi user tidak tertunda.</p>

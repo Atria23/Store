@@ -54,6 +54,11 @@ use App\Models\Deposit;
 use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Guest\GuestDashboardController;
 use App\Http\Controllers\QrisConverterController;
+use App\Http\Controllers\PaymentController;
+
+Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
+Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
+Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
 
 Route::get('/qris-converter', [QrisConverterController::class, 'index'])->name('qris.index');
 Route::post('/qris-converter', [QrisConverterController::class, 'convert'])->name('qris.convert');

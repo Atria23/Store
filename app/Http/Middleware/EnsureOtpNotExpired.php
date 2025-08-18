@@ -12,7 +12,12 @@ use Inertia\Inertia;
 class EnsureOtpNotExpired
 {
 
-    protected $otpTimeoutMinutes = 120;
+    protected $otpTimeoutMinutes;    //jika ini diganti, maka app\Http\Controllers\Auth\AuthenticatedSessionController.php juga diganti
+
+    public function __construct()
+    {
+        $this->otpTimeoutMinutes = config('otp.timeout_minutes');
+    }
 
     public function handle(Request $request, Closure $next)
     {

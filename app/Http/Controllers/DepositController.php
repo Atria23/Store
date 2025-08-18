@@ -123,68 +123,134 @@ class DepositController extends Controller
                 $userTotalBalance = DB::table('users')->sum(DB::raw('balance + points'));
                 $threshold = $validated['amount'] + $userTotalBalance + 500000;
         
+                // if ($threshold > $muvausaserverBalance) {
+                //     $nominal = $validated['amount'] < 200000 ? 200000 : $validated['amount'];
+                //     $adminEmails = config('custom.admin_deposit_emails');
+        
+                //     // === Kirim deposit ke userA (BCA)
+                //     $responseA = Http::post(config('services.api_server') . '/v1/deposit', [
+                //         'username' => $username,
+                //         'amount' => $nominal,
+                //         'bank' => 'BCA',
+                //         'owner_name' => 'Danu Trianggoro',
+                //         'sign' => md5($username . $apiKey . 'deposit'),
+                //     ]);
+        
+                //     if ($responseA->successful() && $responseA->json('data.rc') === '00') {
+                //         $amount = $responseA->json('data.amount');
+                //         $notes = $responseA->json('data.notes');
+        
+                //         foreach ($adminEmails as $email) {
+                //             Mail::to(trim($email))->send(new \App\Mail\AdminDepositNotificationFallback(
+                //                 $amount,
+                //                 $notes,
+                //                 '6042888890',
+                //                 'DANAMON',
+                //                 'Danu Trianggoro'
+                //             ));
+                //         }
+                //     } else {
+                //         \Log::error('Gagal request deposit admin fallback untuk userA (BCA)', [
+                //             'response' => $responseA->json()
+                //         ]);
+                //     }
+        
+                //     // === Kirim deposit ke userB (BRI)
+                //     $responseB = Http::post(config('services.api_server') . '/v1/deposit', [
+                //         'username' => $username,
+                //         'amount' => $nominal,
+                //         'bank' => 'DANAMON',
+                //         'owner_name' => 'Dian',
+                //         'sign' => md5($username . $apiKey . 'deposit'),
+                //     ]);
+        
+                //     if ($responseB->successful() && $responseB->json('data.rc') === '00') {
+                //         $amount = $responseB->json('data.amount');
+                //         $notes = $responseB->json('data.notes');
+        
+                //         foreach ($adminEmails as $email) {
+                //             Mail::to(trim($email))->send(new \App\Mail\AdminDepositNotificationFallback(
+                //                 $amount,
+                //                 $notes,
+                //                 '213501000291307',
+                //                 'BRI',
+                //                 'Dian'
+                //             ));
+                //         }
+                //     } else {
+                //         \Log::error('Gagal request deposit admin fallback untuk userB (BRI)', [
+                //             'response' => $responseB->json()
+                //         ]);
+                //     }
+        
+                //     \Log::info('Fallback deposit admin berhasil dikirim ke userA dan userB.');
+                // }
+
                 if ($threshold > $muvausaserverBalance) {
                     $nominal = $validated['amount'] < 200000 ? 200000 : $validated['amount'];
                     $adminEmails = config('custom.admin_deposit_emails');
-        
+
                     // === Kirim deposit ke userA (BCA)
                     $responseA = Http::post(config('services.api_server') . '/v1/deposit', [
-                        'username' => $username,
-                        'amount' => $nominal,
-                        'bank' => 'BCA',
+                        'username'   => $username,
+                        'amount'     => $nominal,
+                        'bank'       => 'DANAMON',
                         'owner_name' => 'Danu Trianggoro',
-                        'sign' => md5($username . $apiKey . 'deposit'),
+                        'sign'       => md5($username . $apiKey . 'deposit'),
                     ]);
-        
+
                     if ($responseA->successful() && $responseA->json('data.rc') === '00') {
-                        $amount = $responseA->json('data.amount');
-                        $notes = $responseA->json('data.notes');
-        
+                        $data = $responseA->json('data');
+
                         foreach ($adminEmails as $email) {
-                            Mail::to(trim($email))->send(new \App\Mail\AdminDepositNotificationFallback(
-                                $amount,
-                                $notes,
-                                '6042888890',
-                                'BCA',
-                                'Danu Trianggoro'
-                            ));
+                            Mail::to(trim($email))->send(
+                                new \App\Mail\AdminDepositNotificationFallback(
+                                    $data['amount'],
+                                    $data['notes'],
+                                    $data['account_no'],
+                                    $data['bank'],
+                                    $data['payment_method']
+                                )
+                            );
                         }
                     } else {
                         \Log::error('Gagal request deposit admin fallback untuk userA (BCA)', [
                             'response' => $responseA->json()
                         ]);
                     }
-        
-                    // === Kirim deposit ke userB (BRI)
+
+                    // === Kirim deposit ke userB (DANAMON)
                     $responseB = Http::post(config('services.api_server') . '/v1/deposit', [
-                        'username' => $username,
-                        'amount' => $nominal,
-                        'bank' => 'BRI',
+                        'username'   => $username,
+                        'amount'     => $nominal,
+                        'bank'       => 'DANAMON',
                         'owner_name' => 'Dian',
-                        'sign' => md5($username . $apiKey . 'deposit'),
+                        'sign'       => md5($username . $apiKey . 'deposit'),
                     ]);
-        
+
                     if ($responseB->successful() && $responseB->json('data.rc') === '00') {
-                        $amount = $responseB->json('data.amount');
-                        $notes = $responseB->json('data.notes');
-        
+                        $data = $responseB->json('data');
+
                         foreach ($adminEmails as $email) {
-                            Mail::to(trim($email))->send(new \App\Mail\AdminDepositNotificationFallback(
-                                $amount,
-                                $notes,
-                                '213501000291307',
-                                'BRI',
-                                'Dian'
-                            ));
+                            Mail::to(trim($email))->send(
+                                new \App\Mail\AdminDepositNotificationFallback(
+                                    $data['amount'],
+                                    $data['notes'],
+                                    $data['account_no'],
+                                    $data['bank'],
+                                    $data['payment_method']
+                                )
+                            );
                         }
                     } else {
-                        \Log::error('Gagal request deposit admin fallback untuk userB (BRI)', [
+                        \Log::error('Gagal request deposit admin fallback untuk userB (DANAMON)', [
                             'response' => $responseB->json()
                         ]);
                     }
-        
+
                     \Log::info('Fallback deposit admin berhasil dikirim ke userA dan userB.');
                 }
+
             }
         } catch (\Exception $e) {
             \Log::error('Gagal memproses fallback deposit admin: ' . $e->getMessage());
