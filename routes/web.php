@@ -55,6 +55,10 @@ use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Guest\GuestDashboardController;
 use App\Http\Controllers\QrisConverterController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Pascabayar\PlnController;
+
+Route::get('/pln', [PlnController::class, 'show'])->name('pln.show');
+Route::post('/pln/inquiry', [PlnController::class, 'inquiry'])->name('pln.inquiry');
 
 Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
 Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
