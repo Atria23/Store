@@ -55,10 +55,20 @@ use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Guest\GuestDashboardController;
 use App\Http\Controllers\QrisConverterController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Pascabayar\PlnController;
+use App\Http\Controllers\PascaPlnController;
 
-Route::get('/pln', [PlnController::class, 'show'])->name('pln.show');
-Route::post('/pln/inquiry', [PlnController::class, 'inquiry'])->name('pln.inquiry');
+Route::middleware('auth')->prefix('pln-pascabayar')->name('pln.pasca.')->group(function () {
+    // Halaman untuk menampilkan view/komponen React
+    Route::get('/', function () {
+        return Inertia::render('Pascabayar/Pln'); // Menggunakan folder agar rapi
+    })->name('index');
+
+    // Endpoint untuk proses Cek Tagihan (Inquiry)
+    Route::post('/inquiry', [PascaPlnController::class, 'inquiry'])->name('inquiry');
+
+    // Endpoint untuk proses Bayar Tagihan (Payment)
+    Route::post('/payment', [PascaPlnController::class, 'payment'])->name('payment');
+});
 
 Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
 Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
