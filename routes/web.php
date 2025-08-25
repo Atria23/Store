@@ -57,7 +57,7 @@ use App\Http\Controllers\QrisConverterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PascaPlnController;
 
-Route::middleware('auth')->prefix('pln-pascabayar')->name('pln.pasca.')->group(function () {
+Route::middleware('auth')->prefix('pln')->name('pln.pasca.')->group(function () {
     // Halaman untuk menampilkan view/komponen React
     Route::get('/', function () {
         return Inertia::render('Pascabayar/Pln'); // Menggunakan folder agar rapi

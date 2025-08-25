@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('pasca_plns', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('ref_id')->unique()->comment('Ref ID unik, sama untuk inquiry dan payment');
+            $table->string('ref_id')->unique();
             
             // Data Pelanggan & Produk
             $table->string('customer_no');
@@ -21,21 +21,21 @@ return new class extends Migration
             $table->string('buyer_sku_code');
             
             // Data Harga & Biaya
-            $table->decimal('price', 15, 2)->comment('Harga potong dari deposit kita');
-            $table->decimal('selling_price', 15, 2)->comment('Harga jual ke user');
-            $table->integer('admin_fee')->comment('Total biaya admin');
+            $table->decimal('price', 15, 2);
+            $table->decimal('selling_price', 15, 2);
+            $table->integer('admin_fee');
 
             // Status Transaksi
             $table->string('status', 20)->default('Pending');
-            $table->string('message')->nullable()->comment('Deskripsi status dari Digiflazz');
-            $table->string('rc', 10)->nullable()->comment('Response Code dari Digiflazz');
-            $table->text('sn')->nullable()->comment('Serial Number / Token');
+            $table->string('message')->nullable();
+            $table->string('rc', 10)->nullable();
+            $table->text('sn')->nullable();
 
             // Detail Spesifik PLN
             $table->string('tarif')->nullable();
             $table->string('daya')->nullable();
             $table->integer('lembar_tagihan')->nullable();
-            $table->json('bill_details')->nullable()->comment('Detail setiap lembar tagihan dalam format JSON');
+            $table->json('bill_details')->nullable();
 
             $table->timestamps();
         });
