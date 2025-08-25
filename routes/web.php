@@ -56,6 +56,21 @@ use App\Http\Controllers\Guest\GuestDashboardController;
 use App\Http\Controllers\QrisConverterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PascaPlnController;
+use App\Http\Controllers\PascaBpjsController;
+
+
+Route::middleware(['auth', 'otp.not.expired'])->group(function () {
+    Route::get('/bpjs', function () {
+        return Inertia::render('Pascabayar/Bpjs'); // Path view disesuaikan
+    })->name('pascabpjs.index');
+
+    Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('pascabpjs.inquiry');
+    Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('pascabpjs.payment');
+    
+    Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
+        Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+    });
 
 Route::middleware('auth')->prefix('pln')->name('pln.pasca.')->group(function () {
     // Halaman untuk menampilkan view/komponen React
@@ -69,80 +84,6 @@ Route::middleware('auth')->prefix('pln')->name('pln.pasca.')->group(function () 
     // Endpoint untuk proses Bayar Tagihan (Payment)
     Route::post('/payment', [PascaPlnController::class, 'payment'])->name('payment');
 });
-
-Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
-Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
-Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
-
-Route::get('/qris-converter', [QrisConverterController::class, 'index'])->name('qris.index');
-Route::post('/qris-converter', [QrisConverterController::class, 'convert'])->name('qris.convert');
-
-Route::get('/deposit/tutorial', [DepositController::class, 'tutorial'])->name('deposit.tutorial');
-
-
-Route::middleware('guest')->group(function () {
-    Route::get('/guest-dashboard', [GuestDashboardController::class, 'index'])->name('guest.dashboard');
-
-// web.php
-Route::get('/otp', [OtpController::class, 'showForm'])->name('otp.form');
-    Route::post('/otp', [OtpController::class, 'verify'])->name('otp.verify');
-    // routes/web.php
-Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
-
-});
-
-Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    
-Route::post('/deposit/check-expired', [\App\Http\Controllers\DepositController::class, 'checkAndExpire']);
-
-Route::post('/check-referral', function (Request $request) {
-    $request->validate(['referral_code' => 'required|string']);
-
-    $code = strtolower($request->referral_code);
-    $exists = \App\Models\User\Affiliator::whereRaw('LOWER(referral_code) = ?', [$code])->exists();
-
-    return response()->json(['valid' => $exists]);
-});
-
-Route::get('/reset-password-success', function () {
-    return Inertia::render('Auth/ResetPasswordSuccess');
-})->name('reset.password.success');
-
-Route::get('/about', function () {
-    return Inertia::render('About');
-})->name('about');
-
-Route::get('/', [WelcomeController::class, 'index']);
-
-Route::get('/privacy-policy', [PrivacyPolicyController::class, 'index'])->name('privacy');
-
-Route::post('/auth/verify-password', [TransactionController ::class, 'verifyPassword'])->middleware('auth');
-
-Route::get('/checkout', [UserProductController::class, 'checkout'])->name('checkout');
-
-Route::post('/c={category}/detect-operator', [UserProductController::class, 'detectOperator'])
-    ->name('category.detect.operator');
-
-Route::get('/c={category}', [UserProductController::class, 'showBrand'])
-    ->name('category.show.brand');
-    
-Route::get('/c={categoryName}/b={brandName}', [UserProductController::class, 'showTypeOrProducts'])
-    ->name('user.showType');
-
-Route::get('/c={categoryName}/b={brandName}/t={typeName}', [UserProductController::class, 'showTypeOrProducts'])
-    ->name('category.brand.type.products');
-
-
-// Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
-Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
-
-Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
-
-Route::middleware(['auth', 'otp.not.expired'])->group(function () {
-    Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
-        Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
-            ->only(['index', 'store', 'update', 'destroy']);
-    });
 
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
@@ -220,6 +161,74 @@ Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     });
     
 });
+
+Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
+Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
+Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+
+Route::get('/qris-converter', [QrisConverterController::class, 'index'])->name('qris.index');
+Route::post('/qris-converter', [QrisConverterController::class, 'convert'])->name('qris.convert');
+
+Route::get('/deposit/tutorial', [DepositController::class, 'tutorial'])->name('deposit.tutorial');
+
+
+Route::middleware('guest')->group(function () {
+    Route::get('/guest-dashboard', [GuestDashboardController::class, 'index'])->name('guest.dashboard');
+
+// web.php
+Route::get('/otp', [OtpController::class, 'showForm'])->name('otp.form');
+    Route::post('/otp', [OtpController::class, 'verify'])->name('otp.verify');
+    // routes/web.php
+Route::post('/otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
+
+});
+
+Route::middleware(['auth', 'admin'])->get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    
+Route::post('/deposit/check-expired', [\App\Http\Controllers\DepositController::class, 'checkAndExpire']);
+
+Route::post('/check-referral', function (Request $request) {
+    $request->validate(['referral_code' => 'required|string']);
+
+    $code = strtolower($request->referral_code);
+    $exists = \App\Models\User\Affiliator::whereRaw('LOWER(referral_code) = ?', [$code])->exists();
+
+    return response()->json(['valid' => $exists]);
+});
+
+Route::get('/reset-password-success', function () {
+    return Inertia::render('Auth/ResetPasswordSuccess');
+})->name('reset.password.success');
+
+Route::get('/about', function () {
+    return Inertia::render('About');
+})->name('about');
+
+Route::get('/', [WelcomeController::class, 'index']);
+
+Route::get('/privacy-policy', [PrivacyPolicyController::class, 'index'])->name('privacy');
+
+Route::post('/auth/verify-password', [TransactionController ::class, 'verifyPassword'])->middleware('auth');
+
+Route::get('/checkout', [UserProductController::class, 'checkout'])->name('checkout');
+
+Route::post('/c={category}/detect-operator', [UserProductController::class, 'detectOperator'])
+    ->name('category.detect.operator');
+
+Route::get('/c={category}', [UserProductController::class, 'showBrand'])
+    ->name('category.show.brand');
+    
+Route::get('/c={categoryName}/b={brandName}', [UserProductController::class, 'showTypeOrProducts'])
+    ->name('user.showType');
+
+Route::get('/c={categoryName}/b={brandName}/t={typeName}', [UserProductController::class, 'showTypeOrProducts'])
+    ->name('category.brand.type.products');
+
+
+// Route::get('/affiliate-products', [AffiliateProductController::class, 'index'])->name('affiliate.products.index');
+Route::get('/affiliate-products/{id}', [AffiliateProductController::class, 'show'])->name('affiliate.products.show');
+
+Route::post('/transactions/update-status', [TransactionController::class, 'updateTransactionStatus']);
 
 Route::post('/webhook', [TransactionController::class, 'webhookHandler']);
 
