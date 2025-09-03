@@ -57,9 +57,21 @@ use App\Http\Controllers\QrisConverterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PascaPlnController;
 use App\Http\Controllers\PascaBpjsController;
+use App\Http\Controllers\PostpaidController;
+use App\Http\Controllers\PascaPdamController;
+use App\Http\Controllers\PostpaidHistoryController;
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/postpaid/history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
+    Route::get('/postpaid/history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
+});
 
 Route::middleware(['auth', 'otp.not.expired'])->group(function () {
+    Route::get('/pdam', [PascaPdamController::class, 'index'])->name('pdam.index');
+    Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
+    Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');
+
     Route::get('/bpjs', function () {
         return Inertia::render('Pascabayar/Bpjs'); // Path view disesuaikan
     })->name('pascabpjs.index');
@@ -71,19 +83,15 @@ Route::middleware(['auth', 'otp.not.expired'])->group(function () {
         Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
             ->only(['index', 'store', 'update', 'destroy']);
     });
-
-Route::middleware('auth')->prefix('pln')->name('pln.pasca.')->group(function () {
-    // Halaman untuk menampilkan view/komponen React
-    Route::get('/', function () {
+    Route::get('/pln', function () {
         return Inertia::render('Pascabayar/Pln'); // Menggunakan folder agar rapi
     })->name('index');
 
     // Endpoint untuk proses Cek Tagihan (Inquiry)
-    Route::post('/inquiry', [PascaPlnController::class, 'inquiry'])->name('inquiry');
+    Route::post('/pln/inquiry', [PascaPlnController::class, 'inquiry'])->name('pln.pasca.inquiry');
 
     // Endpoint untuk proses Bayar Tagihan (Payment)
-    Route::post('/payment', [PascaPlnController::class, 'payment'])->name('payment');
-});
+    Route::post('/pln/payment', [PascaPlnController::class, 'payment'])->name('pln.pasca.payment');
 
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
@@ -241,6 +249,12 @@ Route::middleware(['admin-or-super-admin', 'otp.not.expired'])->group(function (
 });
 
 Route::middleware(['super-admin', 'otp.not.expired'])->group(function () {
+    Route::get('/postpaid-products', [PostpaidController::class, 'index'])->name('postpaid.index');
+    Route::get('/postpaid-products/bulk-edit', [PostpaidController::class, 'bulkEditPage'])->name('postpaid.bulk-edit');
+    Route::post('/postpaid-products/bulk-update', [PostpaidController::class, 'bulkUpdate'])->name('postpaid.bulk-update');
+    Route::post('/postpaid-products/fetch', [PostpaidController::class, 'fetchProducts'])->name('postpaid.fetch');
+    Route::post('/postpaid-products/{postpaidProduct}', [PostpaidController::class, 'update'])->name('postpaid.update');
+    
     Route::get('/manage-poinmu-history', [PoinmuHistoryController::class, 'manage'])->name('poinmu.manage');
     Route::put('/poinmu-history/{id}/status', [PoinmuHistoryController::class, 'updateStatus'])->name('poinmu.updateStatus');
 

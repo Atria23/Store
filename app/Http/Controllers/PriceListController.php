@@ -209,17 +209,4 @@ class PriceListController extends Controller
             'products' => $products
         ]);
     }
-
-    /**
-     * Show Free Fire products
-     */
-    public function showFreeFireProducts()
-    {
-        $this->fetchPriceList();
-        $products = Product::where('brand', 'free fire')->get();
-
-        return Inertia::render('FreeFirePriceList', [
-            'products' => $products
-        ]);
-    }
 }

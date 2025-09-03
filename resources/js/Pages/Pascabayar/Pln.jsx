@@ -5,12 +5,12 @@ import { Head } from '@inertiajs/react';
 export default function PlnPascaIndex({ auth }) {
     // State untuk alur PLN
     const [customerNo, setCustomerNo] = useState('');
-    const [inquiryResult, setInquiryResult] = useState(null); 
-    
+    const [inquiryResult, setInquiryResult] = useState(null);
+
     // --- MODE PRODUKSI AKTIF ---
     // State paymentResult diinisialisasi dengan null agar alur dimulai dari awal.
     const [paymentResult, setPaymentResult] = useState(null);
-    
+
     // State untuk UI & proses pembayaran
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -37,9 +37,9 @@ export default function PlnPascaIndex({ auth }) {
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ customer_no: customerNo }),
             });
-            const data = await response.json(); 
+            const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Gagal melakukan pengecekan tagihan.');
-            setInquiryResult(data); 
+            setInquiryResult(data);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -59,6 +59,7 @@ export default function PlnPascaIndex({ auth }) {
     };
 
     // Langkah 3: Kirim Transaksi setelah Konfirmasi Password
+    // Langkah 3: Kirim Transaksi setelah Konfirmasi Password
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
@@ -69,7 +70,8 @@ export default function PlnPascaIndex({ auth }) {
         setError('');
 
         try {
-            const verifyResponse = await fetch('/auth/verify-password', { 
+            // 1. Verifikasi password
+            const verifyResponse = await fetch('/auth/verify-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ password }),
@@ -79,6 +81,7 @@ export default function PlnPascaIndex({ auth }) {
                 throw new Error("Password yang Anda masukkan salah.");
             }
 
+            // 2. Lakukan pembayaran
             const paymentResponse = await fetch(route('pln.pasca.payment'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -86,17 +89,26 @@ export default function PlnPascaIndex({ auth }) {
             });
             const paymentData = await paymentResponse.json();
             if (!paymentResponse.ok) {
+                // Jika gagal, tetap simpan datanya agar tampilan Gagal bisa muncul
+                setPaymentResult(paymentData);
                 throw new Error(paymentData.message || 'Gagal melakukan pembayaran.');
             }
 
-            // Menyimpan data asli dari API ke state
-            setPaymentResult(paymentData.data);
+            // 3. Simpan data hasil pembayaran ke state (SUDAH DIPERBAIKI)
+            setPaymentResult(paymentData);
+
+            // Reset state lain
             setInquiryResult(null);
             setIsModalOpen(false);
+
         } catch (err) {
+            // Pesan error akan ditampilkan di dalam modal
             setError(err.message);
         } finally {
+            // Hentikan loading, tapi jangan tutup modal jika ada error
             setIsLoading(false);
+            // Jika pembayaran berhasil, modal akan ditutup oleh kode di atas.
+            // Jika gagal, modal tetap terbuka untuk menampilkan error.
         }
     };
 
@@ -111,20 +123,8 @@ export default function PlnPascaIndex({ auth }) {
                     </button>
                     <div className="font-semibold text-lg">PLN Pascabayar</div>
                 </header>
-                
+
                 <main className="w-full pt-20 pb-40 px-4 space-y-4">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border">
-                        <p className="font-semibold text-sm text-gray-700 flex items-center space-x-2">
-                            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-4a3 3 0 0 1-3-3Zm3-1a1 1 0 1 0 0 2h4v-2h-4Z" /><path d="M12.293 3.293a1 1 0 0 1 1.414 0L16.414 6h-2.828l-1.293-1.293a1 1 0 0 1 0-1.414ZM12.414 6 9.707 3.293a1 1 0 0 0-1.414 0L5.586 6h6.828ZM4.586 7l-.056.055A2 2 0 0 0 3 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2h-4a5 5 0 0 1 0-10h4a2 2 0 0 0-1.53-1.945L17.414 7H4.586Z" /></svg>
-                            <span>Saldo Anda</span>
-                        </p>
-                        <div className="flex items-center space-x-2">
-                            <p className="font-bold text-sm">{showBalance ? formatRupiah(userBalance) : "••••••••"}</p>
-                            <button onClick={() => setShowBalance(!showBalance)} className="text-blue-600">
-                                {showBalance ? <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></svg>}
-                            </button>
-                        </div>
-                    </div>
 
                     <div className="bg-white p-4 rounded-lg shadow-sm border">
                         {paymentResult ? (
@@ -146,17 +146,17 @@ export default function PlnPascaIndex({ auth }) {
                                         <div className="flex justify-between"><span className="text-gray-500">Tarif/Daya</span><span className="font-medium">{`${paymentResult.desc.tarif} / ${paymentResult.desc.daya}VA`}</span></div>
                                     </div>
                                     <div className="space-y-2 text-sm">
-                                        <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">Rincian Tagihan</h4>
-                                        {paymentResult.desc.detail.map((bill, index) => (
-                                            <div key={index} className="bg-gray-50 p-3 rounded-md space-y-1">
-                                                <div className="flex justify-between"><span className="text-gray-500">Periode</span><span className="font-medium">{bill.periode}</span></div>
-                                                <div className="flex justify-between"><span className="text-gray-500">Meter Awal</span><span className="font-medium">{bill.meter_awal}</span></div>
-                                                <div className="flex justify-between"><span className="text-gray-500">Meter Akhir</span><span className="font-medium">{bill.meter_akhir}</span></div>
-                                                <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(bill.nilai_tagihan)}</span></div>
-                                                {Number(bill.denda) > 0 && (<div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(bill.denda)}</span></div>)}
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">Rincian Tagihan</h4>
+                                    {paymentResult.desc.detail.map((bill, index) => (
+                                        <div key={index} className="bg-gray-50 p-3 rounded-md space-y-1">
+                                            <div className="flex justify-between"><span className="text-gray-500">Periode</span><span className="font-medium">{bill.periode}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Meter Awal</span><span className="font-medium">{bill.meter_awal}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Meter Akhir</span><span className="font-medium">{bill.meter_akhir}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(bill.nilai_tagihan)}</span></div>
+                                            {Number(bill.denda) > 0 && (<div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(bill.denda)}</span></div>)}
+                                        </div>
+                                    ))}
+                                </div>
                                     <p className="text-xs text-gray-500 bg-gray-100 p-2 rounded-md text-center">SN: {paymentResult.sn}</p>
                                     <button onClick={() => setPaymentResult(null)} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
                                         Transaksi Lagi
@@ -192,7 +192,14 @@ export default function PlnPascaIndex({ auth }) {
                                     <div className="flex justify-between"><span className="text-gray-500">Tarif/Daya</span><span className="font-medium text-gray-900">{`${inquiryResult.desc.tarif} / ${inquiryResult.desc.daya}VA`}</span></div>
                                     <div className="flex justify-between"><span className="text-gray-500">Periode Tagihan</span><span className="font-medium text-gray-900">{inquiryResult.desc.detail[0]?.periode}</span></div>
                                     <div className="w-full h-px bg-gray-100 my-1" />
-                                    <div className="flex justify-between"><span className="text-gray-500">Nilai Tagihan</span><span className="font-medium text-gray-900">{formatRupiah(inquiryResult.desc.detail[0]?.nilai_tagihan)}</span></div>
+                                    {/* <div className="flex justify-between"><span className="text-gray-500">Nilai Tagihan</span><span className="font-medium text-gray-900">{formatRupiah(inquiryResult.desc.detail[0]?.selling_price-inquiryResult.desc.detail[0]?.denda)}</span></div> */}
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Nilai Tagihan</span>
+                                        <span className="font-medium text-gray-900">
+                                            {/* Menggunakan harga asli dikurangi admin, ini lebih akurat */}
+                                            {formatRupiah(inquiryResult.price - inquiryResult.admin)}
+                                        </span>
+                                    </div>
                                     {Number(inquiryResult.desc.detail[0]?.denda) > 0 && (
                                         <div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(inquiryResult.desc.detail[0]?.denda)}</span></div>
                                     )}
@@ -225,7 +232,7 @@ export default function PlnPascaIndex({ auth }) {
                         {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
-                
+
                 {inquiryResult && !paymentResult && (
                     <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] p-4 bg-white shadow-[0_-2px_5px_rgba(0,0,0,0.1)] rounded-t-xl">
                         <div className="flex items-center justify-between w-full">
@@ -235,7 +242,7 @@ export default function PlnPascaIndex({ auth }) {
                             </div>
                             <button
                                 onClick={handleBayarClick} disabled={userBalance < inquiryResult.selling_price}
-                                className="px-6 py-2 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
                                 {userBalance < inquiryResult.selling_price ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
@@ -254,7 +261,7 @@ export default function PlnPascaIndex({ auth }) {
                                         className="w-full border p-2 pr-10 rounded" placeholder="Masukkan password Anda" autoFocus
                                     />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                                        {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></svg>}
+                                        {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" /><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" /></svg>}
                                     </button>
                                 </div>
                                 {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}

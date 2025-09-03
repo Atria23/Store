@@ -157,7 +157,7 @@ export default function Bpjs({ auth }) {
                                         <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">Rincian Pembayaran</h4>
                                         <div className="flex justify-between"><span className="text-gray-500">Periode</span><span className="font-medium">{paymentResult.desc?.detail?.map(d => d.periode).join(', ')}</span></div>
                                         <div className="flex justify-between"><span className="text-gray-500">Jumlah Bulan</span><span className="font-medium">{paymentResult.desc?.lembar_tagihan} Bulan</span></div>
-                                        <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(paymentResult.price - paymentResult.admin)}</span></div>
+                                        <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(paymentResult.selling_price - paymentResult.admin)}</span></div>
                                         <div className="flex justify-between"><span className="text-gray-500">Biaya Admin</span><span className="font-medium">{formatRupiah(paymentResult.admin)}</span></div>
                                     </div>
                                      <div className="space-y-1 text-xs text-gray-500 bg-gray-100 p-3 rounded-md">
@@ -238,7 +238,7 @@ export default function Bpjs({ auth }) {
                             </div>
                             <button
                                 onClick={handleBayarClick} disabled={userBalance < inquiryResult.selling_price}
-                                className="px-6 py-2 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
                                 {userBalance < inquiryResult.selling_price ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
