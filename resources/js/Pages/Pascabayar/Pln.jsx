@@ -6,9 +6,6 @@ export default function PlnPascaIndex({ auth }) {
     // State untuk alur PLN
     const [customerNo, setCustomerNo] = useState('');
     const [inquiryResult, setInquiryResult] = useState(null);
-
-    // --- MODE PRODUKSI AKTIF ---
-    // State paymentResult diinisialisasi dengan null agar alur dimulai dari awal.
     const [paymentResult, setPaymentResult] = useState(null);
 
     // State untuk UI & proses pembayaran
@@ -17,7 +14,6 @@ export default function PlnPascaIndex({ auth }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [showBalance, setShowBalance] = useState(false);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const userBalance = auth.user.balance;
@@ -59,7 +55,6 @@ export default function PlnPascaIndex({ auth }) {
     };
 
     // Langkah 3: Kirim Transaksi setelah Konfirmasi Password
-    // Langkah 3: Kirim Transaksi setelah Konfirmasi Password
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
@@ -70,7 +65,6 @@ export default function PlnPascaIndex({ auth }) {
         setError('');
 
         try {
-            // 1. Verifikasi password
             const verifyResponse = await fetch('/auth/verify-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -81,7 +75,6 @@ export default function PlnPascaIndex({ auth }) {
                 throw new Error("Password yang Anda masukkan salah.");
             }
 
-            // 2. Lakukan pembayaran
             const paymentResponse = await fetch(route('pln.pasca.payment'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -89,26 +82,18 @@ export default function PlnPascaIndex({ auth }) {
             });
             const paymentData = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                // Jika gagal, tetap simpan datanya agar tampilan Gagal bisa muncul
                 setPaymentResult(paymentData);
                 throw new Error(paymentData.message || 'Gagal melakukan pembayaran.');
             }
 
-            // 3. Simpan data hasil pembayaran ke state (SUDAH DIPERBAIKI)
             setPaymentResult(paymentData);
-
-            // Reset state lain
             setInquiryResult(null);
             setIsModalOpen(false);
 
         } catch (err) {
-            // Pesan error akan ditampilkan di dalam modal
             setError(err.message);
         } finally {
-            // Hentikan loading, tapi jangan tutup modal jika ada error
             setIsLoading(false);
-            // Jika pembayaran berhasil, modal akan ditutup oleh kode di atas.
-            // Jika gagal, modal tetap terbuka untuk menampilkan error.
         }
     };
 
@@ -125,9 +110,9 @@ export default function PlnPascaIndex({ auth }) {
                 </header>
 
                 <main className="w-full pt-20 pb-40 px-4 space-y-4">
-
                     <div className="bg-white p-4 rounded-lg shadow-sm border">
                         {paymentResult ? (
+                            // --- TAMPILAN SETELAH PEMBAYARAN ---
                             paymentResult.status === 'Sukses' ? (
                                 <div className="space-y-4">
                                     <div className="text-center">
@@ -146,19 +131,19 @@ export default function PlnPascaIndex({ auth }) {
                                         <div className="flex justify-between"><span className="text-gray-500">Tarif/Daya</span><span className="font-medium">{`${paymentResult.desc.tarif} / ${paymentResult.desc.daya}VA`}</span></div>
                                     </div>
                                     <div className="space-y-2 text-sm">
-                                    <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">Rincian Tagihan</h4>
-                                    {paymentResult.desc.detail.map((bill, index) => (
-                                        <div key={index} className="bg-gray-50 p-3 rounded-md space-y-1">
-                                            <div className="flex justify-between"><span className="text-gray-500">Periode</span><span className="font-medium">{bill.periode}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Meter Awal</span><span className="font-medium">{bill.meter_awal}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Meter Akhir</span><span className="font-medium">{bill.meter_akhir}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(bill.nilai_tagihan)}</span></div>
-                                            {Number(bill.denda) > 0 && (<div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(bill.denda)}</span></div>)}
-                                        </div>
-                                    ))}
-                                </div>
+                                        <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">Rincian Tagihan</h4>
+                                        {paymentResult.desc.detail.map((bill, index) => (
+                                            <div key={index} className="bg-gray-50 p-3 rounded-md space-y-1">
+                                                <div className="flex justify-between"><span className="text-gray-500">Periode</span><span className="font-medium">{bill.periode}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Meter Awal</span><span className="font-medium">{bill.meter_awal}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Meter Akhir</span><span className="font-medium">{bill.meter_akhir}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Tagihan Pokok</span><span className="font-medium">{formatRupiah(bill.nilai_tagihan)}</span></div>
+                                                {Number(bill.denda) > 0 && (<div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(bill.denda)}</span></div>)}
+                                            </div>
+                                        ))}
+                                    </div>
                                     <p className="text-xs text-gray-500 bg-gray-100 p-2 rounded-md text-center">SN: {paymentResult.sn}</p>
-                                    <button onClick={() => setPaymentResult(null)} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
+                                    <button onClick={() => { setPaymentResult(null); setCustomerNo(''); }} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
                                         Transaksi Lagi
                                     </button>
                                 </div>
@@ -183,27 +168,31 @@ export default function PlnPascaIndex({ auth }) {
                                 </div>
                             )
                         ) : inquiryResult ? (
+                            // --- TAMPILAN SETELAH INQUIRY SUKSES ---
                             <div className="space-y-4">
                                 <p className="w-full font-semibold text-md text-center text-gray-800">Detail Tagihan</p>
                                 <div className="w-full h-px bg-gray-200" />
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between"><span className="text-gray-500">Nomor Pelanggan</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900">{inquiryResult.customer_name}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
                                     <div className="flex justify-between"><span className="text-gray-500">Tarif/Daya</span><span className="font-medium text-gray-900">{`${inquiryResult.desc.tarif} / ${inquiryResult.desc.daya}VA`}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Periode Tagihan</span><span className="font-medium text-gray-900">{inquiryResult.desc.detail[0]?.periode}</span></div>
-                                    <div className="w-full h-px bg-gray-100 my-1" />
-                                    {/* <div className="flex justify-between"><span className="text-gray-500">Nilai Tagihan</span><span className="font-medium text-gray-900">{formatRupiah(inquiryResult.desc.detail[0]?.selling_price-inquiryResult.desc.detail[0]?.denda)}</span></div> */}
+                                </div>
+                                <div className="space-y-2 text-sm border-t pt-2">
+                                    <h4 className="font-semibold text-md text-gray-800 pb-1">Rincian Pembayaran</h4>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Nilai Tagihan</span>
-                                        <span className="font-medium text-gray-900">
-                                            {/* Menggunakan harga asli dikurangi admin, ini lebih akurat */}
-                                            {formatRupiah(inquiryResult.price - inquiryResult.admin)}
-                                        </span>
+                                        <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
                                     </div>
-                                    {Number(inquiryResult.desc.detail[0]?.denda) > 0 && (
-                                        <div className="flex justify-between"><span className="text-gray-500">Denda</span><span className="font-medium text-red-600">{formatRupiah(inquiryResult.desc.detail[0]?.denda)}</span></div>
+                                    {inquiryResult.denda > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Denda</span>
+                                            <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
+                                        </div>
                                     )}
-                                    <div className="flex justify-between"><span className="text-gray-500">Biaya Admin</span><span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span></div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Biaya Admin</span>
+                                        <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
+                                    </div>
                                 </div>
                                 <div className="w-full h-px bg-gray-200" />
                                 <div className="flex justify-between items-center">
@@ -212,6 +201,7 @@ export default function PlnPascaIndex({ auth }) {
                                 </div>
                             </div>
                         ) : (
+                            // --- TAMPILAN AWAL (FORM INPUT) ---
                             <form onSubmit={handleInquiry} className="space-y-4">
                                 <div>
                                     <label htmlFor="customer_no" className="block text-sm font-medium text-gray-700 mb-1">ID Pelanggan PLN</label>
@@ -232,7 +222,7 @@ export default function PlnPascaIndex({ auth }) {
                         {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
-
+                
                 {inquiryResult && !paymentResult && (
                     <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] p-4 bg-white shadow-[0_-2px_5px_rgba(0,0,0,0.1)] rounded-t-xl">
                         <div className="flex items-center justify-between w-full">
