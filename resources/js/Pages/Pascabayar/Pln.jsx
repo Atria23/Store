@@ -122,9 +122,10 @@ export default function PlnPascaIndex({ auth }) {
                                     </div>
                                     <div className="bg-gray-50 rounded-lg p-4 text-center">
                                         <p className="text-sm text-gray-600">Total Pembayaran</p>
-                                        <p className="text-3xl font-bold text-main">{formatRupiah(inquiryResult.selling_price)}</p>
+                                        {/* Perubahan di sini: Mengambil selling_price dari paymentResult */}
+                                        <p className="text-3xl font-bold text-main">{formatRupiah(paymentResult.selling_price)}</p>
                                     </div>
-                                    
+
                                     {paymentResult.diskon > 0 && (
                                         <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
                                             Anda hemat {formatRupiah(paymentResult.diskon)}!
@@ -136,7 +137,7 @@ export default function PlnPascaIndex({ auth }) {
                                         <div className="flex justify-between"><span className="text-gray-500">Nama</span><span className="font-medium text-right">{paymentResult.customer_name}</span></div>
                                         <div className="flex justify-between"><span className="text-gray-500">ID Pelanggan</span><span className="font-medium">{paymentResult.customer_no}</span></div>
                                     </div>
-                                        <button onClick={() => router.visit(route('postpaid.history.index'))} className="w-full py-2 px-4 border border-main text-main font-semibold rounded-lg hover:bg-blue-50 transition-colors">
+                                    <button onClick={() => router.visit(route('postpaid.history.index'))} className="w-full py-2 px-4 border border-main text-main font-semibold rounded-lg hover:bg-blue-50 transition-colors">
                                         Riwayat Transaksi
                                     </button>
                                     <button onClick={() => { setPaymentResult(null); setCustomerNo(''); }} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
@@ -173,7 +174,7 @@ export default function PlnPascaIndex({ auth }) {
                                     <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
                                     <div className="flex justify-between"><span className="text-gray-500">Tarif/Daya</span><span className="font-medium text-gray-900">{`${inquiryResult.desc.tarif} / ${inquiryResult.desc.daya}VA`}</span></div>
                                 </div>
-                                
+
                                 {/* --- BAGIAN BARU: DETAIL per periode TAGIHAN --- */}
                                 {inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (
                                     <div className="space-y-2 text-sm border-t pt-2">
@@ -213,7 +214,7 @@ export default function PlnPascaIndex({ auth }) {
                                             <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
                                         </div>
                                     )}
-                                    
+
                                     {/* --- Perhitungan dan Tampilan Total Admin per periode --- */}
                                     {inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (() => {
                                         const totalAdminFromDetails = inquiryResult.desc.detail.reduce((sum, item) => sum + parseFloat(item.admin || 0), 0);
@@ -263,7 +264,7 @@ export default function PlnPascaIndex({ auth }) {
                         {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
-                
+
                 {inquiryResult && !paymentResult && (
                     <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] p-4 bg-white shadow-[0_-2px_5px_rgba(0,0,0,0.1)] rounded-t-xl">
                         <div className="flex items-center justify-between w-full">

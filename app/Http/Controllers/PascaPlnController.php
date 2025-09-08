@@ -65,13 +65,13 @@ class PascaPlnController extends Controller
             // Logika asli: Panggil API provider
             $ref_id = 'pln-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
             $username = env('P_U');
-            $apiKey = env('P_AK');
+            $apiKey = env('P_AKD');
             $sign = md5($username . $apiKey . $ref_id);
 
             try {
                 $response = Http::post(config('services.api_server') . '/v1/transaction', [
                     'commands' => 'inq-pasca', 'username' => $username, 'buyer_sku_code' => $current_sku,
-                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => false,
+                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => true,
                 ]);
                 $responseData = $response->json();
             } catch (\Exception $e) {
@@ -183,13 +183,9 @@ class PascaPlnController extends Controller
         $initialData['status'] = 'Pending';
         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
         
-        // Simpan RC dari inquiry ke kolom 'rc' saat pertama kali membuat transaksi
         $initialData['rc'] = $inquiryData['rc'] ?? null;
-        // SN masih null pada tahap ini
         $initialData['sn'] = null; 
 
-        // Simpan diskon dan jumlah lembar tagihan ke dalam kolom 'details' JSON
-        // initialData['details'] akan berisi ini plus apapun yang tidak dihapus dari $apiResponseData nanti
         $initialData['details'] = [
             'diskon' => $diskon,
             'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
@@ -200,13 +196,13 @@ class PascaPlnController extends Controller
         $apiResponseData = [];
 
         $username = env('P_U');
-        $apiKey = env('P_AK');
+        $apiKey = env('P_AKD');
         $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
         try {
             $response = Http::post(config('services.api_server') . '/v1/transaction', [
                 'commands' => 'pay-pasca', 'username' => $username, 'buyer_sku_code' => $inquiryData['buyer_sku_code'],
-                'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => false,
+                'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => true,
             ]);
             $apiResponseData = $response->json()['data'];
 
@@ -216,7 +212,6 @@ class PascaPlnController extends Controller
             $user->increment('balance', $totalPriceToPay);
             $errorMessage = ['status' => 'Gagal', 'message' => 'Gagal terhubung ke server provider.'];
             
-            // Perbarui RC dan SN menjadi null atau string kosong jika terjadi error koneksi
             $unifiedTransaction->update(array_merge($errorMessage, ['rc' => null, 'sn' => null]));
 
             Log::error('PLN Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
@@ -228,15 +223,12 @@ class PascaPlnController extends Controller
         $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PLN', $pureBillPrice, $finalAdmin);
         $updatePayload['selling_price'] = $totalPriceToPay;
         
-        // Perbarui RC dan SN dari respons API pembayaran
         $updatePayload['rc'] = $apiResponseData['rc'] ?? null;
         $updatePayload['sn'] = $apiResponseData['sn'] ?? null;
 
-        // --- Mulai Logika untuk menyimpan ke kolom 'details' sesuai permintaan ---
         $keysToExcludeFromDetails = [
             'ref_id', 'customer_no', 'customer_name', 'buyer_sku_code', 'message',
             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
-            // Tambahkan juga 'diskon' dan 'jumlah_lembar_tagihan' karena sudah di set di luar filter
             'diskon', 'jumlah_lembar_tagihan'
         ];
 
@@ -247,17 +239,28 @@ class PascaPlnController extends Controller
             }
         }
         
-        // Gabungkan diskon dan jumlah_lembar_tagihan yang sudah dihitung dengan detail lainnya
         $updatePayload['details'] = array_merge(
             $detailsFromApiResponse,
             ['diskon' => $diskon, 'jumlah_lembar_tagihan' => $jumlahLembarTagihan]
         );
-        // --- Akhir Logika untuk menyimpan ke kolom 'details' ---
 
-        // Hapus hanya field yang tidak boleh di-update dari API response ke model kita (selain yang sudah difilter untuk details)
         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
         
         $unifiedTransaction->update($updatePayload);
+
+        // --- START OF MODIFICATION ---
+        // Refresh the model to get the very latest data from the database
+        $unifiedTransaction->refresh(); 
+
+        // Update the $fullResponseData with the actual values saved in the database
+        // This ensures the frontend displays exactly what's recorded.
+        $fullResponseData['selling_price'] = $unifiedTransaction->selling_price;
+        $fullResponseData['status'] = $unifiedTransaction->status;
+        $fullResponseData['customer_name'] = $unifiedTransaction->customer_name;
+        $fullResponseData['customer_no'] = $unifiedTransaction->customer_no;
+        // Jika diskon disimpan dalam kolom 'details' JSON, pastikan untuk mengambilnya dari sana.
+        $fullResponseData['diskon'] = $unifiedTransaction->details['diskon'] ?? 0;
+        // --- END OF MODIFICATION ---
 
         if (($apiResponseData['status'] ?? 'Gagal') === 'Gagal') {
             $user->increment('balance', $totalPriceToPay);
