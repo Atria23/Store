@@ -63,8 +63,8 @@ use App\Http\Controllers\PostpaidHistoryController;
 
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/postpaid/history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
-    Route::get('/postpaid/history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
+    Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
+    Route::get('/postpaid-history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
 });
 
 Route::middleware(['auth', 'otp.not.expired'])->group(function () {

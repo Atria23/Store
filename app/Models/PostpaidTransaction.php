@@ -9,32 +9,23 @@ class PostpaidTransaction extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'postpaid_transactions';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $guarded = ['id']; // Lebih mudah menggunakan guarded
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    protected $guarded = ['id'];
     protected $casts = [
-        // Ini akan secara otomatis mengubah kolom JSON menjadi array/object PHP
-        'details' => 'array', 
-        
-        // Casting untuk tipe data harga agar konsisten
+        'details' => 'array',
         'price' => 'float',
         'selling_price' => 'float',
         'admin_fee' => 'float',
     ];
+
+    /**
+     * Get the PostpaidProduct associated with the transaction.
+     */
+    public function product()
+    {
+        // Relasi: Transaksi memiliki satu produk pascabayar
+        // foreign_key: 'buyer_sku_code' di tabel 'postpaid_transactions'
+        // owner_key: 'buyer_sku_code' di tabel 'postpaid_products'
+        return $this->belongsTo(PostpaidProduct::class, 'buyer_sku_code', 'buyer_sku_code');
+    }
 }
