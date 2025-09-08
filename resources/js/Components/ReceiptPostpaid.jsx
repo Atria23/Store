@@ -54,7 +54,7 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                     <div key={index} className="flex flex-col border-b border-dashed border-gray-400 py-1 last:border-b-0">
                         {/* Label dan Value Periode disamakan dengan textSize */}
                         <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                            <span className={`font-semibold text-[#6d7278]`}>Periode:</span>
+                            <span className={`font-semibold text-[#6d7278]`}>Periode</span>
                             <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
                                 {bill.periode || '-'}
                             </span>
@@ -65,13 +65,13 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                                 <span>{formatRupiahCurrency(bill.nilai_tagihan)}</span>
                             </div>
                         )}
-                        {bill.denda && (
+                        {bill.denda > 0 && (
                             <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                 <span>Denda:</span>
                                 <span>{formatRupiahCurrency(bill.denda)}</span>
                             </div>
                         )}
-                        {bill.admin && (
+                        {bill.admin > 0 && (
                             <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                 <span>Admin:</span>
                                 <span>{formatRupiahCurrency(bill.admin)}</span>

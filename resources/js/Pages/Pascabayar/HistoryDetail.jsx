@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Head, Link, usePage, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { toPng } from 'html-to-image';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import ReceiptPostpaid from '@/Components/ReceiptPostpaid'; // Menggunakan komponen ReceiptPostpaid yang baru
@@ -91,7 +91,7 @@ const SpecificDetails = ({ transaction }) => {
                 <div className="w-full h-px border-dashed border-gray-200 my-2" />
                 <div className="w-full flex flex-row">
                     <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words font-semibold">
-                        Tagihan {bill.periode || (index + 1)}
+                        Periode
                     </div>
                     <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">
                         {bill.periode || '-'}
@@ -103,13 +103,13 @@ const SpecificDetails = ({ transaction }) => {
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.nilai_tagihan)}</div>
                     </div>
                 )}
-                {bill.denda && (
+                {bill.denda > 0 && ( // Perubahan ada di sini: tambahkan kondisi bill.denda > 0
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Denda</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.denda)}</div>
                     </div>
                 )}
-                {bill.admin && (
+                {bill.admin > 0 && (
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Admin Per Periode</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.admin)}</div>
