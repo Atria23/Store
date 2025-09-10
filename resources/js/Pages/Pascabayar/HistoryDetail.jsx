@@ -16,36 +16,36 @@ const formatRupiahCurrency = (value) => {
 };
 
 const rcMessages = {
-        "00": "Transaksi Sukses",
-        "01": "Timeout",
-        "02": "Transaksi Gagal",
-        "03": "Transaksi Pending",
-        "40": "Payload Error",
-        "50": "Transaksi Tidak Ditemukan",
-        "51": "Nomor Tujuan Diblokir",
-        "52": "Prefix Tidak Sesuai Operator",
-        "53": "Produk Seller Tidak Tersedia",
-        "54": "Nomor Tujuan Salah",
-        "55": "Produk Gangguan",
-        "57": "Jumlah Digit Tidak Sesuai",
-        "58": "Sedang Perbaikan",
-        "59": "Tujuan di Luar Wilayah",
-        "60": "Tagihan Belum Tersedia",
-        "62": "Produk Mengalami Gangguan",
-        "63": "Tidak Support Transaksi Multi",
-        "65": "Limit Transaksi Multi",
-        "66": "Sedang Perbaikan Sistem",
-        "68": "Stok Habis",
-        "71": "Produk Tidak Stabil",
-        "72": "Unreg Paket Dulu",
-        "73": "Kwh Melebihi Batas",
-        "74": "Transaksi Refund",
-        "80": "Akun Diblokir Penyedia Layanan",
-        "82": "Akun Belum Terverifikasi",
-        "84": "Nominal Tidak Valid",
-        "85": "Limitasi Transaksi",
-        "86": "Limitasi Pengecekan PLN",
-    };
+    "00": "Transaksi Sukses",
+    "01": "Timeout",
+    "02": "Transaksi Gagal",
+    "03": "Transaksi Pending",
+    "40": "Payload Error",
+    "50": "Transaksi Tidak Ditemukan",
+    "51": "Nomor Tujuan Diblokir",
+    "52": "Prefix Tidak Sesuai Operator",
+    "53": "Produk Seller Tidak Tersedia",
+    "54": "Nomor Tujuan Salah",
+    "55": "Produk Gangguan",
+    "57": "Jumlah Digit Tidak Sesuai",
+    "58": "Sedang Perbaikan",
+    "59": "Tujuan di Luar Wilayah",
+    "60": "Tagihan Belum Tersedia",
+    "62": "Produk Mengalami Gangguan",
+    "63": "Tidak Support Transaksi Multi",
+    "65": "Limit Transaksi Multi",
+    "66": "Sedang Perbaikan Sistem",
+    "68": "Stok Habis",
+    "71": "Produk Tidak Stabil",
+    "72": "Unreg Paket Dulu",
+    "73": "Kwh Melebihi Batas",
+    "74": "Transaksi Refund",
+    "80": "Akun Diblokir Penyedia Layanan",
+    "82": "Akun Belum Terverifikasi",
+    "84": "Nominal Tidak Valid",
+    "85": "Limitasi Transaksi",
+    "86": "Limitasi Pengecekan PLN",
+};
 const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal`;
 
 const calculateTotalPenaltyFee = (trans) => {
@@ -121,13 +121,13 @@ const SpecificDetails = ({ transaction }) => {
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{bill.meter_awal} - {bill.meter_akhir}</div>
                     </div>
                 )}
-                {bill.biaya_lain && (
+                {bill.biaya_lain > 0 && (
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Biaya Lain</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.biaya_lain)}</div>
                     </div>
                 )}
-                {bill.iuran && (
+                {bill.iuran > 0 && (
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Iuran</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.iuran)}</div>
@@ -156,9 +156,15 @@ const SpecificDetails = ({ transaction }) => {
             return (
                 <React.Fragment>
                     <div className="w-full flex flex-row">
-                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Alamat</div>
-                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.alamat || '-'}</div>
+                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tarif</div>
+                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tarif || '-'}</div>
                     </div>
+                    {descData.alamat && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Alamat</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.alamat}</div>
+                        </div>
+                    )}
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jatuh Tempo</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.jatuh_tempo || '-'}</div>
@@ -502,90 +508,90 @@ export default function HistoryDetail({ transaction: initialTransaction, store }
                 </main>
 
 
-                        {/* Modal Edit Harga & Biaya Admin */}
-                        {isEditing && (
-                            <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-800 bg-opacity-50 px-4">
-                                <div className="bg-white rounded-xl shadow-xl max-h-[90vh] w-full max-w-[450px] p-4 overflow-auto">
-                                    <div className="w-full h-max flex flex-col mb-4">
-                                        <button className="w-full flex justify-end" onClick={() => setIsEditing(false)}>
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-7 h-7 text-red-500"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" /></svg>
-                                        </button>
-                                        <h2 className="text-center font-utama text-lg font-medium">Edit Biaya Admin & Diskon</h2>
-                                    </div>
-
-                                    <form
-                                        onSubmit={(e) => {
-                                            e.preventDefault();
-                                            const currentTotalPenaltyFromTransaction = calculateTotalPenaltyFee(transaction);
-
-                                            const billDetails = transaction?.details?.desc?.detail;
-                                            const numberOfPeriods = (Array.isArray(billDetails) && billDetails.length > 0) ? billDetails.length : 1;
-                                            const newAdminPerPeriod = (editableAdminFee / numberOfPeriods) || 0;
-
-                                            setTransaction(prevTransaction => {
-                                                const updatedDetails = prevTransaction.details ? { ...prevTransaction.details } : {};
-
-                                                updatedDetails.diskon = editableDiscount;
-
-                                                if (updatedDetails.desc && Array.isArray(updatedDetails.desc.detail)) {
-                                                    updatedDetails.desc.detail = updatedDetails.desc.detail.map(bill => ({
-                                                        ...bill,
-                                                        admin: newAdminPerPeriod,
-                                                    }));
-                                                }
-
-                                                const updatedSellingPrice =
-                                                    (prevTransaction.price || 0) +
-                                                    editableAdminFee +
-                                                    currentTotalPenaltyFromTransaction -
-                                                    editableDiscount;
-
-                                                return {
-                                                    ...prevTransaction,
-                                                    admin_fee: editableAdminFee,
-                                                    details: updatedDetails,
-                                                    selling_price: updatedSellingPrice
-                                                };
-                                            });
-                                            setIsEditing(false);
-                                        }}
-                                        className="space-y-4"
-                                    >
-                                        <div className="w-full h-max flex flex-col space-y-2">
-                                            <p className="w-full h-max font-utama font-medium text-sm text-left align-middle">Biaya Admin (Total)</p>
-                                            <input
-                                                type="text"
-                                                value={formatRupiahDecimal(editableAdminFee)}
-                                                onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); setEditableAdminFee(Number(raw) || 0); }}
-                                                className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
-                                                placeholder="Biaya Admin"
-                                            />
-                                        </div>
-
-                                        <div className="w-full h-max flex flex-col space-y-2">
-                                            <p className="w-full h-max font-utama font-medium text-sm text-left align-middle">Diskon</p>
-                                            <input
-                                                type="text"
-                                                value={formatRupiahDecimal(editableDiscount)}
-                                                onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); setEditableDiscount(Number(raw) || 0); }}
-                                                className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
-                                                placeholder="Diskon"
-                                            />
-                                        </div>
-                                        <div className="w-full flex justify-between font-bold mt-4">
-                                            <span>Total (disesuaikan):</span>
-                                            <span>{formatRupiahCurrency(calculatedEditModalTotal)}</span>
-                                        </div>
-
-                                        <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
-                                            <button type="submit" className="w-full bg-main text-white p-2 rounded hover:bg-blue-700 transition">
-                                                Simpan
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
+                {/* Modal Edit Harga & Biaya Admin */}
+                {isEditing && (
+                    <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-800 bg-opacity-50 px-4">
+                        <div className="bg-white rounded-xl shadow-xl max-h-[90vh] w-full max-w-[450px] p-4 overflow-auto">
+                            <div className="w-full h-max flex flex-col mb-4">
+                                <button className="w-full flex justify-end" onClick={() => setIsEditing(false)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-7 h-7 text-red-500"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z" /></svg>
+                                </button>
+                                <h2 className="text-center font-utama text-lg font-medium">Edit Biaya Admin & Diskon</h2>
                             </div>
-                        )}
+
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const currentTotalPenaltyFromTransaction = calculateTotalPenaltyFee(transaction);
+
+                                    const billDetails = transaction?.details?.desc?.detail;
+                                    const numberOfPeriods = (Array.isArray(billDetails) && billDetails.length > 0) ? billDetails.length : 1;
+                                    const newAdminPerPeriod = (editableAdminFee / numberOfPeriods) || 0;
+
+                                    setTransaction(prevTransaction => {
+                                        const updatedDetails = prevTransaction.details ? { ...prevTransaction.details } : {};
+
+                                        updatedDetails.diskon = editableDiscount;
+
+                                        if (updatedDetails.desc && Array.isArray(updatedDetails.desc.detail)) {
+                                            updatedDetails.desc.detail = updatedDetails.desc.detail.map(bill => ({
+                                                ...bill,
+                                                admin: newAdminPerPeriod,
+                                            }));
+                                        }
+
+                                        const updatedSellingPrice =
+                                            (prevTransaction.price || 0) +
+                                            editableAdminFee +
+                                            currentTotalPenaltyFromTransaction -
+                                            editableDiscount;
+
+                                        return {
+                                            ...prevTransaction,
+                                            admin_fee: editableAdminFee,
+                                            details: updatedDetails,
+                                            selling_price: updatedSellingPrice
+                                        };
+                                    });
+                                    setIsEditing(false);
+                                }}
+                                className="space-y-4"
+                            >
+                                <div className="w-full h-max flex flex-col space-y-2">
+                                    <p className="w-full h-max font-utama font-medium text-sm text-left align-middle">Biaya Admin (Total)</p>
+                                    <input
+                                        type="text"
+                                        value={formatRupiahDecimal(editableAdminFee)}
+                                        onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); setEditableAdminFee(Number(raw) || 0); }}
+                                        className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
+                                        placeholder="Biaya Admin"
+                                    />
+                                </div>
+
+                                <div className="w-full h-max flex flex-col space-y-2">
+                                    <p className="w-full h-max font-utama font-medium text-sm text-left align-middle">Diskon</p>
+                                    <input
+                                        type="text"
+                                        value={formatRupiahDecimal(editableDiscount)}
+                                        onChange={(e) => { const raw = e.target.value.replace(/\D/g, ""); setEditableDiscount(Number(raw) || 0); }}
+                                        className="w-full rounded-lg border-2 border-gray-200 bg-neutral-100 px-3 py-2 text-sm focus:outline-none"
+                                        placeholder="Diskon"
+                                    />
+                                </div>
+                                <div className="w-full flex justify-between font-bold mt-4">
+                                    <span>Total (disesuaikan):</span>
+                                    <span>{formatRupiahCurrency(calculatedEditModalTotal)}</span>
+                                </div>
+
+                                <div className="w-full h-max mt-2 flex flex-col items-center justify-center">
+                                    <button type="submit" className="w-full bg-main text-white p-2 rounded hover:bg-blue-700 transition">
+                                        Simpan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
                 {/* Tombol aksi */}
                 <div className="w-full max-w-[500px] p-4 bg-gray-50 mt-auto">
                     {transaction.status === 'Sukses' ? (
