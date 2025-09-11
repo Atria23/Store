@@ -109,7 +109,7 @@ export default function PlnPascaIndex({ auth }) {
                     <div className="font-semibold text-lg">PLN Pascabayar</div>
                 </header>
 
-                <main className="w-full pt-20 pb-40 px-4 space-y-4">
+                <main className="w-full pt-16 pb-40 px-4 space-y-4">
                     <div className="bg-white p-4 rounded-lg shadow-sm border">
                         {paymentResult ? (
                             // --- TAMPILAN SETELAH PEMBAYARAN ---
@@ -196,6 +196,10 @@ export default function PlnPascaIndex({ auth }) {
                                                         <span className="font-medium text-red-600">{formatRupiah(detail.denda)}</span>
                                                     </div>
                                                 )}
+                                                <div className="flex justify-between pl-2">
+                                                    <span className="text-gray-500">Meter Awal - Akhir</span>
+                                                    <span className="font-medium">{detail.meter_awal} - {detail.meter_akhir}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -239,7 +243,7 @@ export default function PlnPascaIndex({ auth }) {
                                 <div className="w-full h-px bg-gray-200" />
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold text-gray-800">Total Pembayaran</span>
-                                    <span className="font-bold text-xl text-blue-600">{formatRupiah(inquiryResult.selling_price)}</span>
+                                    <span className="font-bold text-xl text-main">{formatRupiah(inquiryResult.selling_price)}</span>
                                 </div>
                             </div>
                         ) : (
@@ -248,7 +252,19 @@ export default function PlnPascaIndex({ auth }) {
                                 <div>
                                     <label htmlFor="customer_no" className="block text-sm font-medium text-gray-700 mb-1">ID Pelanggan PLN</label>
                                     <input
-                                        id="customer_no" type="number" value={customerNo} onChange={(e) => setCustomerNo(e.target.value)}
+                                        id="customer_no" type="text" // Gunakan 'text' untuk kontrol lebih baik
+                                        inputMode="numeric" // Menampilkan keyboard numerik di perangkat mobile
+                                        pattern="[0-9]*" // Hanya memperbolehkan angka
+                                        value={customerNo}
+                                        onChange={(e) => { // Gabungan onChange
+                                            const value = e.target.value;
+                                            // Hanya update state jika nilai adalah angka
+                                            if (/^\d*$/.test(value)) {
+                                                setCustomerNo(value);
+                                            }
+                                        }}
+                                        onWheel={(e) => e.target.blur()} // Atau e.preventDefault()
+                                        //  onChange={(e) => setCustomerNo(e.target.value)}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         disabled={isLoading} required placeholder="Masukkan ID Pelanggan"
                                     />
@@ -270,7 +286,7 @@ export default function PlnPascaIndex({ auth }) {
                         <div className="flex items-center justify-between w-full">
                             <div>
                                 <p className="text-sm text-gray-600">Total Pembayaran</p>
-                                <p className="text-xl font-bold text-blue-600">{formatRupiah(inquiryResult.selling_price)}</p>
+                                <p className="text-xl font-bold text-main">{formatRupiah(inquiryResult.selling_price)}</p>
                             </div>
                             <button
                                 onClick={handleBayarClick} disabled={userBalance < inquiryResult.selling_price}

@@ -159,16 +159,19 @@ const SpecificDetails = ({ transaction }) => {
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tarif</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tarif || '-'}</div>
                     </div>
-                    {descData.alamat && (
+                    {descData.alamat && descData.alamat !== '-' && (
                         <div className="w-full flex flex-row">
                             <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Alamat</div>
                             <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.alamat}</div>
                         </div>
                     )}
-                    <div className="w-full flex flex-row">
-                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jatuh Tempo</div>
-                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.jatuh_tempo || '-'}</div>
-                    </div>
+                    {descData.jatuh_tempo && descData.jatuh_tempo !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jatuh Tempo</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.jatuh_tempo || '-'}</div>
+                        </div>
+                    )}
+
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jumlah Lembar Tagihan</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.lembar_tagihan || '0'}</div>

@@ -52,6 +52,8 @@ class PascaPlnController extends Controller
                                             ->get();
 
         if ($availableProducts->isEmpty()) {
+            // Log jika tidak ada produk yang tersedia
+            Log::warning("Inquiry PLN: Tidak ada produk PLN Pascabayar yang aktif ditemukan.");
             return response()->json(['message' => 'Layanan PLN Pascabayar tidak tersedia saat ini.'], 503);
         }
 
@@ -62,21 +64,27 @@ class PascaPlnController extends Controller
             $current_sku = $product->buyer_sku_code;
             $responseData = [];
 
-            // Logika asli: Panggil API provider
             $ref_id = 'pln-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
             $username = env('P_U');
-            $apiKey = env('P_AKD');
+            $apiKey = env('P_AK');
             $sign = md5($username . $apiKey . $ref_id);
 
             try {
                 $response = Http::post(config('services.api_server') . '/v1/transaction', [
                     'commands' => 'inq-pasca', 'username' => $username, 'buyer_sku_code' => $current_sku,
-                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => true,
+                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => false,
                 ]);
                 $responseData = $response->json();
             } catch (\Exception $e) {
                 $lastErrorMessage = 'Gagal terhubung ke server provider.';
-                Log::error("Inquiry PLN Error untuk SKU: {$current_sku}. Error: " . $e->getMessage());
+                // Log error koneksi
+                Log::error("Inquiry PLN Gagal Koneksi API untuk SKU: {$current_sku}. Customer No: {$customerNo}. Error: " . $e->getMessage(), [
+                    'customer_no' => $customerNo,
+                    'sku' => $current_sku,
+                    'ref_id' => $ref_id,
+                    'exception_message' => $e->getMessage(),
+                    'exception_trace' => $e->getTraceAsString(),
+                ]);
                 continue; // Coba provider berikutnya
             }
             
@@ -140,12 +148,29 @@ class PascaPlnController extends Controller
                 $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan; // Jumlah lembar tagihan
                 $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Total yang harus dibayar pelanggan
                 $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
-                
+                $inquiryDataFromApi['ref_id'] = $ref_id; // Pastikan ref_id ikut disimpan
+
                 $successfulInquiryData = $inquiryDataFromApi;
+
+                // --- MODIFIKASI: Simpan log untuk inquiry yang berhasil ---
+                Log::info("Inquiry PLN Sukses untuk SKU: {$current_sku}. Customer No: {$customerNo}", [
+                    'customer_no' => $customerNo,
+                    'sku' => $current_sku,
+                    'ref_id' => $ref_id,
+                    'api_response' => $responseData, // Respons API mentah
+                    'processed_data' => $successfulInquiryData, // Data setelah diproses
+                ]);
+
                 break; // Hentikan loop jika ada yang sukses
             } else {
                 $lastErrorMessage = $responseData['data']['message'] ?? 'Provider sedang sibuk.';
-                Log::warning("Inquiry PLN Gagal untuk SKU: {$current_sku}. Pesan: {$lastErrorMessage}");
+                // Log warning untuk setiap provider yang gagal
+                Log::warning("Inquiry PLN Gagal dari Provider SKU: {$current_sku}. Customer No: {$customerNo}. Pesan: {$lastErrorMessage}", [
+                    'customer_no' => $customerNo,
+                    'sku' => $current_sku,
+                    'ref_id' => $ref_id,
+                    'api_response' => $responseData, // Respons API saat gagal
+                ]);
             }
         }
 
@@ -153,6 +178,8 @@ class PascaPlnController extends Controller
             session(['postpaid_inquiry_data' => $successfulInquiryData]);
             return response()->json($successfulInquiryData);
         } else {
+            // Log error jika semua provider gagal
+            Log::error("Inquiry PLN Total Gagal untuk Customer No: {$customerNo}. Pesan terakhir: {$lastErrorMessage}");
             return response()->json(['message' => $lastErrorMessage], 400);
         }
     }
@@ -196,13 +223,13 @@ class PascaPlnController extends Controller
         $apiResponseData = [];
 
         $username = env('P_U');
-        $apiKey = env('P_AKD');
+        $apiKey = env('P_AK');
         $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
         try {
             $response = Http::post(config('services.api_server') . '/v1/transaction', [
                 'commands' => 'pay-pasca', 'username' => $username, 'buyer_sku_code' => $inquiryData['buyer_sku_code'],
-                'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => true,
+                'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => false,
             ]);
             $apiResponseData = $response->json()['data'];
 
@@ -271,7 +298,35 @@ class PascaPlnController extends Controller
     }
 }
 
-// >>>>>>>>>>>>>>>       DUMMY DISKON BERDASARKAN JUMLAH LEMBAR TAGIHAN        <<<<<<<<<<<<<<<<,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// >>>>>>>>>>>>>>>       DUMMY DISKON BERDASARKAN JUMLAH LEMBAR TAGIHAN        <<<<<<<<<<<<<<<<
 
 // namespace App\Http\Controllers;
 
@@ -289,7 +344,6 @@ class PascaPlnController extends Controller
 // {
 //     use TransactionMapper;
 
-//     // Fungsi index() dan fetchPlnProducts() tidak berubah
 //     public function index()
 //     {
 //         $products = $this->fetchPlnProducts();
@@ -313,70 +367,81 @@ class PascaPlnController extends Controller
 //     }
 
 //     /**
-//      * Membuat data inquiry dummy untuk pengujian, sesuai struktur yang diberikan.
-//      * Disesuaikan agar `data.admin` mencerminkan total admin dari detail, dan `data.selling_price`
-//      * dihitung berdasarkan `data.price` + `data.admin` (total dari detail) + `total denda dari detail`.
+//      * Generates a dummy PLN inquiry response for testing purposes.
+//      * This method is called directly by inquiry() to provide dummy data.
+//      * @param string $customerNo
+//      * @param string $buyerSkuCode
+//      * @param string $refId
+//      * @return array
 //      */
-//     private function getDummyInquiryResponse(string $customerNo, string $refId, int $numBills = 2)
+//     private function getDummyPlnInquiryResponse(string $customerNo, string $buyerSkuCode, string $refId): array
 //     {
-//         // Nilai-nilai ini diambil langsung dari contoh JSON yang Anda berikan
-//         $baseNilaiTagihanPerLembar = 8000;
-//         // $flatProviderAdminFee = 2500; // Ini adalah `admin` di root data sebelumnya, sekarang tidak dipakai langsung
-//         $dendaPerLembar = 500;
-//         $adminPerDetail = 2500; // Ini adalah `admin` di dalam array detail
+//         $basePricePerBill = 80000;
+//         $adminFeePerDetail = 2500; // Asumsi admin per lembar tagihan
+//         $dendaPerDetail = 500;
+//         $lembarTagihan = rand(1, 3); // Simulasikan 1 hingga 3 lembar tagihan (bulan)
 
 //         $details = [];
-//         $totalNilaiTagihanFromDetails = 0; // Untuk menghitung `data.price`
-//         $totalDendaFromDetails = 0; // Untuk menghitung total denda dari detail
-//         $totalAdminFromDetailsForDummy = 0; // Untuk menghitung total admin dari detail
+//         $totalNilaiTagihan = 0;
+//         $totalAdminDariDetail = 0;
+//         $totalDendaDariDetail = 0;
 
-//         for ($i = 0; $i < $numBills; $i++) {
+//         $baseMeterAwal = 30000 + (int)substr($customerNo, -3); // Unik per customer
+//         // Untuk PLN, biasanya tidak ada 'biaya_lain' di detail. Hanya 'nilai_tagihan', 'admin', 'denda'.
+
+//         $lastMeterAkhir = $baseMeterAwal; // Mulai dari baseMeterAwal untuk periode terlama
+
+//         for ($i = $lembarTagihan - 1; $i >= 0; $i--) { // Loop dari periode terlama ke terbaru
+//             $period = date('Ym', strtotime("-$i month"));
+//             $nilaiTagihanItem = $basePricePerBill + (rand(0, 50) * 100);
+
+//             $currentMeterAwal = $lastMeterAkhir;
+//             $currentMeterAkhir = $currentMeterAwal + rand(100, 200); // Konsumsi per bulan
+            
 //             $details[] = [
-//                 'periode' => '201901', // Sesuai contoh, periode sama untuk semua detail
-//                 'nilai_tagihan' => (string) $baseNilaiTagihanPerLembar,
-//                 'admin' => (string) $adminPerDetail,
-//                 'denda' => (string) $dendaPerLembar
+//                 "periode" => $period,
+//                 "nilai_tagihan" => (string)$nilaiTagihanItem,
+//                 "admin" => (string)$adminFeePerDetail,
+//                 "denda" => (string)$dendaPerDetail,
+//                 "meter_awal" => (string)$currentMeterAwal,
+//                 "meter_akhir" => (string)$currentMeterAkhir,
+//                 // "biaya_lain" => "0" // PLN jarang ada biaya_lain di detail, bisa ditambahkan jika diperlukan
 //             ];
-//             $totalNilaiTagihanFromDetails += $baseNilaiTagihanPerLembar;
-//             $totalDendaFromDetails += $dendaPerLembar;
-//             $totalAdminFromDetailsForDummy += $adminPerDetail; // Akumulasi admin dari setiap detail
+//             $totalNilaiTagihan += $nilaiTagihanItem;
+//             $totalAdminDariDetail += $adminFeePerDetail;
+//             $totalDendaDariDetail += $dendaPerDetail;
+
+//             $lastMeterAkhir = $currentMeterAkhir; // Meter akhir periode ini jadi meter awal periode berikutnya
 //         }
-        
-//         // Perhitungan `data.price` dan `data.selling_price` agar konsisten dengan logika yang diinginkan
-//         // `data.price` adalah total nilai tagihan murni dari semua detail
-//         $dataPrice = $totalNilaiTagihanFromDetails;
-        
-//         // `data.admin` (di level root) sekarang mencerminkan total admin dari semua detail
-//         $dataAdminRoot = $totalAdminFromDetailsForDummy;
 
-//         // `data.selling_price` adalah `data.price` + `data.admin` (total dari detail) + `total denda` (dari detail)
-//         // Diskon akan ditambahkan pada metode inquiry, jadi tidak termasuk di sini.
-//         $dataSellingPrice = $dataPrice + $dataAdminRoot + $totalDendaFromDetails;
+//         // Urutkan detail berdasarkan periode ascending (terlama ke terbaru)
+//         usort($details, function($a, $b) {
+//             return $a['periode'] <=> $b['periode'];
+//         });
 
+//         // Contoh PLN tidak ada 'alamat' dan 'jatuh_tempo' di 'desc' seperti PDAM,
+//         // tapi kita bisa tambahkan jika memang ingin simulasi yang sangat mirip.
+//         $descData = [
+//             "tarif" => "R1",
+//             "daya" => 1300,
+//             "lembar_tagihan" => $lembarTagihan,
+//             "detail" => $details
+//         ];
+        
 //         return [
-//             'data' => [
-//                 'ref_id' => $refId,
-//                 'customer_no' => $customerNo,
-//                 'customer_name' => 'Nama Pelanggan Dummy',
-//                 'buyer_sku_code' => 'pln',
-//                 'admin' => $dataAdminRoot, // Diubah: Sekarang ini adalah total admin dari detail
-//                 'message' => 'Transaksi Sukses',
-//                 'status' => 'Sukses',
-//                 'rc' => '00',
-//                 'buyer_last_saldo' => 100000,
-//                 'price' => $dataPrice, 
-//                 'selling_price' => $dataSellingPrice, // Diubah: Menggunakan total admin dari detail
-//                 'desc' => [
-//                     'tarif' => 'R1',
-//                     'daya' => 1300,
-//                     'lembar_tagihan' => $numBills,
-//                     'detail' => $details,
-//                     'last_bill_periode' => '201901',
-//                     'total_bill' => $numBills,
-//                     'bill_status' => 'BELUM LUNAS',
-//                     'bill_info' => 'Tagihan PLN Pasca Dummy',
-//                     'due_date' => now()->addDays(7)->format('Y-m-d')
-//                 ]
+//             "data" => [
+//                 "ref_id" => $refId,
+//                 "customer_no" => $customerNo,
+//                 "customer_name" => "PELANGGAN DUMMY PLN " . Str::upper(substr(md5($customerNo), 0, 5)),
+//                 "buyer_sku_code" => $buyerSkuCode,
+//                 "admin" => $totalAdminDariDetail, // Total admin dari semua lembar tagihan
+//                 "message" => "Transaksi Sukses",
+//                 "status" => "Sukses",
+//                 "rc" => "00",
+//                 "buyer_last_saldo" => 1000000,
+//                 "price" => $totalNilaiTagihan, // Total nilai tagihan murni dari semua lembar tagihan
+//                 "selling_price" => $totalNilaiTagihan + $totalAdminDariDetail + $totalDendaDariDetail, // Initial selling price (sebelum diskon)
+//                 "desc" => $descData
 //             ]
 //         ];
 //     }
@@ -386,178 +451,144 @@ class PascaPlnController extends Controller
 //         $request->validate(['customer_no' => 'required|string|min:10']);
 //         $customerNo = $request->customer_no;
 
-//         // --- Pemicu Mode Dummy ---
-//         // Jika nomor pelanggan diawali dengan '999', aktifkan mode dummy.
-//         $isDummyMode = Str::startsWith($customerNo, '999');
-
 //         $availableProducts = PostpaidProduct::where('brand', 'PLN PASCABAYAR')
 //                                             ->where('seller_product_status', true)
 //                                             ->orderBy('buyer_sku_code', 'asc')
 //                                             ->get();
 
 //         if ($availableProducts->isEmpty()) {
+//             Log::warning("Inquiry PLN: Tidak ada produk PLN Pascabayar yang aktif ditemukan (Dummy Mode).");
 //             return response()->json(['message' => 'Layanan PLN Pascabayar tidak tersedia saat ini.'], 503);
 //         }
 
 //         $successfulInquiryData = null;
-//         $lastErrorMessage = 'Gagal melakukan pengecekan tagihan setelah mencoba semua provider.';
+//         $current_sku = $availableProducts->first()->buyer_sku_code; // Ambil SKU dari produk pertama yang tersedia
+//         $ref_id = 'pln-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
+        
+//         // --- MODIFIKASI: Langsung gunakan respons dummy di sini ---
+//         $responseData = $this->getDummyPlnInquiryResponse($customerNo, $current_sku, $ref_id);
+//         // --- AKHIR MODIFIKASI ---
 
-//         foreach ($availableProducts as $product) {
-//             $current_sku = $product->buyer_sku_code;
-//             $responseData = [];
-
-//             if ($isDummyMode) {
-//                 // Untuk dummy, kita bisa atur jumlah lembar tagihan berdasarkan digit akhir customer_no
-//                 // Misalnya, '999...1' -> 1 lembar, '999...2' -> 2 lembar, dst.
-//                 $numBills = (int) substr($customerNo, -1);
-//                 if ($numBills == 0 || $numBills > 5) $numBills = 2; // Default 2 lembar jika berakhir 0 atau > 5
-                
-//                 // ref_id dummy yang lebih pendek, seperti contoh "some1d"
-//                 $ref_id = 'dmy' . Str::random(rand(3, 5)); // Contoh: dmyabc, dmy1234
-//                 if (strlen($ref_id) > 10) $ref_id = substr($ref_id, 0, 10); // Pastikan tidak terlalu panjang
-
-//                 $responseData = $this->getDummyInquiryResponse($customerNo, $ref_id, $numBills);
-//                 Log::info("Inquiry PLN (Dummy Mode) untuk SKU: {$current_sku}, Customer: {$customerNo}");
-//             } else {
-//                 // Logika asli: Panggil API provider
-//                 $ref_id = 'pln-' . Str::uuid(); // UUID untuk ref_id asli
-//                 $username = env('P_U');
-//                 $apiKey = env('P_AKD');
-//                 $sign = md5($username . $apiKey . $ref_id);
-
-//                 try {
-//                     $response = Http::post(config('services.api_server') . '/v1/transaction', [
-//                         'commands' => 'inq-pasca', 'username' => $username, 'buyer_sku_code' => $current_sku,
-//                         'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => true,
-//                     ]);
-//                     $responseData = $response->json();
-//                 } catch (\Exception $e) {
-//                     $lastErrorMessage = 'Gagal terhubung ke server provider.';
-//                     Log::error("Inquiry PLN Error untuk SKU: {$current_sku}. Error: " . $e->getMessage());
-//                     continue; // Coba provider berikutnya
-//                 }
-//             }
+//         // Kode di bawah ini tetap sama, memproses $responseData seolah-olah dari API nyata
+//         if (isset($responseData['data']) && $responseData['data']['status'] === 'Sukses') {
+//             $inquiryDataFromApi = $responseData['data'];
             
-//             // Logika pemrosesan respons (berlaku untuk data asli maupun dummy)
-//             if (isset($responseData['data']) && $responseData['data']['status'] === 'Sukses') {
-//                 $inquiryDataFromApi = $responseData['data'];
-                
-//                 // Inisialisasi variabel perhitungan
-//                 $totalNilaiTagihan = 0;
-//                 $totalDenda = 0;
-//                 $totalAdminFromDetails = 0; // NEW: Akumulasi admin dari setiap detail
-//                 $jumlahLembarTagihan = 0;
-
-//                 // --- PENTING: Prioritas Ambil jumlah lembar tagihan dari 'desc.lembar_tagihan' ---
-//                 if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
-//                     $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
-//                 } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-//                     // Fallback ke count detail jika 'lembar_tagihan' tidak ada
-//                     $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
-//                 } else {
-//                     $jumlahLembarTagihan = 1; // Default ke 1 jika tidak ditemukan sama sekali
-//                 }
-
-//                 // Akumulasikan nilai tagihan, denda, dan admin dari detail
-//                 if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-//                     foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-//                         $totalNilaiTagihan += (float) ($detail['nilai_tagihan'] ?? 0);
-//                         $totalDenda += (float) ($detail['denda'] ?? 0); 
-//                         $totalAdminFromDetails += (float) ($detail['admin'] ?? 0); // Akumulasi admin dari detail
-//                     }
-//                 } else {
-//                     // Fallback jika tidak ada detail, dan user menginginkan admin_fee dari total admin tiap lembar tagihan.
-//                     // Jika tidak ada detail, kita asumsikan 'price' di root adalah nilai tagihan, 'denda' di root desc adalah total denda.
-//                     // Untuk admin, kita bisa fallback ke 'admin' di root data jika tidak ada detail.
-//                     $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
-//                     $totalDenda = (float) ($inquiryDataFromApi['desc']['denda'] ?? 0); 
-//                     // Jika tidak ada detail, kita asumsikan 'admin' di root adalah total admin.
-//                     $totalAdminFromDetails = (float) ($inquiryDataFromApi['admin'] ?? 0);
-//                 }
-
-//                 // --- PENTING: Set $inquiryDataFromApi['admin'] menjadi total admin dari details ---
-//                 // Ini akan menjadi nilai 'admin_fee' yang diinginkan (total admin dari tiap lembar tagihan).
-//                 $inquiryDataFromApi['admin'] = $totalAdminFromDetails; 
-                
-//                 // 1. Hitung Diskon dasar per lembar berdasarkan komisi produk
-//                 $commission = $product->commission ?? 0;
-//                 $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
-//                 $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-//                 $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
-
-//                 // 2. Kalikan diskon per lembar dengan jumlah lembar tagihan
-//                 $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
-
-//                 // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
-//                 // selling_price = price + admin_fee (total dari detail) + total denda - total diskon
-//                 $finalSellingPrice = $totalNilaiTagihan + $totalAdminFromDetails + $totalDenda - $finalDiskon;
-
-//                 // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
-//                 $inquiryDataFromApi['price']         = $totalNilaiTagihan; // Nilai tagihan murni (total dari detail)
-//                 // $inquiryDataFromApi['admin'] sudah diset ke $totalAdminFromDetails di atas
-//                 $inquiryDataFromApi['denda']         = $totalDenda; // Total denda dari detail
-//                 $inquiryDataFromApi['diskon']        = $finalDiskon; // Simpan diskon yang sudah dikalikan
-//                 $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan; // Jumlah lembar tagihan
-//                 $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Total yang harus dibayar pelanggan
-//                 $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
-                
-//                 $successfulInquiryData = $inquiryDataFromApi;
-//                 break; // Hentikan loop jika ada yang sukses
-//             } else {
-//                 $lastErrorMessage = $responseData['data']['message'] ?? 'Provider sedang sibuk.';
-//                 Log::warning("Inquiry PLN Gagal untuk SKU: {$current_sku}. Pesan: {$lastErrorMessage}");
+//             if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
+//                 $inquiryDataFromApi['desc'] = [];
 //             }
-//         }
 
-//         if ($successfulInquiryData) {
+//             $totalNilaiTagihan = 0;
+//             $totalDenda = 0;
+//             $totalBiayaLain = 0; // Untuk PLN, ini biasanya 0 atau diakumulasi ke price
+//             $jumlahLembarTagihan = 0;
+
+//             if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
+//                 $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
+//             } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
+//                 $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
+//             } else {
+//                 $jumlahLembarTagihan = 1;
+//             }
+
+//             $latestMeterAwal = null;
+//             $latestMeterAkhir = null;
+
+//             if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail']) && !empty($inquiryDataFromApi['desc']['detail'])) {
+//                 $latestDetail = end($inquiryDataFromApi['desc']['detail']);
+//                 $latestMeterAwal = $latestDetail['meter_awal'] ?? null;
+//                 $latestMeterAkhir = $latestDetail['meter_akhir'] ?? null;
+//                 reset($inquiryDataFromApi['desc']['detail']);
+//             }
+
+//             if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
+//                 foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
+//                     $totalNilaiTagihan += (float) ($detail['nilai_tagihan'] ?? 0);
+//                     $totalDenda += (float) ($detail['denda'] ?? 0); 
+//                     // Jika ada biaya_lain di detail PLN, tambahkan di sini
+//                     // $totalBiayaLain += (float) ($detail['biaya_lain'] ?? 0); 
+//                 }
+//             } else {
+//                 $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
+//                 $totalDenda = (float) ($inquiryDataFromApi['desc']['denda'] ?? 0); 
+//                 // Jika ada biaya_lain di root desc, tambahkan di sini
+//                 // $totalBiayaLain = (float) ($inquiryDataFromApi['desc']['biaya_lain'] ?? 0);
+//             }
+
+//             $totalAdminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0); // Ambil total admin dari root dummy response
+//             $inquiryDataFromApi['admin'] = $totalAdminFromProvider; 
+            
+//             // Produk PLN yang digunakan untuk komisi
+//             $productForCommission = $availableProducts->first(); 
+//             $commission = $productForCommission->commission ?? 0;
+//             $commission_sell_percentage = $productForCommission->commission_sell_percentage ?? 0;
+//             $commission_sell_fixed = $productForCommission->commission_sell_fixed ?? 0;
+//             $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+
+//             $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
+//             $finalDiskon = ceil($finalDiskon);
+
+
+//             $finalSellingPrice = ($totalNilaiTagihan + $totalBiayaLain) + $totalAdminFromProvider + $totalDenda - $finalDiskon;
+//             $finalSellingPrice = ceil($finalSellingPrice);
+
+//             $inquiryDataFromApi['meter_awal'] = $latestMeterAwal;
+//             $inquiryDataFromApi['meter_akhir'] = $latestMeterAkhir;
+
+//             $inquiryDataFromApi['price']         = $totalNilaiTagihan + $totalBiayaLain;
+//             $inquiryDataFromApi['denda']         = $totalDenda;
+//             $inquiryDataFromApi['diskon']        = $finalDiskon;
+//             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
+//             $inquiryDataFromApi['selling_price'] = $finalSellingPrice;
+//             $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
+//             $inquiryDataFromApi['ref_id'] = $ref_id;
+
+//             $successfulInquiryData = $inquiryDataFromApi;
+
+//             Log::info("Inquiry PLN Sukses (Dummy) untuk SKU: {$current_sku}. Customer No: {$customerNo}", [
+//                 'customer_no' => $customerNo,
+//                 'sku' => $current_sku,
+//                 'ref_id' => $ref_id,
+//                 'api_response' => $responseData,
+//                 'processed_data' => $successfulInquiryData,
+//             ]);
+
 //             session(['postpaid_inquiry_data' => $successfulInquiryData]);
 //             return response()->json($successfulInquiryData);
 //         } else {
-//             return response()->json(['message' => $lastErrorMessage], 400);
+//             // Karena ini dummy, ini seharusnya tidak tercapai jika getDummyPlnInquiryResponse selalu Sukses
+//             $errorMessage = $responseData['data']['message'] ?? 'Gagal melakukan pengecekan tagihan dummy PLN.';
+//             Log::warning("Inquiry PLN Gagal (Dummy) untuk SKU: {$current_sku}. Customer No: {$customerNo}. Pesan: {$errorMessage}", [
+//                 'customer_no' => $customerNo,
+//                 'sku' => $current_sku,
+//                 'ref_id' => $ref_id,
+//                 'api_response' => $responseData,
+//             ]);
+//             return response()->json(['message' => $errorMessage], 400);
 //         }
 //     }
-
-//     /**
-//      * Membuat data payment dummy untuk pengujian.
-//      */
-//     private function getDummyPaymentResponse(array $inquiryData)
-//     {
-//         return [
-//             'data' => array_merge($inquiryData, [
-//                 'status' => 'Sukses',
-//                 'sn' => 'DUMMYSN' . strtoupper(Str::random(10)) . '/PLNDUMMY/' . now()->format('Ymd'),
-//                 'message' => 'PEMBAYARAN PLN PASCABAYAR SUKSES (MODE DUMMY)',
-//                 'balance' => 1000000, // Sisa saldo dummy
-//                 'price' => $inquiryData['selling_price'], // Price di sini biasanya harga yang dibayar
-//                 'rc' => '00', // Response Code sukses
-//             ])
-//         ];
-//     }
-
+    
 //     public function payment(Request $request)
 //     {
-//         $user = Auth::user();
+//         $user = Auth::user(); 
+//         // Untuk testing tanpa login, Anda bisa membuat user dummy:
+//         // if (!$user) { $user = (object)['id' => 1, 'balance' => 10000000, 'decrement' => function($attr, $val){}, 'increment' => function($attr, $val){}]; }
+
 //         $inquiryData = session('postpaid_inquiry_data');
 
 //         if (!$inquiryData || $inquiryData['customer_no'] !== $request->customer_no) {
 //             return response()->json(['message' => 'Sesi tidak valid atau nomor pelanggan tidak cocok.'], 400);
 //         }
 
-//         // --- Pemicu Mode Dummy ---
-//         $isDummyMode = Str::startsWith($request->customer_no, '999');
-
-//         // Ambil data yang sudah dihitung dari sesi (sekarang sudah benar setelah revisi inquiry)
-//         $totalPriceToPay     = $inquiryData['selling_price']; 
-//         $finalAdmin          = $inquiryData['admin']; // Ini sekarang adalah total admin dari detail
+//         $totalPriceToPay     = $inquiryData['selling_price'];
+//         $finalAdmin          = $inquiryData['admin'];
 //         $pureBillPrice       = $inquiryData['price'];
-//         $diskon              = $inquiryData['diskon'] ?? 0; 
+//         $diskon              = $inquiryData['diskon'] ?? 0;
 //         $jumlahLembarTagihan = $inquiryData['jumlah_lembar_tagihan'] ?? 0;
         
 //         if ($user->balance < $totalPriceToPay) {
 //             return response()->json(['message' => 'Saldo Anda tidak mencukupi.'], 402);
 //         }
 
-//         // Kurangi saldo sebelum memproses transaksi (baik dummy maupun asli)
 //         $user->decrement('balance', $totalPriceToPay);
 
 //         $initialData = $this->mapToUnifiedTransaction($inquiryData, 'PLN', $pureBillPrice, $finalAdmin);
@@ -565,63 +596,89 @@ class PascaPlnController extends Controller
 //         $initialData['status'] = 'Pending';
 //         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
         
-//         // Simpan diskon dan jumlah lembar tagihan yang sudah dikalikan ke dalam kolom 'details' JSON
-//         $initialData['details']['diskon'] = $diskon;
-//         $initialData['details']['jumlah_lembar_tagihan'] = $jumlahLembarTagihan; 
+//         $initialData['rc'] = $inquiryData['rc'] ?? null;
+//         $initialData['sn'] = null; 
+
+//         $initialData['details'] = [
+//             'diskon' => $diskon,
+//             'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
+//             'meter_awal_terbaru' => $inquiryData['meter_awal'] ?? null,
+//             'meter_akhir_terbaru' => $inquiryData['meter_akhir'] ?? null,
+//         ];
         
 //         $unifiedTransaction = PostpaidTransaction::create($initialData);
 
-//         $apiResponseData = [];
-
-//         if ($isDummyMode) {
-//             // Gunakan data dummy, tidak perlu panggil API
-//             $response = $this->getDummyPaymentResponse($inquiryData);
-//             $apiResponseData = $response['data'];
-//             Log::info("Payment PLN (Dummy Mode) untuk Ref ID: {$inquiryData['ref_id']}, Customer: {$request->customer_no}");
-            
-//             // Simulasi penundaan jika diperlukan untuk pengujian
-//             // sleep(1); 
-//         } else {
-//             // Logika asli: Panggil API provider
-//             $username = env('P_U');
-//             $apiKey = env('P_AKD');
-//             $sign = md5($username . $apiKey . $inquiryData['ref_id']);
-
-//             try {
-//                 $response = Http::post(config('services.api_server') . '/v1/transaction', [
-//                     'commands' => 'pay-pasca', 'username' => $username, 'buyer_sku_code' => $inquiryData['buyer_sku_code'],
-//                     'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => true,
-//                 ]);
-//                 $apiResponseData = $response->json()['data'];
-//             } catch (\Exception $e) {
-//                 // Jika gagal terhubung ke provider, kembalikan saldo
-//                 $user->increment('balance', $totalPriceToPay);
-//                 $errorMessage = ['status' => 'Gagal', 'message' => 'Gagal terhubung ke server provider.'];
-//                 $unifiedTransaction->update($errorMessage);
-//                 Log::error('PLN Payment Error: ' . $e->getMessage());
-//                 return response()->json(['message' => 'Terjadi kesalahan pada server provider.'], 500);
-//             }
-//         }
+//         // --- MODIFIKASI: Langsung gunakan respons dummy untuk payment ---
+//         $apiResponseData = [
+//             "ref_id" => $inquiryData['ref_id'],
+//             "customer_no" => $inquiryData['customer_no'],
+//             "customer_name" => $inquiryData['customer_name'] ?? "PELANGGAN DUMMY PLN",
+//             "buyer_sku_code" => $inquiryData['buyer_sku_code'],
+//             "admin" => $inquiryData['admin'],
+//             "message" => "Pembayaran Sukses. PLN dummy SN: DUMMYPLN" . Str::upper(substr(md5($inquiryData['ref_id']), 0, 8)),
+//             "status" => "Sukses",
+//             "rc" => "00",
+//             "sn" => "DUMMYPLN" . Str::upper(substr(md5($inquiryData['ref_id']), 0, 8)), // Dummy serial number
+//             "buyer_last_saldo" => $user->balance, // Refleksikan saldo baru setelah decrement
+//             "price" => $inquiryData['price'],
+//             "selling_price" => $inquiryData['selling_price'],
+//             "desc" => $inquiryData['desc'] ?? [], // Gunakan desc dari inquiry data
+//             "meter_awal" => $inquiryData['meter_awal'] ?? null,
+//             "meter_akhir" => $inquiryData['meter_akhir'] ?? null,
+//         ];
+//         Log::info('PLN Payment DUMMY API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
+//         // --- AKHIR MODIFIKASI ---
         
-//         // Logika pembaruan transaksi (berlaku untuk data asli maupun dummy)
 //         $fullResponseData = array_merge($inquiryData, $apiResponseData);
 
-//         // Pastikan `pureBillPrice` dan `finalAdmin` (total admin dari detail) yang asli tetap digunakan
-//         // karena `mapToUnifiedTransaction` membutuhkannya untuk kolom `price` dan `admin_fee`.
 //         $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PLN', $pureBillPrice, $finalAdmin);
 //         $updatePayload['selling_price'] = $totalPriceToPay;
         
-//         // Simpan diskon (yang sudah dikalikan) dan jumlah lembar tagihan saat update, untuk konsistensi
-//         $updatePayload['details']['diskon'] = $diskon;
-//         $updatePayload['details']['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
+//         $updatePayload['rc'] = $apiResponseData['rc'] ?? null;
+//         $updatePayload['sn'] = $apiResponseData['sn'] ?? null;
+//         $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal'; // Update status dari respons dummy
+//         $updatePayload['message'] = $apiResponseData['message'] ?? 'Gagal melakukan pembayaran dummy.'; // Update message dari respons dummy
 
-//         // Hapus hanya field yang tidak boleh di-update dari API response ke model kita
+//         $keysToExcludeFromDetails = [
+//             'ref_id', 'customer_no', 'customer_name', 'buyer_sku_code', 'message',
+//             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
+//             'diskon', 'jumlah_lembar_tagihan', 'meter_awal', 'meter_akhir'
+//         ];
+
+//         $detailsFromApiResponse = [];
+//         foreach ($apiResponseData as $key => $value) {
+//             if (!in_array($key, $keysToExcludeFromDetails)) {
+//                 $detailsFromApiResponse[$key] = $value;
+//             }
+//         }
+        
+//         $updatePayload['details'] = array_merge(
+//             $detailsFromApiResponse,
+//             [
+//                 'diskon' => $diskon,
+//                 'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
+//                 'meter_awal_terbaru' => $inquiryData['meter_awal'] ?? null,
+//                 'meter_akhir_terbaru' => $inquiryData['meter_akhir'] ?? null,
+//             ]
+//         );
+
 //         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
         
 //         $unifiedTransaction->update($updatePayload);
 
-//         // Jika transaksi gagal (setelah update dari API), kembalikan saldo
-//         if (($apiResponseData['status'] ?? 'Gagal') === 'Gagal') { // Gunakan 'Gagal' sebagai default jika status tidak ada
+//         $unifiedTransaction->refresh(); 
+
+//         $fullResponseData['selling_price'] = $unifiedTransaction->selling_price;
+//         $fullResponseData['status'] = $unifiedTransaction->status;
+//         $fullResponseData['customer_name'] = $unifiedTransaction->customer_name;
+//         $fullResponseData['customer_no'] = $unifiedTransaction->customer_no;
+//         $fullResponseData['diskon'] = $unifiedTransaction->details['diskon'] ?? 0;
+//         $fullResponseData['sn'] = $unifiedTransaction->sn;
+//         $fullResponseData['meter_awal'] = $unifiedTransaction->details['meter_awal_terbaru'] ?? null;
+//         $fullResponseData['meter_akhir'] = $unifiedTransaction->details['meter_akhir_terbaru'] ?? null;
+
+//         // Logika pengembalian saldo jika transaksi dummy gagal (jika Anda mensimulasikan itu)
+//         if (($apiResponseData['status'] ?? 'Gagal') === 'Gagal') {
 //             $user->increment('balance', $totalPriceToPay);
 //         }
 

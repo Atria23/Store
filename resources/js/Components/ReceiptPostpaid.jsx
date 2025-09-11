@@ -188,14 +188,30 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                         )}
                         {type === 'PDAM' && (
                             <>
+                                {/* Baris Tarif */}
                                 <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
-                                    <span>Alamat:</span>
-                                    <span>{descData.alamat || '-'}</span>
+                                    <span>Tarif:</span> {/* Menggunakan label "Tarif" */}
+                                    <span>{descData.tarif || '-'}</span>
                                 </div>
-                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
-                                    <span>Jatuh Tempo:</span>
-                                    <span>{descData.jatuh_tempo || '-'}</span>
-                                </div>
+
+                                {/* Baris Alamat dengan kondisi */}
+                                {descData.alamat && descData.alamat !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                        <span>Alamat:</span>
+                                        <span>{descData.alamat}</span> {/* Tidak perlu fallback '-' karena sudah ditangani oleh kondisi */}
+                                    </div>
+                                )}
+
+                                {/* Baris Jatuh Tempo */}
+                                {descData.jatuh_tempo && descData.jatuh_tempo !== '-' && (
+
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                        <span>Jatuh Tempo:</span>
+                                        <span>{descData.jatuh_tempo || '-'}</span>
+                                    </div>
+                                )}
+
+                                {/* Baris Lembar Tagihan */}
                                 <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                     <span>Lembar Tagihan:</span>
                                     <span>{descData.lembar_tagihan || '0'}</span>
