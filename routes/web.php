@@ -72,13 +72,9 @@ Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
     Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');
 
-    Route::get('/bpjs', function () {
-        return Inertia::render('Pascabayar/Bpjs'); // Path view disesuaikan
-    })->name('pascabpjs.index');
-
-    Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('pascabpjs.inquiry');
-    Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('pascabpjs.payment');
-    
+    Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('bpjs.kesehatan.index');
+    Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('bpjs.kesehatan.inquiry');
+    Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('bpjs.kesehatan.payment');
     Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
         Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
             ->only(['index', 'store', 'update', 'destroy']);

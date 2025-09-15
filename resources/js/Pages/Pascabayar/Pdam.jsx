@@ -254,54 +254,63 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                 <main style={{ paddingTop: `${headerHeight}px` }} className="w-full pt-20 pb-40 px-4 space-y-4 flex-grow">
                     <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border">
                         {paymentResult ? (
-                            paymentResult.status === 'Sukses' ? (
-                                // --- TAMPILAN STRUK PEMBAYARAN BERHASIL ---
-                                <div className="space-y-4">
-                                    <div className="text-center">
-                                        <svg className="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <h3 className="text-lg font-bold text-gray-800 mt-2">Pembayaran Berhasil</h3>
-                                        <p className="text-sm text-gray-500">{paymentResult.message || 'Pembayaran Tagihan Air Anda berhasil.'}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                                        <p className="text-sm text-gray-600">Total Pembayaran</p>
-                                        <p className="text-3xl font-bold text-main">{formatRupiah(paymentResult.selling_price)}</p>
-                                    </div>
-
-                                    {paymentResult.diskon > 0 && (
-                                        <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
-                                            Anda hemat {formatRupiah(paymentResult.diskon)}!
-                                        </div>
-                                    )}
-
-                                    <button onClick={() => router.visit(route('postpaid.history.index'))} className="w-full py-2 px-4 border border-main text-main font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-                                        Riwayat Transaksi
-                                    </button>
-                                    <button onClick={resetTransaction} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
-                                        Lakukan Transaksi Lain
-                                    </button>
+                            <div className="space-y-4">
+                                <div className="text-center">
+                                    <svg
+                                        className="mx-auto h-12 w-12 text-green-500"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="1.5"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                    <h3 className="text-lg font-bold text-gray-800 mt-2">
+                                        Pembayaran Berhasil
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                        {paymentResult.message || "Pembayaran Tagihan Air Anda berhasil."}
+                                    </p>
                                 </div>
-                            ) : (
-                                // --- TAMPILAN GAGAL ---
-                                <div className="space-y-4">
-                                    <div className="text-center">
-                                        <svg className="mx-auto h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <h3 className="text-lg font-bold text-gray-800 mt-2">Pembayaran Gagal</h3>
-                                        <p className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">{paymentResult.message || 'Terjadi kesalahan saat memproses pembayaran Anda.'}</p>
-                                    </div>
-                                    <div className="space-y-2 text-sm border-t pt-4">
-                                        <h4 className="font-semibold text-md text-gray-800 pb-1">Detail Transaksi Gagal</h4>
-                                        <div className="flex justify-between"><span className="text-gray-500">ID Pelanggan</span><span className="font-medium">{paymentResult.customer_no}</span></div>
-                                        <div className="flex justify-between"><span className="text-gray-500">Nama</span><span className="font-medium text-right">{paymentResult.customer_name}</span></div>
-                                        <div className="flex justify-between"><span className="text-gray-500">Jumlah</span><span className="font-medium">{formatRupiah(paymentResult.selling_price)}</span></div>
-                                    </div>
-                                    <button onClick={resetTransaction} className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700">
-                                        Coba Lagi
-                                    </button>
+
+                                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                    <p className="text-sm text-gray-600">Total Pembayaran</p>
+                                    <p className="text-3xl font-bold text-main">
+                                        {formatRupiah(paymentResult.selling_price)}
+                                    </p>
                                 </div>
-                            )
+
+                                {paymentResult.diskon > 0 && (
+                                    <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
+                                        Anda hemat {formatRupiah(paymentResult.diskon)}!
+                                    </div>
+                                )}
+
+                                {/* Kalau status bukan sukses, tampilkan alert error */}
+                                {paymentResult.status !== "Sukses" && (
+                                    <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
+                                        {paymentResult.message || "Terjadi kesalahan saat memproses pembayaran Anda."}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={() => router.visit(route("postpaid.history.index"))}
+                                    className="w-full py-2 px-4 border border-main text-main font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+                                >
+                                    Riwayat Transaksi
+                                </button>
+                                <button
+                                    onClick={resetTransaction}
+                                    className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700"
+                                >
+                                    Lakukan Transaksi Lain
+                                </button>
+                            </div>
                         ) : inquiryResult ? (
                             // --- TAMPILAN DETAIL TAGIHAN (INQUIRY) ---
                             <div className="space-y-4">
