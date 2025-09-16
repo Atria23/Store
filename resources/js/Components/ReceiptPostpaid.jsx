@@ -156,6 +156,7 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                     {[
                         ['Produk', transaction.product?.product_name || transaction.type],
                         ['Tujuan', transaction.customer_no],
+                        ['Nama', transaction.customer_name || '-'],
                         ['Status', transaction.status],
                     ].map(([label, value], idx) => (
                         <div
@@ -170,7 +171,7 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                     ))}
                 </div>
 
-                {(type === 'PLN' || type === 'PDAM' || type === 'INTERNET' || type === 'BPJS') && details && (
+                {(type === 'PLN' || type === 'PDAM' || type === 'INTERNET PASCABAYAR' || type === 'BPJS KESEHATAN') && details && (
                     <div className="flex flex-col gap-1 w-full my-2">
                         {/* Judul Detail Layanan juga disamakan dengan textSize */}
                         <span className={`font-bold text-[#6d7278] ${sizeStyle.textSize}`}>Detail Layanan:</span>
@@ -218,13 +219,13 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                                 </div>
                             </>
                         )}
-                        {type === 'INTERNET' && (
+                        {type === 'INTERNET PASCABAYAR' && (
                             <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                 <span>Lembar Tagihan:</span>
                                 <span>{descData.lembar_tagihan || '0'}</span>
                             </div>
                         )}
-                        {type === 'BPJS' && (
+                        {type === 'BPJS KESEHATAN' && (
                             <>
                                 <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                     <span>Jumlah Peserta:</span>
@@ -250,20 +251,26 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
 
                 <div className="flex flex-col gap-1 w-full">
                     {[
-                        ['Harga Tagihan', formatRupiahCurrency(currentBillPrice)],
-                        ['Biaya Admin', formatRupiahCurrency(currentAdminFee)],
-                        ['Denda', formatRupiahCurrency(currentPenaltyFee)],
-                        ['Diskon', formatRupiahCurrency(currentDiscount)],
-                    ].map(([label, value], idx) => (
-                        <div
-                            key={idx}
-                            className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}
-                        >
-                            <span className={`font-bold text-[#6d7278]`}>{label}</span>
-                            <span className={`${sizeStyle.fontWeight} text-black text-right`}>{value}</span>
-                        </div>
-                    ))}
+                        { label: 'Harga Tagihan', value: currentBillPrice },
+                        { label: 'Biaya Admin', value: currentAdminFee },
+                        { label: 'Denda', value: currentPenaltyFee },
+                        { label: 'Diskon', value: currentDiscount },
+                    ]
+                        .filter(item => item.value !== 0) // Memfilter item yang nilainya bukan 0
+                        .map(({ label, value }, idx) => (
+                            <div
+                                key={idx}
+                                className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}
+                            >
+                                <span className={`font-bold text-[#6d7278]`}>{label}</span>
+                                <span className={`${sizeStyle.fontWeight} text-black text-right`}>
+                                    {formatRupiahCurrency(value).replace('Rp ', 'Rp')} {/* Menghilangkan spasi setelah "Rp" */}
+                                </span>
+                            </div>
+                        ))}
                 </div>
+
+
 
                 <div className="border-t-2 border-dashed border-gray-600 my-2 w-full" />
 

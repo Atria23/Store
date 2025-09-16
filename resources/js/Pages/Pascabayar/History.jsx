@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Head, usePage, useForm } from '@inertiajs/react';
-// Asumsikan komponen Footer ada di path ini. Saya akan membuat dummy jika tidak ada.
-// Jika Anda memiliki komponen Footer yang sebenarnya, pastikan path-nya benar.
-import Footer from '@/Components/Footer';
+import Footer from '@/Components/Footer'; // Pastikan path ini benar
 
 // Dummy Footer Component (Jika Anda belum punya, bisa pakai ini)
-// Jika Anda sudah punya komponen Footer dari file lain, Anda bisa menghapus ini.
 const DummyFooter = () => (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full bg-white border-t border-gray-200 shadow-lg z-20">
         <div className="flex justify-around py-2">
@@ -17,8 +14,8 @@ const DummyFooter = () => (
             </button>
             <button className="flex flex-col items-center text-indigo-600">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" className="w-6 h-6">
-                    <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
-                    <path d="M4 0h1v3H4zm5 0h1v3H9zm5 0h1v3h-1zM0 4h3v1H0zm0 5h3v1H0zm0 5h3v1H0zM4 15h1v-3H4zm5 0h1v-3H9zm5 0h1v-3h-1z"/>
+                    <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z" />
+                    <path d="M4 0h1v3H4zm5 0h1v3H9zm5 0h1v3h-1zM0 4h3v1H0zm0 5h3v1H0zm0 5h3v1H0zM4 15h1v-3H4zm5 0h1v-3H9zm5 0h1v-3h-1z" />
                 </svg>
                 <span className="text-xs">Riwayat</span>
             </button>
@@ -32,16 +29,20 @@ const DummyFooter = () => (
     </div>
 );
 // Ganti komponen Footer di bawah dengan DummyFooter jika Anda tidak punya file Footer yang sebenarnya.
-// Contoh: import Footer from './DummyFooter';
+// import Footer from './DummyFooter'; // Contoh jika menggunakan DummyFooter
 
 // Komponen untuk menampilkan setiap item transaksi
-const TransactionItem = ({ ref_id, type, customer_no, selling_price, status, created_at }) => {
+// Ubah agar menerima seluruh objek 'transaction' sebagai prop
+const TransactionItem = ({ transaction }) => {
     // Mapping status ke kelas CSS Tailwind untuk warna latar dan teks
     const statusClasses = {
         Sukses: "bg-green-100 text-green-600",
         Pending: "bg-yellow-100 text-yellow-600",
         Gagal: "bg-red-100 text-red-600",
     };
+
+    // Destrukturisasi properti yang dibutuhkan dari objek transaction
+    const { ref_id, type, customer_no, selling_price, status, created_at, product } = transaction;
 
     // Format tanggal agar lebih mudah dibaca
     const formattedDate = new Date(created_at).toLocaleString("id-ID", {
@@ -102,27 +103,27 @@ const TransactionItem = ({ ref_id, type, customer_no, selling_price, status, cre
 
                 {/* Informasi Produk - disesuaikan agar sama persis dengan contoh pertama */}
                 <div className="flex flex-col items-start w-max space-y-[2px]">
-                    {/* Menggabungkan type (nama produk) dan selling_price (harga) seperti di gambar */}
+                    {/* Menggunakan product.product_name yang sudah di eager load */}
                     <p className="font-utama font-semibold text-sm truncate w-full max-w-[180px] [@media(max-width:350px)]:max-w-[215px]">
-                        {type}
+                        {product ? product.product_name : type} {/* Fallback ke 'type' jika product_name tidak ada */}
                     </p>
-                    <p className="w-full font-utama text-sm"> {/* text-gray-700 dihapus */}
+                    <p className="w-full font-utama text-sm">
                         ID Pelanggan: {formattedCustomerNo(customer_no)}
                     </p>
-                    <p className="truncate w-full max-w-[180px] font-utama text-sm text-gray-500"> {/* truncate dan max-w dihapus */}
+                    <p className="truncate w-full max-w-[180px] font-utama text-sm text-gray-500">
                         ID: {ref_id}
                     </p>
                 </div>
             </div>
 
             {/* Kanan: Status dan Tanggal - disesuaikan agar sama persis dengan contoh pertama */}
-            <div className="w-full flex flex-col items-end justify-end space-y-1"> {/* flex-shrink-0 dihapus */}
+            <div className="w-full flex flex-col items-end justify-end space-y-1">
                 <p
-                    className={`hidden w-max-full min-[300px]:flex px-2 py-[2px] text-xs rounded-3xl justify-center ${statusClasses[status] || 'bg-gray-100 text-gray-600'}`} 
+                    className={`hidden w-max-full min-[300px]:flex px-2 py-[2px] text-xs rounded-3xl justify-center ${statusClasses[status] || 'bg-gray-100 text-gray-600'}`}
                 >
                     {status}
                 </p>
-                <p className="hidden min-[350px]:flex font-utama text-[12px] text-right text-gray-500">{formattedDate}</p> {/* text-gray-500 ditambahkan */}
+                <p className="hidden min-[350px]:flex font-utama text-[12px] text-right text-gray-500">{formattedDate}</p>
             </div>
         </div>
     );
@@ -143,18 +144,20 @@ export default function History({ transactions: initialTransactions }) {
     const filteredAndSortedTransactions = transactions
         .filter((tx) => {
             const lowerQuery = searchQuery.toLowerCase();
-            // Cek apakah query cocok dengan jenis, no pelanggan, atau ref_id
+            // Cek apakah query cocok dengan nama produk, jenis (fallback), no pelanggan, atau ref_id
+            const productName = tx.product ? tx.product.product_name : tx.type; // Gunakan product_name jika ada
             const matchSearch =
-                (tx.type && tx.type.toLowerCase().includes(lowerQuery)) ||
+                (productName && productName.toLowerCase().includes(lowerQuery)) ||
                 (tx.customer_no && tx.customer_no.toLowerCase().includes(lowerQuery)) ||
                 (tx.ref_id && tx.ref_id.toLowerCase().includes(lowerQuery));
+
 
             // Cek apakah transaksi berada dalam rentang tanggal yang dipilih
             const txDate = new Date(tx.created_at);
             const startDate = dateRange.start ? new Date(dateRange.start) : null;
             // Atur akhir hari untuk tanggal akhir agar inklusif
             const endDate = dateRange.end ? new Date(dateRange.end) : null;
-            if(endDate) endDate.setHours(23, 59, 59, 999);
+            if (endDate) endDate.setHours(23, 59, 59, 999);
 
 
             const inDateRange =
@@ -192,9 +195,9 @@ export default function History({ transactions: initialTransactions }) {
 
 
     return (
-         <>
+        <>
             <Head title="Riwayat Transaksi" /> {/* Judul di Head */}
-           <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
+            <div className="mx-auto w-full max-w-[500px] max-h-[892px] min-h-screen">
                 <div className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-main">
                     {/* Header */}
                     <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-2 bg-main">
@@ -350,7 +353,8 @@ export default function History({ transactions: initialTransactions }) {
                 <div className="mb-4 min-h-[756px] pt-[163px] bg-white">
                     {paginatedTransactions.length > 0 ? (
                         paginatedTransactions.map((transaction) => (
-                            <TransactionItem key={transaction.ref_id} {...transaction} />
+                            // Teruskan seluruh objek 'transaction' sebagai prop
+                            <TransactionItem key={transaction.ref_id} transaction={transaction} />
                         ))
                     ) : (
                         <div className="flex justify-center items-center h-full mt-6">

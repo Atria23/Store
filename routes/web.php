@@ -60,7 +60,11 @@ use App\Http\Controllers\PascaBpjsController;
 use App\Http\Controllers\PostpaidController;
 use App\Http\Controllers\PascaPdamController;
 use App\Http\Controllers\PostpaidHistoryController;
+use App\Http\Controllers\PascaInternetController;
 
+Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascainternet.index');
+        Route::post('/internet/inquiry', [PascaInternetController::class, 'inquiry'])->name('pascainternet.inquiry');
+        Route::post('/internet/payment', [PascaInternetController::class, 'payment'])->name('pascainternet.payment');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
@@ -68,11 +72,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth', 'otp.not.expired'])->group(function () {
-    Route::get('/pdam', [PascaPdamController::class, 'index'])->name('pdam.index');
+    Route::get('/pdam', [PascaPdamController::class, 'index'])->name('pascapdam.index');
     Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
     Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');
 
-    Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('bpjs.kesehatan.index');
+    Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('pascabpjs.index');
     Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('bpjs.kesehatan.inquiry');
     Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('bpjs.kesehatan.payment');
     Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
@@ -81,7 +85,7 @@ Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     });
     Route::get('/pln', function () {
         return Inertia::render('Pascabayar/Pln'); // Menggunakan folder agar rapi
-    })->name('index');
+    })->name('pascapln.index');
 
     // Endpoint untuk proses Cek Tagihan (Inquiry)
     Route::post('/pln/inquiry', [PascaPlnController::class, 'inquiry'])->name('pln.pasca.inquiry');
@@ -106,8 +110,6 @@ Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     Route::post('/deposit/upload-proof/{id}', [DepositController::class, 'uploadProof'])->name('deposit.uploadProof');
     Route::get('/proof-of-payment/{id}', [DepositController::class, 'getProofOfPayment'])->name('proof.get');
     Route::get('/deposit/{id}', [DepositController::class, 'show'])->name('deposit.show');
-
-    Route::get('/products/free-fire', [PriceListController::class, 'showFreeFireProducts'])->name('products.freefire');
 
     Route::post('/transactions', [TransactionController::class, 'makeTransaction']);
     Route::get('/balance', [TransactionController::class, 'getBalance']);

@@ -10,6 +10,65 @@ function Dashboard({ user, categories }) {
     setShowBalance(!showBalance);
   };
 
+  // --- START: Penambahan Kategori Manual ---
+
+  // Definisikan kategori manual Anda
+  const manualCategories = [
+    // {
+    //   id: 'manual-postpaid', // ID unik
+    //   name: 'Pascabayar',
+    //   image: null, // Untuk kategori ini, kita pakai iconSvg, jadi image null
+    //   iconSvg: ( // Ikon Pascabayar dalam bentuk SVG
+    //     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-5 h-5" viewBox="0 0 16 16">
+    //         <path d="M1.92.506a.5.5 0 0 1 .43.234L4.2 3.568l.492.298.927-1.107a.5.5 0 0 1 .795-.078l.385.498.42-.42a.5.5 0 0 1 .708 0l.42.42.385-.498a.5.5 0 0 1 .795.078l.927 1.107.492-.298 1.85-.925a.5.5 0 0 1 .43-.234L15.93 1.5l.006.182-.298 1.127-.781 2.924a.5.5 0 0 1-.498.406L14 6.136V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6.136l-.35-.076a.5.5 0 0 1-.498-.406L.064 2.809.058 2.627zM2.52 1.258l-.66 2.476 1.134.619.66-2.476zm11.96 0 .66 2.476-1.134.619-.66-2.476zM4 14a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7a1 1 0 0 0-.293-.707L11 5.586V7.07l.35.076a.5.5 0 0 1 .498.406l.781 2.924.298 1.127-.006-.182a.5.5 0 0 1-.43-.234l-1.85-.925-.492-.298-.927 1.107a.5.5 0 0 1-.795.078l-.385-.498-.42.42a.5.5 0 0 1-.708 0l-.42-.42-.385.498a.5.5 0 0 1-.795-.078l-.927-1.107-.492.298-1.85.925a.5.5 0 0 1-.43.234l-.006.182 1.134-.619-.66-2.476a.5.5 0 0 1 .498-.406L4 7.07V5.586l.293.707A1 1 0 0 0 5 7z"/>
+    //         <path d="M8 8a.5.5 0 0 1 .5.5H10a.5.5 0 0 1 0 1H8.5a.5.5 0 0 1-.5-.5V8zM8 10a.5.5 0 0 1 .5.5H10a.5.5 0 0 1 0 1H8.5a.5.5 0 0 1-.5-.5V10zM8 12a.5.5 0 0 1 .5.5H10a.5.5 0 0 1 0 1H8.5a.5.5 0 0 1-.5-.5V12z"/>
+    //     </svg>
+    //   ),
+    //   link: route('postpaid.history.index'), // Rute ke halaman riwayat pascabayar
+    // },
+    {
+      id: 'pln', // ID unik
+      name: 'Tagihan Listrik',
+      image: 'categories/tagihan-listrik.png', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascapln.index'), // Rute ke halaman promo
+    },
+    {
+      id: 'pdam', // ID unik
+      name: 'Air',
+      image: 'categories/air.png', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascapdam.index'), // Rute ke halaman promo
+    },
+    {
+      id: 'bpjs', // ID unik
+      name: 'BPJS',
+      image: 'categories/bpjs.png', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascabpjs.index'), // Rute ke halaman promo
+    },
+    {
+      id: 'internet', // ID unik
+      name: 'Tagihan Internet',
+      image: 'categories/tagihan-internet.png', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascainternet.index'), // Rute ke halaman promo
+    },
+    // Tambahkan kategori manual lainnya di sini jika diperlukan:
+    // {
+    //   id: 'manual-other',
+    //   name: 'Kategori Lain',
+    //   image: '/storage/categories/another_icon.png', // Contoh gambar kustom
+    //   iconSvg: null,
+    //   link: '/some-other-route',
+    // },
+  ];
+
+  // Gabungkan kategori dari props dan kategori manual
+  const allCategories = [...categories, ...manualCategories];
+
+  // --- END: Penambahan Kategori Manual ---
+
   return (
     <>
       <Head title="Dashboard" />
@@ -69,7 +128,6 @@ function Dashboard({ user, categories }) {
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
                   <path d="M8 13.5a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11m0 .5A6 6 0 1 0 8 2a6 6 0 0 0 0 12" />
                 </svg>
-                {/* <p className="font-utama text-md font-semibold text-left">{user.points.toLocaleString('id-ID')}</p> */}
                 <p className="font-utama text-md font-semibold text-left">{showBalance ? `${parseFloat(user.points).toLocaleString('id-ID')}` : "••••••••"}</p>
               </div>
               <a href={route('poinmu.dashboard')}>
@@ -139,22 +197,32 @@ function Dashboard({ user, categories }) {
           {/* section kategori */}
           <section className="w-full flex flex-col space-y-4 items-center justify-start">
             <div className="w-full px-4 max-w-[450px] grid grid-cols-4 gap-x-2 gap-y-4 flex items-start justify-between">
-              {categories.map((category) => (
+              {/* Gunakan allCategories yang sudah digabung */}
+              {allCategories.map((category) => (
                 <Link
                   key={category.id}
-                  href={`/c=${category.name}`}
+                  // Gunakan link kustom jika ada, jika tidak, gunakan format default
+                  href={category.link || `/c=${category.name}`}
                   className="w-full h-full flex flex-col space-y-1 items-center justify-start"
                 >
                   <div className="relative w-12 h-12 mx-auto">
                     <div className="absolute inset-0 w-12 h-12 bg-white rounded-full"></div>
-                    <img
-                      src={category.image ? `/storage/${category.image}` : "/storage/categories/default.png"}
-                      alt={category.name}
-                      className="w-8 h-8 rounded-full object-cover absolute inset-2"
-                    />
+                    {/* Logika Kondisional untuk memilih antara SVG atau Image */}
+                    {category.iconSvg ? ( // Jika ada iconSvg, render SVG
+                        <div className="w-8 h-8 flex items-center justify-center absolute inset-2">
+                           {/* Kloning SVG untuk menambahkan className dinamis */}
+                            {React.cloneElement(category.iconSvg, { className: "w-8 h-8 text-main" })}
+                        </div>
+                    ) : ( // Jika tidak ada iconSvg, cek apakah ada image path
+                        <img
+                            // Jika ada image path, gunakan itu, jika tidak, gunakan default.png
+                            src={category.image ? `/storage/${category.image}` : "/storage/categories/default.png"}
+                            alt={category.name}
+                            className="w-8 h-8 rounded-full object-cover absolute inset-2"
+                        />
+                    )}
                   </div>
                   <p className="text-center text-xs">{category.name}</p>
-
                 </Link>
               ))}
             </div>

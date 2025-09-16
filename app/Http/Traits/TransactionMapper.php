@@ -56,7 +56,7 @@ trait TransactionMapper
                 ];
                 break;
 
-            case 'INTERNET': // Diperbarui (Struktur sudah benar, hanya konfirmasi)
+            case 'INTERNET PASCABAYAR': // Diperbarui (Struktur sudah benar, hanya konfirmasi)
                  $specificDetails = [
                     'sn' => Arr::get($apiData, 'sn'),
                     'rc' => Arr::get($apiData, 'rc'),

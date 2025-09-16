@@ -179,7 +179,7 @@ const SpecificDetails = ({ transaction }) => {
                     {renderBillDetails(descData.detail)}
                 </React.Fragment>
             );
-        case 'INTERNET':
+        case 'INTERNET PASCABAYAR':
             return (
                 <React.Fragment>
                     <div className="w-full flex flex-row">
@@ -189,7 +189,7 @@ const SpecificDetails = ({ transaction }) => {
                     {renderBillDetails(descData.detail)}
                 </React.Fragment>
             );
-        case 'BPJS':
+        case 'BPJS KESEHATAN':
             return (
                 <React.Fragment>
                     <div className="w-full flex flex-row">
@@ -445,6 +445,11 @@ export default function HistoryDetail({ transaction: initialTransaction, store }
                             <div className="w-full flex flex-row">
                                 <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">ID Pelanggan</div>
                                 <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{transaction.customer_no || "-"}</div>
+                            </div>
+                            {/* ID Pelanggan */}
+                            <div className="w-full flex flex-row">
+                                <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Nama Pelanggan</div>
+                                <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{transaction.customer_name || "-"}</div>
                             </div>
 
                             <div className="w-full h-px border border-dashed border-gray-400 my-4" /> {/* Garis pemisah */}
