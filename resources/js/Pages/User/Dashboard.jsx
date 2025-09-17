@@ -54,6 +54,13 @@ function Dashboard({ user, categories }) {
       iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
       link: route('pascainternet.index'), // Rute ke halaman promo
     },
+    {
+      id: 'pbb', // ID unik
+      name: 'PBB',
+      image: 'logo.webp', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascapbb.index'), // Rute ke halaman promo
+    },
     // Tambahkan kategori manual lainnya di sini jika diperlukan:
     // {
     //   id: 'manual-other',

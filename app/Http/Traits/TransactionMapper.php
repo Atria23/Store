@@ -75,6 +75,22 @@ trait TransactionMapper
                     'bill_details' => Arr::get($desc, 'detail', []), // detail BPJS berisi: periode
                 ];
                 break;
+                
+            case 'PBB':
+                $specificDetails = [
+                    'sn' => Arr::get($apiData, 'sn'),
+                    'rc' => Arr::get($apiData, 'rc'),
+                    'lembar_tagihan' => Arr::get($desc, 'lembar_tagihan'),
+                    'alamat' => Arr::get($desc, 'alamat'),
+                    'tahun_pajak' => Arr::get($desc, 'tahun_pajak'),
+                    'kelurahan' => Arr::get($desc, 'kelurahan'),
+                    'kecamatan' => Arr::get($desc, 'kecamatan'),
+                    'kode_kab_kota' => Arr::get($desc, 'kode_kab_kota'),
+                    'kab_kota' => Arr::get($desc, 'kab_kota'),
+                    'luas_tanah' => Arr::get($desc, 'luas_tanah'),
+                    'luas_gedung' => Arr::get($desc, 'luas_gedung'),
+                ];
+                break;
         }
         
         $commonData['details'] = $specificDetails;

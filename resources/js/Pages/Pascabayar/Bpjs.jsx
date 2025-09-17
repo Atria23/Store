@@ -271,6 +271,7 @@ export default function BpjsKesehatanIndex({ auth }) {
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         disabled={isLoading} required placeholder="Masukkan Nomor BPJS/Virtual Account"
                                     />
+                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                                 </div>
                                 <button
                                     type="submit" disabled={isLoading || !customerNo}
@@ -280,7 +281,6 @@ export default function BpjsKesehatanIndex({ auth }) {
                                 </button>
                             </form>
                         )}
-                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
 

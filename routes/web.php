@@ -61,17 +61,18 @@ use App\Http\Controllers\PostpaidController;
 use App\Http\Controllers\PascaPdamController;
 use App\Http\Controllers\PostpaidHistoryController;
 use App\Http\Controllers\PascaInternetController;
+use App\Http\Controllers\PascaPBBController;
 
+Route::middleware(['auth', 'otp.not.expired'])->group(function () {
+    Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
+    Route::get('/postpaid-history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
+// <<<<<<<<<<< ROUTE BARU UNTUK PBB PASCABAYAR >>>>>>>>>>>>>
+    Route::get('/pbb', [PascaPBBController::class, 'index'])->name('pascapbb.index');
+    Route::post('/pbb/inquiry', [PascaPBBController::class, 'inquiry'])->name('pascapbb.inquiry');
+    Route::post('/pbb/payment', [PascaPBBController::class, 'payment'])->name('pascapbb.payment');
 Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascainternet.index');
         Route::post('/internet/inquiry', [PascaInternetController::class, 'inquiry'])->name('pascainternet.inquiry');
         Route::post('/internet/payment', [PascaInternetController::class, 'payment'])->name('pascainternet.payment');
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
-    Route::get('/postpaid-history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
-});
-
-Route::middleware(['auth', 'otp.not.expired'])->group(function () {
     Route::get('/pdam', [PascaPdamController::class, 'index'])->name('pascapdam.index');
     Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
     Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');

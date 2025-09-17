@@ -209,6 +209,58 @@ const SpecificDetails = ({ transaction }) => {
                     {renderBillDetails(descData.detail)}
                 </React.Fragment>
             );
+        // <<<<<<<<<<< TAMBAHAN UNTUK PBB PASCABAYAR >>>>>>>>>>>>>
+        case 'PBB':
+            return (
+                <React.Fragment>
+                    {descData.alamat && descData.alamat !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Alamat</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.alamat}</div>
+                        </div>
+                    )}
+                    {descData.tahun_pajak && descData.tahun_pajak !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tahun Pajak</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tahun_pajak}</div>
+                        </div>
+                    )}
+                    {descData.kelurahan && descData.kelurahan !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Kelurahan</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.kelurahan}</div>
+                        </div>
+                    )}
+                    {descData.kecamatan && descData.kecamatan !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Kecamatan</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.kecamatan}</div>
+                        </div>
+                    )}
+                    {descData.kab_kota && descData.kab_kota !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Kab/Kota</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.kab_kota}</div>
+                        </div>
+                    )}
+                    {descData.luas_tanah && descData.luas_tanah !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Luas Tanah</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.luas_tanah}</div>
+                        </div>
+                    )}
+                    {descData.luas_gedung && descData.luas_gedung !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Luas Gedung</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.luas_gedung}</div>
+                        </div>
+                    )}
+                    <div className="w-full flex flex-row">
+                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jumlah Lembar Tagihan</div>
+                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.lembar_tagihan || '0'}</div>
+                    </div>
+                </React.Fragment>
+            );
         default:
             return (
                 <div className="w-full flex flex-row">

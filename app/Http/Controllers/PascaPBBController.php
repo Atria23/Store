@@ -1,6 +1,6 @@
 <?php
 
-// >>>>>>>>>>>>>     REAL INTERNET POSTPAID CONTROLLER      <<<<<<<<<<<<<<<<<<<<<<<
+// >>>>>>>>>>>>>     REAL PBB POSTPAID CONTROLLER      <<<<<<<<<<<<<<<<<<<<<<<
 
 namespace App\Http\Controllers;
 
@@ -14,17 +14,17 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use App\Http\Traits\TransactionMapper;
 
-class PascaInternetController extends Controller
+class PascaPBBController extends Controller
 {
     use TransactionMapper;
 
     /**
-     * Menampilkan halaman pembayaran Internet pascabayar dengan daftar produk.
+     * Menampilkan halaman pembayaran PBB pascabayar dengan daftar produk.
      */
     public function index()
     {
-        $products = $this->fetchInternetProducts();
-        return Inertia::render('Pascabayar/Internet', [
+        $products = $this->fetchPBBProducts();
+        return Inertia::render('Pascabayar/PBB', [ // Sesuaikan path Inertia
             'products' => $products,
             'auth' => [
                 'user' => Auth::user(),
@@ -33,17 +33,17 @@ class PascaInternetController extends Controller
     }
 
     /**
-     * Mengambil daftar produk Internet pascabayar dari database lokal.
+     * Mengambil daftar produk PBB pascabayar dari database lokal.
      * Produk dengan status seller_product_status = false juga diambil
      * agar bisa ditampilkan di frontend dengan indikator gangguan.
      */
-    private function fetchInternetProducts()
+    private function fetchPBBProducts()
     {
-        $internetProducts = PostpaidProduct::where('brand', 'INTERNET PASCABAYAR')
+        $pbbProducts = PostpaidProduct::where('brand', 'PBB') // Sesuaikan brand ini jika berbeda
                                            ->orderBy('product_name', 'asc')
                                            ->get();
 
-        return $internetProducts->map(function ($product) {
+        return $pbbProducts->map(function ($product) {
             $commission = $product->commission ?? 0;
             $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
             $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
@@ -57,7 +57,7 @@ class PascaInternetController extends Controller
     }
 
     /**
-     * Menangani permintaan inquiry (pengecekan tagihan) untuk Internet pascabayar.
+     * Menangani permintaan inquiry (pengecekan tagihan) untuk PBB pascabayar.
      */
     public function inquiry(Request $request)
     {
@@ -74,12 +74,12 @@ class PascaInternetController extends Controller
                                 ->first();
 
         if (!$product) {
-            return response()->json(['message' => 'Produk Internet tidak tersedia atau tidak aktif untuk inquiry.'], 503);
+            return response()->json(['message' => 'Produk PBB tidak tersedia atau tidak aktif untuk inquiry.'], 503);
         }
 
-        $ref_id = 'internet-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
+        $ref_id = 'pbb-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
         $username = env('P_U');
-        $apiKey = env('P_AK');
+        $apiKey = env('P_AK'); // Menggunakan API Key REAL
         $sign = md5($username . $apiKey . $ref_id);
 
         try {
@@ -94,7 +94,7 @@ class PascaInternetController extends Controller
             ]);
             $responseData = $response->json();
         } catch (\Exception $e) {
-            Log::error('Internet Inquiry Error: ' . $e->getMessage(), ['customer_no' => $customerNo, 'sku' => $current_sku]);
+            Log::error('PBB Inquiry Error: ' . $e->getMessage(), ['customer_no' => $customerNo, 'sku' => $current_sku]);
             return response()->json(['message' => 'Terjadi kesalahan pada server provider.'], 500);
         }
 
@@ -105,28 +105,12 @@ class PascaInternetController extends Controller
                 $inquiryDataFromApi['desc'] = [];
             }
 
-            // Inisialisasi variabel perhitungan
-            $totalNilaiTagihanFromDetails = 0; // Sum of 'nilai_tagihan' from desc.detail
-            $totalAdminFromDetails = 0;      // Sum of 'admin' from desc.detail
-            $totalDenda = 0;
-            $jumlahLembarTagihan = 0;
+            $totalDenda = 0; // Sesuaikan jika API PBB memberikan denda
+            $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // Ambil dari desc, default 1
 
-            // Ambil jumlah lembar tagihan dari 'desc.lembar_tagihan'
-            if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
-                $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
-            } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-                $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
-            } else {
-                $jumlahLembarTagihan = 1;
-            }
-
-            // Akumulasikan nilai tagihan dan admin dari detail
-            if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-                foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-                    $totalNilaiTagihanFromDetails += (float) ($detail['nilai_tagihan'] ?? 0);
-                    $totalAdminFromDetails += (float) ($detail['admin'] ?? 0);
-                }
-            }
+            // Untuk PBB, 'price' dan 'admin' dari root API response dianggap sebagai total tagihan dan total admin
+            $pureBillPriceFromProvider = (float) ($inquiryDataFromApi['price'] ?? 0);
+            $adminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
 
             // 1. Hitung Diskon dasar per lembar berdasarkan komisi produk
             $commission = $product->commission ?? 0;
@@ -139,14 +123,14 @@ class PascaInternetController extends Controller
             $finalDiskon = ceil($finalDiskon);
 
             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
-            // selling_price = (totalNilaiTagihanFromDetails) + (totalAdminFromDetails) + total_denda - total_diskon_kita
-            $finalSellingPrice = $totalNilaiTagihanFromDetails + $totalAdminFromDetails + $totalDenda - $finalDiskon;
+            // selling_price = (price_dari_api_root) + (admin_dari_api_root) + total_denda - total_diskon_kita
+            $finalSellingPrice = $pureBillPriceFromProvider + $adminFromProvider + $totalDenda - $finalDiskon;
             $finalSellingPrice = ceil($finalSellingPrice);
 
             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
-            // Update 'price' and 'admin' to reflect the sums from details as requested
-            $inquiryDataFromApi['price'] = $totalNilaiTagihanFromDetails;
-            $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
+            // 'price' dan 'admin' sudah sesuai dengan total dari provider
+            $inquiryDataFromApi['price'] = $pureBillPriceFromProvider;
+            $inquiryDataFromApi['admin'] = $adminFromProvider;
             $inquiryDataFromApi['denda'] = $totalDenda;
             $inquiryDataFromApi['diskon'] = $finalDiskon;
             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
@@ -154,20 +138,20 @@ class PascaInternetController extends Controller
             $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
             $inquiryDataFromApi['ref_id'] = $ref_id;
 
-            // Hapus buyer_last_saldo
+            // Hapus buyer_last_saldo sesuai permintaan
             unset($inquiryDataFromApi['buyer_last_saldo']);
 
             session(['postpaid_inquiry_data' => $inquiryDataFromApi]);
             return response()->json($inquiryDataFromApi);
         } else {
-            $errorMessage = $responseData['data']['message'] ?? 'Gagal melakukan pengecekan tagihan.';
-            Log::warning("Inquiry Internet Gagal untuk SKU: {$current_sku}. Pesan: {$errorMessage}", ['response' => $responseData]);
+            $errorMessage = $responseData['data']['message'] ?? 'Gagal melakukan pengecekan tagihan PBB.';
+            Log::warning("Inquiry PBB Gagal untuk SKU: {$current_sku}. Pesan: {$errorMessage}", ['response' => $responseData]);
             return response()->json(['message' => $errorMessage], 400);
         }
     }
 
     /**
-     * Menangani permintaan pembayaran tagihan Internet pascabayar.
+     * Menangani permintaan pembayaran tagihan PBB pascabayar.
      */
     public function payment(Request $request)
     {
@@ -179,9 +163,8 @@ class PascaInternetController extends Controller
         }
 
         $totalPriceToPay     = $inquiryData['selling_price'];
-        // Pastikan $finalAdmin dan $pureBillPrice berasal dari perhitungan total di inquiry
-        $finalAdmin          = $inquiryData['admin'];
-        $pureBillPrice       = $inquiryData['price'];
+        $finalAdmin          = $inquiryData['admin']; // Admin dari inquiryData (sudah total dari provider)
+        $pureBillPrice       = $inquiryData['price']; // Harga total dari inquiryData (sudah total dari provider)
         $diskon              = $inquiryData['diskon'] ?? 0;
         $jumlahLembarTagihan = $inquiryData['jumlah_lembar_tagihan'] ?? 0;
         $denda               = $inquiryData['denda'] ?? 0;
@@ -192,7 +175,7 @@ class PascaInternetController extends Controller
 
         $user->decrement('balance', $totalPriceToPay);
 
-        $initialData = $this->mapToUnifiedTransaction($inquiryData, 'INTERNET PASCABAYAR', $pureBillPrice, $finalAdmin);
+        $initialData = $this->mapToUnifiedTransaction($inquiryData, 'PBB', $pureBillPrice, $finalAdmin);
         $initialData['selling_price'] = $totalPriceToPay;
         $initialData['status'] = 'Pending';
         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
@@ -206,14 +189,14 @@ class PascaInternetController extends Controller
             'denda' => $denda,
             'desc' => $inquiryData['desc'] ?? null,
         ];
-        unset($initialData['buyer_last_saldo']); // Pastikan tidak ada buyer_last_saldo di initialData
+        unset($initialData['buyer_last_saldo']); // Hapus buyer_last_saldo
 
         $unifiedTransaction = PostpaidTransaction::create($initialData);
 
         $apiResponseData = [];
 
         $username = env('P_U');
-        $apiKey = env('P_AK');
+        $apiKey = env('P_AK'); // Menggunakan API Key REAL
         $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
         try {
@@ -228,7 +211,7 @@ class PascaInternetController extends Controller
             ]);
             $apiResponseData = $response->json()['data'];
 
-            Log::info('Internet Payment API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
+            Log::info('PBB Payment API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
 
         } catch (\Exception $e) {
             $user->increment('balance', $totalPriceToPay);
@@ -236,7 +219,7 @@ class PascaInternetController extends Controller
 
             $unifiedTransaction->update(array_merge($errorMessage, ['rc' => null, 'sn' => null]));
 
-            Log::error('Internet Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
+            Log::error('PBB Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
             return response()->json(['message' => 'Terjadi kesalahan pada server provider.'], 500);
         }
 
@@ -247,7 +230,7 @@ class PascaInternetController extends Controller
         $fullResponseData['admin'] = $finalAdmin;
         unset($fullResponseData['buyer_last_saldo']); // Hapus buyer_last_saldo
 
-        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'INTERNET PASCABAYAR', $pureBillPrice, $finalAdmin);
+        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PBB', $pureBillPrice, $finalAdmin);
         $updatePayload['selling_price'] = $totalPriceToPay;
         $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal';
         $updatePayload['message'] = $apiResponseData['message'] ?? 'Pembayaran gagal.';
@@ -275,7 +258,7 @@ class PascaInternetController extends Controller
         );
 
         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
-        unset($updatePayload['buyer_last_saldo']); // Pastikan tidak ada buyer_last_saldo di updatePayload
+        unset($updatePayload['buyer_last_saldo']); // Hapus buyer_last_saldo
 
         $unifiedTransaction->update($updatePayload);
 
@@ -305,7 +288,8 @@ class PascaInternetController extends Controller
 }
 
 
-// // >>>>>>>>>>>>>     TESTING INTERNET POSTPAID CONTROLLER      <<<<<<<<<<<<<<<<<<<<<<<
+
+// // >>>>>>>>>>>>>     TESTING PBB POSTPAID CONTROLLER      <<<<<<<<<<<<<<<<<<<<<<<
 
 // namespace App\Http\Controllers;
 
@@ -319,17 +303,17 @@ class PascaInternetController extends Controller
 // use Inertia\Inertia;
 // use App\Http\Traits\TransactionMapper;
 
-// class PascaInternetController extends Controller
+// class PascaPBBController extends Controller
 // {
 //     use TransactionMapper;
 
 //     /**
-//      * Menampilkan halaman pembayaran Internet pascabayar dengan daftar produk.
+//      * Menampilkan halaman pembayaran PBB pascabayar dengan daftar produk.
 //      */
 //     public function index()
 //     {
-//         $products = $this->fetchInternetProducts();
-//         return Inertia::render('Pascabayar/Internet', [
+//         $products = $this->fetchPBBProducts();
+//         return Inertia::render('Pascabayar/PBB', [ // Sesuaikan path Inertia
 //             'products' => $products,
 //             'auth' => [
 //                 'user' => Auth::user(),
@@ -338,17 +322,17 @@ class PascaInternetController extends Controller
 //     }
 
 //     /**
-//      * Mengambil daftar produk Internet pascabayar dari database lokal.
+//      * Mengambil daftar produk PBB pascabayar dari database lokal.
 //      * Produk dengan status seller_product_status = false juga diambil
 //      * agar bisa ditampilkan di frontend dengan indikator gangguan.
 //      */
-//     private function fetchInternetProducts()
+//     private function fetchPBBProducts()
 //     {
-//         $internetProducts = PostpaidProduct::where('brand', 'INTERNET PASCABAYAR')
+//         $pbbProducts = PostpaidProduct::where('brand', 'PBB') // Sesuaikan brand ini jika berbeda
 //                                            ->orderBy('product_name', 'asc')
 //                                            ->get();
 
-//         return $internetProducts->map(function ($product) {
+//         return $pbbProducts->map(function ($product) {
 //             $commission = $product->commission ?? 0;
 //             $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
 //             $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
@@ -362,7 +346,7 @@ class PascaInternetController extends Controller
 //     }
 
 //     /**
-//      * Menangani permintaan inquiry (pengecekan tagihan) untuk Internet pascabayar.
+//      * Menangani permintaan inquiry (pengecekan tagihan) untuk PBB pascabayar.
 //      */
 //     public function inquiry(Request $request)
 //     {
@@ -379,36 +363,32 @@ class PascaInternetController extends Controller
 //                                 ->first();
 
 //         if (!$product) {
-//             return response()->json(['message' => 'Produk Internet tidak tersedia atau tidak aktif untuk inquiry.'], 503);
+//             return response()->json(['message' => 'Produk PBB tidak tersedia atau tidak aktif untuk inquiry.'], 503);
 //         }
 
-//         $ref_id = 'internet-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
+//         $ref_id = 'pbb-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
 //         $username = env('P_U');
-//         $apiKey = env('P_AKD');
+//         $apiKey = env('P_AKD'); // Menggunakan API Key DUMMY
 //         $sign = md5($username . $apiKey . $ref_id);
 
 //         // --- START DUMMY RESPONSE INQUIRY ---
 //         $specificDescData = [
-//             "lembar_tagihan" => 2,
-//             "detail" => [
-//                 ["periode" => "MEI 2019", "nilai_tagihan" => "8000", "admin" => "2500"],
-//                 ["periode" => "JUN 2019", "nilai_tagihan" => "11500", "admin" => "2500"]
-//             ]
+//             "lembar_tagihan" => 1,
+//             "alamat" => "KO. GRIYA ASRI CIPAGERAN",
+//             "tahun_pajak" => "2019",
+//             "kelurahan" => "CIPAGERAN",
+//             "kecamatan" => "CIPAGERAN",
+//             "kode_kab_kota" => "0023",
+//             "kab_kota" => "PEMKOT CIMAHI",
+//             "luas_tanah" => "113 M2",
+//             "luas_gedung" => "47 M2"
 //         ];
 
-//         // Calculate dummyRootPrice and dummyRootAdmin from specificDescData
-//         $calculatedDummyRootPrice = 0;
-//         $calculatedDummyRootAdmin = 0;
-//         if (isset($specificDescData['detail']) && is_array($specificDescData['detail'])) {
-//             foreach ($specificDescData['detail'] as $detail) {
-//                 $calculatedDummyRootPrice += (float) ($detail['nilai_tagihan'] ?? 0);
-//                 $calculatedDummyRootAdmin += (float) ($detail['admin'] ?? 0);
-//             }
-//         }
-
 //         $dummyStatus = 'Sukses';
-//         $dummyMessage = 'Inquiry Internet berhasil.';
-//         $dummyCustomerName = 'Pelanggan Internet Dummy ' . substr($customerNo, 0, 4);
+//         $dummyMessage = 'Inquiry PBB berhasil.';
+//         $dummyCustomerName = 'Pelanggan PBB Dummy ' . substr($customerNo, 0, 4);
+//         $dummyRootPrice = 99500; // Total nilai tagihan dari contoh respons
+//         $dummyRootAdmin = 2500;  // Biaya admin dari contoh respons
 
 //         $responseData = [
 //             'data' => [
@@ -416,33 +396,32 @@ class PascaInternetController extends Controller
 //                 'message' => $dummyMessage,
 //                 'customer_name' => $dummyCustomerName,
 //                 'customer_no' => $customerNo,
-//                 'buyer_sku_code' => $current_sku, // Corrected to use $current_sku
-//                 'price' => $calculatedDummyRootPrice, // Use calculated total from details
-//                 'admin' => $calculatedDummyRootAdmin,  // Use calculated total from details
+//                 'buyer_sku_code' => $current_sku,
+//                 'price' => $dummyRootPrice,
+//                 'admin' => $dummyRootAdmin,
 //                 'rc' => '00',
 //                 'sn' => 'SN-INQ-' . Str::random(12),
 //                 'ref_id' => $ref_id,
 //                 'desc' => $specificDescData,
-//                 // 'buyer_last_saldo' tidak lagi disertakan
+//                 // 'buyer_last_saldo' tidak lagi disertakan sesuai permintaan
 //             ],
 //         ];
 //         // --- END DUMMY RESPONSE INQUIRY ---
 
-//         // >>>>>>>>>>>>>>>>> BAGIAN INI UNTUK PANGGILAN API ASLI JIKA SUDAH SIAP <<<<<<<<<<<<<<<<<
-//         // (bagian ini sengaja dikomentari untuk mode TESTING)
+//         // >>>>>>>>>>>>>>>>> BAGIAN INI UNTUK PANGGILAN API ASLI JIKA SUDAH SIAP (dikomentari untuk testing) <<<<<<<<<<<<<<<<<
 //         // try {
 //         //     $response = Http::post(config('services.api_server') . '/v1/transaction', [
 //         //         'commands' => 'inq-pasca',
 //         //         'username' => $username,
-//         //         'buyer_sku_code' => 'internet',
+//         //         'buyer_sku_code' => 'cimahi',
 //         //         'customer_no' => $customerNo,
 //         //         'ref_id' => $ref_id,
 //         //         'sign' => $sign,
-//         //         'testing' => true,
+//         //         'testing' => true, // Menggunakan testing mode untuk dummy
 //         //     ]);
 //         //     $responseData = $response->json();
 //         // } catch (\Exception $e) {
-//         //     Log::error('Internet Inquiry Error: ' . $e->getMessage(), ['customer_no' => $customerNo, 'sku' => $current_sku]);
+//         //     Log::error('PBB Inquiry Error: ' . $e->getMessage(), ['customer_no' => $customerNo, 'sku' => $current_sku]);
 //         //     return response()->json(['message' => 'Terjadi kesalahan pada server provider.'], 500);
 //         // }
 //         // >>>>>>>>>>>>>>>>> AKHIR BAGIAN PANGGILAN API ASLI <<<<<<<<<<<<<<<<<
@@ -455,26 +434,12 @@ class PascaInternetController extends Controller
 //                 $inquiryDataFromApi['desc'] = [];
 //             }
 
-//             // Inisialisasi variabel perhitungan
-//             $totalNilaiTagihanFromDetails = 0;
-//             $totalAdminFromDetails = 0;
-//             $totalDenda = 0;
-//             $jumlahLembarTagihan = 0;
+//             $totalDenda = 0; // Sesuaikan jika API PBB memberikan denda
+//             $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // Ambil dari desc, default 1
 
-//             if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
-//                 $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
-//             } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-//                 $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
-//             } else {
-//                 $jumlahLembarTagihan = 1;
-//             }
-
-//             if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-//                 foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-//                     $totalNilaiTagihanFromDetails += (float) ($detail['nilai_tagihan'] ?? 0);
-//                     $totalAdminFromDetails += (float) ($detail['admin'] ?? 0);
-//                 }
-//             }
+//             // Untuk PBB, 'price' dan 'admin' dari root API response dianggap sebagai total tagihan dan total admin
+//             $pureBillPriceFromProvider = (float) ($inquiryDataFromApi['price'] ?? 0);
+//             $adminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
 
 //             // 1. Hitung Diskon dasar per lembar berdasarkan komisi produk
 //             $commission = $product->commission ?? 0;
@@ -487,14 +452,14 @@ class PascaInternetController extends Controller
 //             $finalDiskon = ceil($finalDiskon);
 
 //             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
-//             // selling_price = (totalNilaiTagihanFromDetails) + (totalAdminFromDetails) + total_denda - total_diskon_kita
-//             $finalSellingPrice = $totalNilaiTagihanFromDetails + $totalAdminFromDetails + $totalDenda - $finalDiskon;
+//             // selling_price = (price_dari_api_root) + (admin_dari_api_root) + total_denda - total_diskon_kita
+//             $finalSellingPrice = $pureBillPriceFromProvider + $adminFromProvider + $totalDenda - $finalDiskon;
 //             $finalSellingPrice = ceil($finalSellingPrice);
 
 //             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
-//             // Pastikan 'price' dan 'admin' mencerminkan total dari detail
-//             $inquiryDataFromApi['price'] = $totalNilaiTagihanFromDetails;
-//             $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
+//             // 'price' dan 'admin' sudah sesuai dengan total dari provider
+//             $inquiryDataFromApi['price'] = $pureBillPriceFromProvider;
+//             $inquiryDataFromApi['admin'] = $adminFromProvider;
 //             $inquiryDataFromApi['denda'] = $totalDenda;
 //             $inquiryDataFromApi['diskon'] = $finalDiskon;
 //             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
@@ -502,20 +467,20 @@ class PascaInternetController extends Controller
 //             $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
 //             $inquiryDataFromApi['ref_id'] = $ref_id;
 
-//             // Hapus buyer_last_saldo
+//             // Hapus buyer_last_saldo sesuai permintaan
 //             unset($inquiryDataFromApi['buyer_last_saldo']);
 
 //             session(['postpaid_inquiry_data' => $inquiryDataFromApi]);
 //             return response()->json($inquiryDataFromApi);
 //         } else {
 //             $errorMessage = $responseData['data']['message'] ?? 'Gagal melakukan pengecekan tagihan dummy.';
-//             Log::warning("Inquiry Internet Dummy Gagal untuk SKU: {$current_sku}. Pesan: {$errorMessage}", ['response' => $responseData]);
+//             Log::warning("Inquiry PBB Dummy Gagal untuk SKU: {$current_sku}. Pesan: {$errorMessage}", ['response' => $responseData]);
 //             return response()->json(['message' => $errorMessage], 400);
 //         }
 //     }
 
 //     /**
-//      * Menangani permintaan pembayaran tagihan Internet pascabayar.
+//      * Menangani permintaan pembayaran tagihan PBB pascabayar.
 //      */
 //     public function payment(Request $request)
 //     {
@@ -527,9 +492,8 @@ class PascaInternetController extends Controller
 //         }
 
 //         $totalPriceToPay     = $inquiryData['selling_price'];
-//         // Pastikan $finalAdmin dan $pureBillPrice berasal dari perhitungan total di inquiry
-//         $finalAdmin          = $inquiryData['admin'];
-//         $pureBillPrice       = $inquiryData['price'];
+//         $finalAdmin          = $inquiryData['admin']; // Admin dari inquiryData (sudah total dari provider)
+//         $pureBillPrice       = $inquiryData['price']; // Harga total dari inquiryData (sudah total dari provider)
 //         $diskon              = $inquiryData['diskon'] ?? 0;
 //         $jumlahLembarTagihan = $inquiryData['jumlah_lembar_tagihan'] ?? 0;
 //         $denda               = $inquiryData['denda'] ?? 0;
@@ -540,7 +504,7 @@ class PascaInternetController extends Controller
 
 //         $user->decrement('balance', $totalPriceToPay);
 
-//         $initialData = $this->mapToUnifiedTransaction($inquiryData, 'INTERNET PASCABAYAR', $pureBillPrice, $finalAdmin);
+//         $initialData = $this->mapToUnifiedTransaction($inquiryData, 'PBB', $pureBillPrice, $finalAdmin);
 //         $initialData['selling_price'] = $totalPriceToPay;
 //         $initialData['status'] = 'Pending';
 //         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
@@ -554,50 +518,48 @@ class PascaInternetController extends Controller
 //             'denda' => $denda,
 //             'desc' => $inquiryData['desc'] ?? null,
 //         ];
-//         unset($initialData['buyer_last_saldo']); // Pastikan tidak ada buyer_last_saldo di initialData
+//         unset($initialData['buyer_last_saldo']); // Hapus buyer_last_saldo
 
 //         $unifiedTransaction = PostpaidTransaction::create($initialData);
 
 //         // --- START DUMMY RESPONSE PAYMENT ---
 //         $apiResponseData = [
 //             'status' => 'Sukses',
-//             'message' => 'Pembayaran Internet dummy berhasil diproses.',
+//             'message' => 'Pembayaran PBB dummy berhasil diproses.',
 //             'rc' => '00',
-//             'sn' => 'SN-INTERNET-' . Str::random(15),
+//             'sn' => 'SN-PBB-' . Str::random(15),
 //             'customer_name' => $inquiryData['customer_name'],
 //             'customer_no' => $inquiryData['customer_no'],
 //             'buyer_sku_code' => $inquiryData['buyer_sku_code'],
 //             'price' => $pureBillPrice, // Gunakan harga total dari inquiryData
 //             'admin' => $finalAdmin, // Gunakan admin total dari inquiryData
 //             'ref_id' => $inquiryData['ref_id'],
-//             // 'buyer_last_saldo' tidak lagi disertakan
+//             // 'buyer_last_saldo' tidak lagi disertakan sesuai permintaan
 //         ];
 //         // --- END DUMMY RESPONSE PAYMENT ---
 
-//         Log::info('Internet Payment Dummy Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
+//         Log::info('PBB Payment Dummy Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
 
-//         // >>>>>>>>>>>>>>>>> BAGIAN INI UNTUK PANGGILAN API ASLI JIKA SUDAH SIAP <<<<<<<<<<<<<<<<<
-//         // (bagian ini sengaja dikomentari untuk mode TESTING)
-//         // $ref_id = 'internet-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
+//         // >>>>>>>>>>>>>>>>> BAGIAN INI UNTUK PANGGILAN API ASLI JIKA SUDAH SIAP (dikomentari untuk testing) <<<<<<<<<<<<<<<<<
 //         // $username = env('P_U');
-//         // $apiKey = env('P_AKD');
-//         // $sign = md5($username . $apiKey . $ref_id);
+//         // $apiKey = env('P_AKD'); // Pastikan ini API Key DUMMY jika mode testing
+//         // $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 //         // try {
 //         //     $response = Http::post(config('services.api_server') . '/v1/transaction', [
 //         //         'commands' => 'pay-pasca',
 //         //         'username' => $username,
-//         //         'buyer_sku_code' => 'internet',
+//         //         'buyer_sku_code' => $inquiryData['buyer_sku_code'],
 //         //         'customer_no' => $inquiryData['customer_no'],
 //         //         'ref_id' => $inquiryData['ref_id'],
 //         //         'sign' => $sign,
-//         //         'testing' => true,
+//         //         'testing' => true, // Menggunakan testing mode untuk dummy
 //         //     ]);
 //         //     $apiResponseData = $response->json()['data'];
 //         // } catch (\Exception $e) {
 //         //     $user->increment('balance', $totalPriceToPay);
 //         //     $errorMessage = ['status' => 'Gagal', 'message' => 'Gagal terhubung ke server provider.'];
 //         //     $unifiedTransaction->update(array_merge($errorMessage, ['rc' => null, 'sn' => null]));
-//         //     Log::error('Internet Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
+//         //     Log::error('PBB Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
 //         //     return response()->json(['message' => 'Terjadi kesalahan pada server provider.'], 500);
 //         // }
 //         // >>>>>>>>>>>>>>>>> AKHIR BAGIAN PANGGILAN API ASLI <<<<<<<<<<<<<<<<<
@@ -610,7 +572,7 @@ class PascaInternetController extends Controller
 //         $fullResponseData['admin'] = $finalAdmin;
 //         unset($fullResponseData['buyer_last_saldo']); // Hapus buyer_last_saldo
 
-//         $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'INTERNET PASCABAYAR', $pureBillPrice, $finalAdmin);
+//         $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PBB', $pureBillPrice, $finalAdmin);
 //         $updatePayload['selling_price'] = $totalPriceToPay;
 //         $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal';
 //         $updatePayload['message'] = $apiResponseData['message'] ?? 'Pembayaran gagal.';
@@ -638,7 +600,7 @@ class PascaInternetController extends Controller
 //         );
 
 //         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
-//         unset($updatePayload['buyer_last_saldo']); // Pastikan tidak ada buyer_last_saldo di updatePayload
+//         unset($updatePayload['buyer_last_saldo']); // Hapus buyer_last_saldo
 
 //         $unifiedTransaction->update($updatePayload);
 

@@ -229,6 +229,7 @@ export default function Internet({ auth, products }) {
                                         required
                                         placeholder="Masukkan nomor pelanggan internet" // <<< PLACEHOLDER CHANGE
                                     />
+                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                                 </div>
                                 <div className="flex space-x-2">
                                     <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
@@ -325,7 +326,6 @@ export default function Internet({ auth, products }) {
                                     <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
                                     {/* Tidak ada alamat, jatuh_tempo, tarif untuk internet dalam contoh ini */}
                                     {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
-                                    {inquiryResult.buyer_last_saldo && <div className="flex justify-between"><span className="text-gray-500">Saldo Akhir Pelanggan</span><span className="font-medium">{formatRupiah(inquiryResult.buyer_last_saldo)}</span></div>}
                                 </div>
 
                                 {/* --- BAGIAN BARU: DETAIL per periode TAGIHAN INTERNET --- */}
@@ -355,7 +355,7 @@ export default function Internet({ auth, products }) {
                                 <div className="space-y-2 text-sm border-t pt-2">
                                     <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Tagihan (Dari Provider)</span> {/* <<< TEXT CHANGE */}
+                                        <span className="text-gray-500">Total Tagihan</span> {/* <<< TEXT CHANGE */}
                                         <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
                                     </div>
                                     {/* Denda adalah 0 untuk dummy internet, jadi tidak akan ditampilkan secara default */}
@@ -367,7 +367,7 @@ export default function Internet({ auth, products }) {
                                     )}
 
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Biaya Admin (Provider)</span> {/* <<< TEXT CHANGE */}
+                                        <span className="text-gray-500">Total Biaya Admin</span> {/* <<< TEXT CHANGE */}
                                         <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
                                     </div>
 
@@ -408,7 +408,6 @@ export default function Internet({ auth, products }) {
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
-                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
 

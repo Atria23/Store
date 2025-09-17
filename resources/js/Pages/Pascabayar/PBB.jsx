@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Head, router } from '@inertiajs/react'; // Import router
+import { Head, router } from '@inertiajs/react';
 
-export default function Pdam({ auth, products }) { // Menerima `auth` sebagai prop
-    // State untuk alur PDAM
-    const [customerNo, setCustomerNo] = useState('');
+export default function PBB({ auth, products }) {
+    // State untuk alur PBB Pascabayar
+    const [customerNo, setCustomerNo] = useState(''); // Untuk Nomor Objek Pajak (NOP)
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -13,13 +13,13 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
 
     // State untuk UI & proses pembayaran
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(''); // Gunakan string kosong untuk konsistensi
+    const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const userBalance = auth.user.balance; // Gunakan saldo user yang sebenarnya dari prop `auth`
+    const userBalance = auth.user.balance;
 
     const [headerHeight, setHeaderHeight] = useState(0);
     const stickyHeaderRef = useRef(null);
@@ -33,13 +33,11 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
     // Mengosongkan error saat input berubah untuk UX yang lebih baik
     useEffect(() => {
         if (error) {
-            setError(''); // Bersihkan error saat input berubah
+            setError('');
         }
     }, [customerNo, password, selectedProduct, searchTerm]);
 
-
     const formatRupiah = (number) => {
-        // Memastikan number adalah angka yang valid sebelum format
         const num = parseFloat(number);
         if (isNaN(num)) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(0);
@@ -54,7 +52,6 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
             setError('Silakan pilih produk terlebih dahulu.');
             return;
         }
-        // Pastikan hanya produk yang aktif yang bisa di-inquiry
         if (!selectedProduct.seller_product_status) {
             setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
             return;
@@ -63,14 +60,14 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
         setIsLoading(true);
         setError('');
         setInquiryResult(null);
-        setPaymentResult(null); // Bersihkan hasil pembayaran sebelumnya
+        setPaymentResult(null);
 
         try {
-            const response = await fetch(route('pascapdam.inquiry'), {
+            const response = await fetch(route('pascapbb.inquiry'), { // <<< ROUTE PBB
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json', // Tambahkan Accept header
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
                 body: JSON.stringify({
@@ -91,12 +88,12 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
 
     // Langkah 2: Buka Modal Konfirmasi
     const handleBayarClick = () => {
-        if (userBalance < inquiryResult.selling_price) { // Periksa terhadap selling_price
+        if (userBalance < inquiryResult.selling_price) {
             setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
             return;
         }
-        setError(''); // Bersihkan error sebelumnya
-        setPassword(''); // Reset field password
+        setError('');
+        setPassword('');
         setIsModalOpen(true);
     };
 
@@ -112,11 +109,11 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
             return;
         }
         setIsLoading(true);
-        setError(''); // Bersihkan error sebelumnya
-        setPaymentResult(null); // Bersihkan hasil pembayaran sebelumnya
+        setError('');
+        setPaymentResult(null);
 
         try {
-            // Step 1: Verifikasi Password
+            // Step 1: Verifikasi Password (asumsi route ini global)
             const verifyResponse = await fetch('/auth/verify-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -128,7 +125,7 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
             }
 
             // Step 2: Lakukan Pembayaran
-            const paymentResponse = await fetch(route('pascapdam.payment'), {
+            const paymentResponse = await fetch(route('pascapbb.payment'), { // <<< ROUTE PBB
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,24 +133,22 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                     'X-CSRF-TOKEN': csrfToken,
                 },
                 body: JSON.stringify({
-                    customer_no: inquiryResult.customer_no, // Hanya customer_no yang diperlukan, buyer_sku_code dan ref_id sudah di sesi backend
+                    customer_no: inquiryResult.customer_no,
                 })
             });
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                setPaymentResult(data); // Set data meskipun gagal untuk ditampilkan
+                setPaymentResult(data);
                 throw new Error(data.message || 'Gagal melakukan pembayaran.');
             }
 
-            // Jika sukses, tutup modal & tampilkan hasil
             setPaymentResult(data);
-            setInquiryResult(null); // Bersihkan hasil inquiry setelah pembayaran berhasil
+            setInquiryResult(null);
             setIsModalOpen(false);
             setPassword('');
 
         } catch (err) {
-            // Jika gagal, tampilkan error (baik karena password atau pembayaran)
             setError(err.message);
         } finally {
             setIsLoading(false);
@@ -171,13 +166,13 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
         setError('');
         setPaymentResult(null);
         setSearchTerm('');
-        setIsModalOpen(false); // Tutup modal jika terbuka
-        setPassword(''); // Bersihkan password
+        setIsModalOpen(false);
+        setPassword('');
     };
 
     return (
         <>
-            <Head title="Air Pascabayar" />
+            <Head title="PBB Pascabayar" /> {/* <<< TITLE CHANGE */}
 
             <div className="mx-auto w-full max-w-[500px] min-h-screen bg-gray-50 flex flex-col">
                 {/* ====== HEADER ====== */}
@@ -188,17 +183,16 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
                             </svg>
                         </button>
-                        <div className="font-semibold text-white text-lg">Tagihan Air</div>
+                        <div className="font-semibold text-white text-lg">Tagihan PBB</div> {/* <<< HEADER TEXT CHANGE */}
                     </div>
 
-                    {/* Form Awal (Pencarian & Input Nomor) hanya tampil jika belum ada inquiry/payment DAN belum ada produk yang dipilih */}
                     {!inquiryResult && !paymentResult && !selectedProduct && (
                         <div className="p-4 space-y-3">
                             <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
                                 <input
                                     type="text"
                                     className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400 px-3"
-                                    placeholder="Cari wilayah ..."
+                                    placeholder="Cari penyedia PBB (Kab/Kota)..." // <<< PLACEHOLDER CHANGE
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -208,7 +202,6 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                             </div>
                         </div>
                     )}
-                    {/* Form input nomor pelanggan hanya tampil jika produk sudah dipilih tapi belum inquiry/payment */}
                     {!inquiryResult && !paymentResult && selectedProduct && (
                         <div className="p-4 space-y-3 border-t">
                             <form onSubmit={handleInquiry} className='space-y-3'>
@@ -217,26 +210,24 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                     <p className="font-bold text-main">{selectedProduct.product_name}</p>
                                 </div>
                                 <div>
-                                    <label htmlFor="customer_no_input" className="block text-sm font-medium text-gray-700 mb-1">Nomor Pelanggan</label>
+                                    <label htmlFor="customer_no_input" className="block text-sm font-medium text-gray-700 mb-1">Nomor Objek Pajak (NOP)</label> {/* <<< LABEL CHANGE */}
                                     <input
                                         id="customer_no_input"
-                                        type="text" // Gunakan 'text' untuk kontrol lebih baik
-                                        inputMode="numeric" // Menampilkan keyboard numerik di perangkat mobile
-                                        pattern="[0-9]*" // Hanya memperbolehkan angka
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
                                         value={customerNo}
                                         onChange={(e) => {
                                             const value = e.target.value;
-                                            // Hanya update state jika nilai adalah angka
                                             if (/^\d*$/.test(value)) {
                                                 setCustomerNo(value);
                                             }
                                         }}
-                                        // Mencegah scroll wheel mengubah nilai pada input type="number" di beberapa browser
-                                        onWheel={(e) => e.target.blur()} // Atau e.preventDefault()
+                                        onWheel={(e) => e.target.blur()}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         disabled={isLoading || !selectedProduct.seller_product_status}
                                         required
-                                        placeholder="Masukkan nomor pelanggan"
+                                        placeholder="Masukkan Nomor Objek Pajak (NOP)" // <<< PLACEHOLDER CHANGE
                                     />
                                     {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                                 </div>
@@ -275,7 +266,7 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                         Pembayaran Berhasil
                                     </h3>
                                     <p className="text-sm text-gray-500">
-                                        {paymentResult.message || "Pembayaran Tagihan Air Anda berhasil."}
+                                        {paymentResult.message || "Pembayaran Tagihan PBB Anda berhasil."} {/* <<< MESSAGE CHANGE */}
                                     </p>
                                 </div>
 
@@ -292,7 +283,20 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                     </div>
                                 )}
 
-                                {/* Kalau status bukan sukses, tampilkan alert error */}
+                                <div className="space-y-2 text-sm">
+                                    <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">
+                                        Detail Pelanggan
+                                    </h4>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Nama</span>
+                                        <span className="font-medium text-right">{paymentResult.customer_name}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">NOP</span> {/* <<< LABEL CHANGE */}
+                                        <span className="font-medium">{paymentResult.customer_no}</span>
+                                    </div>
+                                </div>
+
                                 {paymentResult.status !== "Sukses" && (
                                     <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
                                         {paymentResult.message || "Terjadi kesalahan saat memproses pembayaran Anda."}
@@ -313,66 +317,34 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                 </button>
                             </div>
                         ) : inquiryResult ? (
-                            // --- TAMPILAN DETAIL TAGIHAN (INQUIRY) ---
+                            // --- TAMPILAN DETAIL TAGIHAN PBB (INQUIRY) ---
                             <div className="space-y-4">
-                                <p className="w-full font-semibold text-md text-center text-gray-800 pb-3 border-b">Detail Tagihan</p>
+                                <p className="w-full font-semibold text-md text-center text-gray-800 pb-3 border-b">Detail Tagihan PBB</p> {/* <<< TEXT CHANGE */}
                                 <div className="space-y-2 text-sm">
                                     <h4 className="font-semibold text-gray-800">Detail Pelanggan</h4>
-                                    <div className="flex justify-between"><span className="text-gray-500">ID Pelanggan</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">NOP</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
                                     <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
-                                    {
-                                        inquiryResult.desc?.alamat &&
-                                        inquiryResult.desc.alamat !== '-' && // <-- Kondisi ini sudah benar
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Alamat</span>
-                                            <span className="font-medium text-right">{inquiryResult.desc.alamat}</span>
-                                        </div>
-                                    }
-                                    {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
-                                    {inquiryResult.desc?.jatuh_tempo && <div className="flex justify-between"><span className="text-gray-500">Jatuh Tempo</span><span className="font-medium">{inquiryResult.desc.jatuh_tempo}</span></div>}
-                                    {inquiryResult.desc?.tarif && <div className="flex justify-between"><span className="text-gray-500">Tarif</span><span className="font-medium">{inquiryResult.desc.tarif}</span></div>}
+                                    {/* Menampilkan detail PBB lainnya dari 'desc' */}
+                                    {inquiryResult.desc && (
+                                        <>
+                                            {inquiryResult.desc.alamat && <div className="flex justify-between"><span className="text-gray-500">Alamat</span><span className="font-medium text-right">{inquiryResult.desc.alamat}</span></div>}
+                                            {inquiryResult.desc.tahun_pajak && <div className="flex justify-between"><span className="text-gray-500">Tahun Pajak</span><span className="font-medium">{inquiryResult.desc.tahun_pajak}</span></div>}
+                                            {inquiryResult.desc.kelurahan && <div className="flex justify-between"><span className="text-gray-500">Kelurahan</span><span className="font-medium">{inquiryResult.desc.kelurahan}</span></div>}
+                                            {inquiryResult.desc.kecamatan && <div className="flex justify-between"><span className="text-gray-500">Kecamatan</span><span className="font-medium">{inquiryResult.desc.kecamatan}</span></div>}
+                                            {inquiryResult.desc.kab_kota && <div className="flex justify-between"><span className="text-gray-500">Kab/Kota</span><span className="font-medium">{inquiryResult.desc.kab_kota}</span></div>}
+                                            {inquiryResult.desc.luas_tanah && <div className="flex justify-between"><span className="text-gray-500">Luas Tanah</span><span className="font-medium">{inquiryResult.desc.luas_tanah}</span></div>}
+                                            {inquiryResult.desc.luas_gedung && <div className="flex justify-between"><span className="text-gray-500">Luas Gedung</span><span className="font-medium">{inquiryResult.desc.luas_gedung}</span></div>}
+                                            {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
+                                        </>
+                                    )}
                                 </div>
 
-                                {/* --- BAGIAN BARU: DETAIL per periode TAGIHAN --- */}
-                                {inquiryResult.desc?.detail && inquiryResult.desc.detail.length > 0 && (
-                                    <div className="space-y-2 text-sm border-t pt-2">
-                                        <h4 className="font-semibold text-md text-gray-800 pb-1">Rincian per Periode Tagihan</h4>
-                                        {inquiryResult.desc.detail.map((detail, index) => (
-                                            <div key={index} className="border-b pb-2 mb-2 last:border-b-0 last:pb-0">
-                                                <p className="font-medium text-gray-700">Periode: {detail.periode}</p>
-                                                {/* Asumsi meter_awal dan meter_akhir hanya relevan jika ada denda atau jika Anda ingin selalu menampilkannya */}
-                                                {detail.meter_awal && detail.meter_akhir && (detail.meter_awal !== '-' || detail.meter_akhir !== '-') && (
-                                                    <div className="flex justify-between pl-2">
-                                                        <span className="text-gray-500">Meter Awal - Akhir</span>
-                                                        <span className="font-medium">{detail.meter_awal} - {detail.meter_akhir}</span>
-                                                    </div>
-                                                )}
-                                                <div className="flex justify-between pl-2">
-                                                    <span className="text-gray-500">Nilai Tagihan</span>
-                                                    <span className="font-medium">{formatRupiah(detail.nilai_tagihan)}</span>
-                                                </div>
-                                                {parseFloat(detail.denda) > 0 && (
-                                                    <div className="flex justify-between pl-2">
-                                                        <span className="text-gray-500">Denda</span>
-                                                        <span className="font-medium text-red-600">{formatRupiah(detail.denda)}</span>
-                                                    </div>
-                                                )}
-                                                {parseFloat(detail.biaya_lain) > 0 && (
-                                                    <div className="flex justify-between pl-2">
-                                                        <span className="text-gray-500">Biaya Lainnya</span>
-                                                        <span className="font-medium">{formatRupiah(detail.biaya_lain)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {/* --- AKHIR BAGIAN BARU --- */}
+                                {/* Tidak ada bagian detail per periode untuk PBB seperti Internet */}
 
                                 <div className="space-y-2 text-sm border-t pt-2">
                                     <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Tagihan Pokok (+Biaya Lain)</span>
+                                        <span className="text-gray-500">Total Tagihan Pokok</span> {/* <<< TEXT CHANGE */}
                                         <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
                                     </div>
                                     {parseFloat(inquiryResult.denda) > 0 && (
@@ -383,7 +355,7 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                     )}
 
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Biaya Admin</span>
+                                        <span className="text-gray-500">Total Biaya Admin</span> {/* <<< TEXT CHANGE */}
                                         <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
                                     </div>
 
@@ -403,7 +375,7 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                 </div>
                             </div>
                         ) : (
-                            // --- TAMPILAN AWAL (LIST PRODUK PDAM) ---
+                            // --- TAMPILAN AWAL (LIST PRODUK PBB) ---
                             <div className="grid grid-cols-2 gap-3">
                                 {filteredProducts.length > 0 ? filteredProducts.map(product => {
                                     const isDisabled = !Boolean(Number(product.seller_product_status));
@@ -416,7 +388,6 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                             <h3 className="text-utama text-xs font-semibold line-clamp-2 mb-2">{product.product_name}</h3>
                                             <div className="flex flex-col items-start">
                                                 <p className="text-gray-500 text-xs">Admin</p>
-                                                {/* Gunakan product.calculated_admin dari produk yang diambil */}
                                                 <p className="text-main text-sm font-bold">{formatRupiah(product.calculated_admin)}</p>
                                                 {isDisabled && (<p className="text-xs text-red-500 mt-1 font-medium">Gangguan</p>)}
                                             </div>
@@ -425,7 +396,6 @@ export default function Pdam({ auth, products }) { // Menerima `auth` sebagai pr
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
-                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
 
