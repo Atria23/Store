@@ -109,8 +109,8 @@ class PascaPBBController extends Controller
             $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // Ambil dari desc, default 1
 
             // Untuk PBB, 'price' dan 'admin' dari root API response dianggap sebagai total tagihan dan total admin
-            $pureBillPriceFromProvider = (float) ($inquiryDataFromApi['price'] ?? 0);
-            $adminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
+            $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
+            $totalAdminFromDetails = (float) ($inquiryDataFromApi['admin'] ?? 0);
 
             // 1. Hitung Diskon dasar per lembar berdasarkan komisi produk
             $commission = $product->commission ?? 0;
@@ -123,14 +123,29 @@ class PascaPBBController extends Controller
             $finalDiskon = ceil($finalDiskon);
 
             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
-            // selling_price = (price_dari_api_root) + (admin_dari_api_root) + total_denda - total_diskon_kita
-            $finalSellingPrice = $pureBillPriceFromProvider + $adminFromProvider + $totalDenda - $finalDiskon;
-            $finalSellingPrice = ceil($finalSellingPrice);
+            $finalSellingPrice = $totalNilaiTagihan + $totalAdminFromDetails + $totalDenda - $finalDiskon;
+
+                // --- START OF NEW LOGIC FOR OVERRIDE ---
+                // Ambil 'price' dan 'selling_price' asli dari respons API root
+                $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
+                $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
+
+                // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
+                // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
+                // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
+                if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
+                    Log::info("Override finalSellingPrice (REAL MODE): Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
+                    $finalSellingPrice = $apiOriginalSellingPrice;
+                }
+                // --- END OF NEW LOGIC FOR OVERRIDE ---
+
+                // Pembulatan $finalSellingPrice setelah potensi override
+                $finalSellingPrice = ceil($finalSellingPrice);
 
             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
             // 'price' dan 'admin' sudah sesuai dengan total dari provider
-            $inquiryDataFromApi['price'] = $pureBillPriceFromProvider;
-            $inquiryDataFromApi['admin'] = $adminFromProvider;
+            $inquiryDataFromApi['price'] = $totalNilaiTagihan;
+            $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
             $inquiryDataFromApi['denda'] = $totalDenda;
             $inquiryDataFromApi['diskon'] = $finalDiskon;
             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
@@ -438,8 +453,8 @@ class PascaPBBController extends Controller
 //             $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // Ambil dari desc, default 1
 
 //             // Untuk PBB, 'price' dan 'admin' dari root API response dianggap sebagai total tagihan dan total admin
-//             $pureBillPriceFromProvider = (float) ($inquiryDataFromApi['price'] ?? 0);
-//             $adminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
+//             $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
+//             $totalAdminFromDetails = (float) ($inquiryDataFromApi['admin'] ?? 0);
 
 //             // 1. Hitung Diskon dasar per lembar berdasarkan komisi produk
 //             $commission = $product->commission ?? 0;
@@ -453,13 +468,29 @@ class PascaPBBController extends Controller
 
 //             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
 //             // selling_price = (price_dari_api_root) + (admin_dari_api_root) + total_denda - total_diskon_kita
-//             $finalSellingPrice = $pureBillPriceFromProvider + $adminFromProvider + $totalDenda - $finalDiskon;
-//             $finalSellingPrice = ceil($finalSellingPrice);
+            // $finalSellingPrice = $totalNilaiTagihan + $totalAdminFromDetails + $totalDenda - $finalDiskon;
+
+            //     // --- START OF NEW LOGIC FOR OVERRIDE ---
+            //     // Ambil 'price' dan 'selling_price' asli dari respons API root
+            //     $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
+            //     $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
+
+            //     // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
+            //     // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
+            //     // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
+            //     if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
+            //         Log::info("Override finalSellingPrice (REAL MODE): Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
+            //         $finalSellingPrice = $apiOriginalSellingPrice;
+            //     }
+            //     // --- END OF NEW LOGIC FOR OVERRIDE ---
+
+            //     // Pembulatan $finalSellingPrice setelah potensi override
+            //     $finalSellingPrice = ceil($finalSellingPrice);
 
 //             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
 //             // 'price' dan 'admin' sudah sesuai dengan total dari provider
-//             $inquiryDataFromApi['price'] = $pureBillPriceFromProvider;
-//             $inquiryDataFromApi['admin'] = $adminFromProvider;
+//             $inquiryDataFromApi['price'] = $totalNilaiTagihan;
+//             $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
 //             $inquiryDataFromApi['denda'] = $totalDenda;
 //             $inquiryDataFromApi['diskon'] = $finalDiskon;
 //             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;

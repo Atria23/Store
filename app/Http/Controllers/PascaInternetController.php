@@ -106,7 +106,7 @@ class PascaInternetController extends Controller
             }
 
             // Inisialisasi variabel perhitungan
-            $totalNilaiTagihanFromDetails = 0; // Sum of 'nilai_tagihan' from desc.detail
+            $totalNilaiTagihan = 0; // Sum of 'nilai_tagihan' from desc.detail
             $totalAdminFromDetails = 0;      // Sum of 'admin' from desc.detail
             $totalDenda = 0;
             $jumlahLembarTagihan = 0;
@@ -123,7 +123,7 @@ class PascaInternetController extends Controller
             // Akumulasikan nilai tagihan dan admin dari detail
             if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
                 foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-                    $totalNilaiTagihanFromDetails += (float) ($detail['nilai_tagihan'] ?? 0);
+                    $totalNilaiTagihan += (float) ($detail['nilai_tagihan'] ?? 0);
                     $totalAdminFromDetails += (float) ($detail['admin'] ?? 0);
                 }
             }
@@ -140,12 +140,28 @@ class PascaInternetController extends Controller
 
             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
             // selling_price = (totalNilaiTagihanFromDetails) + (totalAdminFromDetails) + total_denda - total_diskon_kita
-            $finalSellingPrice = $totalNilaiTagihanFromDetails + $totalAdminFromDetails + $totalDenda - $finalDiskon;
-            $finalSellingPrice = ceil($finalSellingPrice);
+            $finalSellingPrice = $totalNilaiTagihan + $totalAdminFromDetails + $totalDenda - $finalDiskon;
+                
+                // --- START OF NEW LOGIC FOR OVERRIDE ---
+                // Ambil 'price' dan 'selling_price' asli dari respons API provider root
+                $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
+                $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
+
+                // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
+                // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
+                // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
+                if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
+                    Log::info("Override finalSellingPrice: Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
+                    $finalSellingPrice = $apiOriginalSellingPrice;
+                }
+                // --- END OF NEW LOGIC FOR OVERRIDE ---
+
+                // Pembulatan $finalSellingPrice setelah potensi override
+                $finalSellingPrice = ceil($finalSellingPrice); // Round up the final selling price
 
             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
             // Update 'price' and 'admin' to reflect the sums from details as requested
-            $inquiryDataFromApi['price'] = $totalNilaiTagihanFromDetails;
+            $inquiryDataFromApi['price'] = $totalNilaiTagihan;
             $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
             $inquiryDataFromApi['denda'] = $totalDenda;
             $inquiryDataFromApi['diskon'] = $finalDiskon;
@@ -456,7 +472,7 @@ class PascaInternetController extends Controller
 //             }
 
 //             // Inisialisasi variabel perhitungan
-//             $totalNilaiTagihanFromDetails = 0;
+//             $totalNilaiTagihan = 0;
 //             $totalAdminFromDetails = 0;
 //             $totalDenda = 0;
 //             $jumlahLembarTagihan = 0;
@@ -471,7 +487,7 @@ class PascaInternetController extends Controller
 
 //             if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
 //                 foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-//                     $totalNilaiTagihanFromDetails += (float) ($detail['nilai_tagihan'] ?? 0);
+//                     $totalNilaiTagihan += (float) ($detail['nilai_tagihan'] ?? 0);
 //                     $totalAdminFromDetails += (float) ($detail['admin'] ?? 0);
 //                 }
 //             }
@@ -488,12 +504,28 @@ class PascaInternetController extends Controller
 
 //             // 3. Hitung Total Pembayaran Akhir (dengan Diskon)
 //             // selling_price = (totalNilaiTagihanFromDetails) + (totalAdminFromDetails) + total_denda - total_diskon_kita
-//             $finalSellingPrice = $totalNilaiTagihanFromDetails + $totalAdminFromDetails + $totalDenda - $finalDiskon;
-//             $finalSellingPrice = ceil($finalSellingPrice);
+            // $finalSellingPrice = ($totalNilaiTagihan + $totalBiayaLain) + $totalAdminFromProvider + $totalDenda - $finalDiskon;
+                
+            //     // --- START OF NEW LOGIC FOR OVERRIDE ---
+            //     // Ambil 'price' dan 'selling_price' asli dari respons API provider root
+            //     $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
+            //     $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
+
+            //     // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
+            //     // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
+            //     // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
+            //     if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
+            //         Log::info("Override finalSellingPrice: Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
+            //         $finalSellingPrice = $apiOriginalSellingPrice;
+            //     }
+            //     // --- END OF NEW LOGIC FOR OVERRIDE ---
+
+            //     // Pembulatan $finalSellingPrice setelah potensi override
+            //     $finalSellingPrice = ceil($finalSellingPrice); // Round up the final selling price
 
 //             // 4. Susun kembali data untuk dikirim ke frontend dan disimpan di sesi
 //             // Pastikan 'price' dan 'admin' mencerminkan total dari detail
-//             $inquiryDataFromApi['price'] = $totalNilaiTagihanFromDetails;
+//             $inquiryDataFromApi['price'] = $totalNilaiTagihan;
 //             $inquiryDataFromApi['admin'] = $totalAdminFromDetails;
 //             $inquiryDataFromApi['denda'] = $totalDenda;
 //             $inquiryDataFromApi['diskon'] = $finalDiskon;

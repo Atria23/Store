@@ -261,6 +261,75 @@ const SpecificDetails = ({ transaction }) => {
                     </div>
                 </React.Fragment>
             );
+        case 'MULTIFINANCE':
+            return (
+                <React.Fragment>
+                    <div className="w-full flex flex-row">
+                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jumlah Lembar Tagihan</div>
+                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.lembar_tagihan || '0'}</div>
+                    </div>
+                    {descData.item_name && descData.item_name !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Item Kredit</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.item_name}</div>
+                        </div>
+                    )}
+                    {descData.no_rangka && descData.no_rangka !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">No. Rangka</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.no_rangka}</div>
+                        </div>
+                    )}
+                    {descData.no_pol && descData.no_pol !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">No. Polisi</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.no_pol}</div>
+                        </div>
+                    )}
+                    {descData.tenor && descData.tenor !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tenor</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tenor} Bulan</div>
+                        </div>
+                    )}
+
+                    {/* Detail Tagihan per Periode */}
+                    {descData.detail && Array.isArray(descData.detail) && descData.detail.length > 0 && (
+                        <div className="w-full pt-2 mt-2 border-t border-gray-200">
+                            {descData.detail.map((item, index) => (
+                                <div key={index} className="w-full space-y-0.5 mb-2">
+                                    <div className="w-full flex flex-row">
+                                        <div className="w-full text-left font-utama text-sm text-gray-800 font-semibold tracking-[0.25px] break-words mb-1">Periode</div>
+                                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{item.periode}</div>
+                                    </div>
+                                    <div className="w-full flex flex-row">
+                                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Biaya Admin Periode</div>
+                                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.admin_fee_per_period)}</div>
+                                    </div>
+                                    <div className="w-full flex flex-row">
+                                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Nilai Tagihan</div>
+                                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.bill_amount)}</div>
+                                    </div>
+                                    {parseFloat(item.denda) > 0 && (
+                                        <div className="w-full flex flex-row text-xs italic text-red-500">
+                                            <div className="w-1/2 text-left font-utama font-normal tracking-[0.25px] break-words">Denda Periode</div>
+                                            <div className="w-1/2 text-right font-utama font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.denda)}</div>
+                                        </div>
+                                    )}
+                                    {item.biaya_lain && item.biaya_lain !== '0' && (
+                                        <div className="w-full flex flex-row">
+                                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Biaya Admin Periode</div>
+                                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.admin_fee_per_period)}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </React.Fragment>
+
+            );
+
         default:
             return (
                 <div className="w-full flex flex-row">

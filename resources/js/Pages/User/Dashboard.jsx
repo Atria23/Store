@@ -61,6 +61,13 @@ function Dashboard({ user, categories }) {
       iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
       link: route('pascapbb.index'), // Rute ke halaman promo
     },
+    {
+      id: 'multifinance', // ID unik
+      name: 'Multifinansial',
+      image: 'logo.webp', // Contoh: path ke gambar PNG/JPG untuk promo
+      iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
+      link: route('pascamultifinance.index'), // Rute ke halaman promo
+    },
     // Tambahkan kategori manual lainnya di sini jika diperlukan:
     // {
     //   id: 'manual-other',

@@ -91,6 +91,19 @@ trait TransactionMapper
                     'luas_gedung' => Arr::get($desc, 'luas_gedung'),
                 ];
                 break;
+                
+                case 'MULTIFINANCE':
+                $specificDetails = [
+                    'sn' => Arr::get($apiData, 'sn'),
+                    'rc' => Arr::get($apiData, 'rc'),
+                    'lembar_tagihan' => Arr::get($desc, 'lembar_tagihan'),
+                    'item_name' => Arr::get($desc, 'item_name'),
+                    'no_rangka' => Arr::get($desc, 'no_rangka'),
+                    'no_pol' => Arr::get($desc, 'no_pol'),
+                    'tenor' => Arr::get($desc, 'tenor'),
+                    'detail' => Arr::get($desc, 'detail'), // Simpan seluruh array detail
+                ];
+                break;
         }
         
         $commonData['details'] = $specificDetails;

@@ -62,8 +62,12 @@ use App\Http\Controllers\PascaPdamController;
 use App\Http\Controllers\PostpaidHistoryController;
 use App\Http\Controllers\PascaInternetController;
 use App\Http\Controllers\PascaPBBController;
+use App\Http\Controllers\PascaMultifinanceController;
 
 Route::middleware(['auth', 'otp.not.expired'])->group(function () {
+Route::get('/multifinance', [PascaMultifinanceController::class, 'index'])->name('pascamultifinance.index');
+Route::post('/multifinance/inquiry', [PascaMultifinanceController::class, 'inquiry'])->name('pascamultifinance.inquiry');
+Route::post('/multifinance/payment', [PascaMultifinanceController::class, 'payment'])->name('pascamultifinance.payment');
     Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
     Route::get('/postpaid-history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
 // <<<<<<<<<<< ROUTE BARU UNTUK PBB PASCABAYAR >>>>>>>>>>>>>

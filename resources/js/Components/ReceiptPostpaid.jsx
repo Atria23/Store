@@ -79,7 +79,7 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                                 <span>{bill.meter_awal}-{bill.meter_akhir}</span>
                             </div>
                         )}
-                        {bill.biaya_lain && (
+                        {bill.biaya_lain > 0 && (
                             <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                 <span>Biaya Lain:</span>
                                 <span>{formatRupiahCurrency(bill.biaya_lain)}</span>
@@ -167,7 +167,7 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                     ))}
                 </div>
 
-                {(type === 'PLN' || type === 'PDAM' || type === 'INTERNET PASCABAYAR' || type === 'BPJS KESEHATAN' || type === 'PBB') && details && (
+                {(type === 'PLN' || type === 'PDAM' || type === 'INTERNET PASCABAYAR' || type === 'BPJS KESEHATAN' || type === 'PBB' || type === 'MULTIFINANCE') && details && (
                     <div className="flex flex-col gap-1 w-full my-2">
                         {/* Judul Detail Layanan juga disamakan dengan textSize */}
                         <span className={`font-bold text-[#6d7278] ${sizeStyle.textSize}`}>Detail Layanan:</span>
@@ -241,54 +241,125 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                         )}
                         {type === 'PBB' && (
                             <>
-                        {descData.alamat && descData.alamat !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Alamat</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.alamat}</span>
-                            </div>
+                                {descData.alamat && descData.alamat !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Alamat</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.alamat}</span>
+                                    </div>
+                                )}
+                                {descData.tahun_pajak && descData.tahun_pajak !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Tahun Pajak</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.tahun_pajak}</span>
+                                    </div>
+                                )}
+                                {descData.kelurahan && descData.kelurahan !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Kelurahan</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kelurahan}</span>
+                                    </div>
+                                )}
+                                {descData.kecamatan && descData.kecamatan !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Kecamatan</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kecamatan}</span>
+                                    </div>
+                                )}
+                                {descData.kab_kota && descData.kab_kota !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Kab/Kota</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kab_kota}</span>
+                                    </div>
+                                )}
+                                {descData.luas_tanah && descData.luas_tanah !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Luas Tanah</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.luas_tanah}</span>
+                                    </div>
+                                )}
+                                {descData.luas_gedung && descData.luas_gedung !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Luas Gedung</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.luas_gedung}</span>
+                                    </div>
+                                )}
+                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                    <span className={`font-bold text-[#6d7278]`}>Lembar Tagihan</span>
+                                    <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.lembar_tagihan || '0'}</span>
+                                </div>
+                            </>
                         )}
-                        {descData.tahun_pajak && descData.tahun_pajak !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Tahun Pajak</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.tahun_pajak}</span>
-                            </div>
-                        )}
-                        {descData.kelurahan && descData.kelurahan !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Kelurahan</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kelurahan}</span>
-                            </div>
-                        )}
-                        {descData.kecamatan && descData.kecamatan !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Kecamatan</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kecamatan}</span>
-                            </div>
-                        )}
-                        {descData.kab_kota && descData.kab_kota !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Kab/Kota</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.kab_kota}</span>
-                            </div>
-                        )}
-                        {descData.luas_tanah && descData.luas_tanah !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Luas Tanah</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.luas_tanah}</span>
-                            </div>
-                        )}
-                        {descData.luas_gedung && descData.luas_gedung !== '-' && (
-                            <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                                <span className={`font-bold text-[#6d7278]`}>Luas Gedung</span>
-                                <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.luas_gedung}</span>
-                            </div>
-                        )}
-                        <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
-                            <span className={`font-bold text-[#6d7278]`}>Lembar Tagihan</span>
-                            <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.lembar_tagihan || '0'}</span>
-                        </div>
-                        {/* Jika PBB memiliki detail per periode, tambahkan renderReceiptBillDetails di sini */}
-                    </>
+                        {type === 'MULTIFINANCE' && (
+                            <>
+                                {descData.item_name && descData.item_name !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Item Kredit</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.item_name}</span>
+                                    </div>
+                                )}
+                                {descData.no_rangka && descData.no_rangka !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>No. Rangka</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.no_rangka}</span>
+                                    </div>
+                                )}
+                                {descData.no_pol && descData.no_pol !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>No. Polisi</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.no_pol}</span>
+                                    </div>
+                                )}
+                                {descData.tenor && descData.tenor !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                        <span className={`font-bold text-[#6d7278]`}>Tenor</span>
+                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.tenor} Bulan</span>
+                                    </div>
+                                )}
+                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight`}>
+                                    <span className={`font-bold text-[#6d7278]`}>Jumlah Lembar Tagihan</span>
+                                    <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[240px]`}>{descData.lembar_tagihan || '0'}</span>
+                                </div>
+
+                                {/* Detail Tagihan per Periode */}
+                                {descData.detail && Array.isArray(descData.detail) && descData.detail.length > 0 && (
+                                    <div className="w-full pt-2 mt-2 border-t border-gray-200">
+                                        <div className={`flex justify-between ${sizeStyle.textSize} font-bold text-[#6d7278] tracking-wide leading-tight mb-1`}>
+                                            <span>Detail Layanan</span>
+                                        </div>
+                                        {descData.detail.map((item, index) => (
+                                            <div key={index} className="w-full border-gray-300">
+                                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                                    <span>Nilai Tagihan</span>
+                                                    <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
+                                                        {formatRupiahCurrency(item.bill_amount)}
+                                                    </span>
+                                                </div>
+                                                {parseFloat(item.admin_fee_per_period) > 0 && (
+                                                   
+                                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                                    <span>Biaya Admin Periode</span>
+                                                    <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
+                                                        {formatRupiahCurrency(item.admin_fee_per_period)}
+                                                    </span>
+                                                </div>
+                                                )}
+                                                {parseFloat(item.denda) > 0 && (
+                                                    <div className={`flex justify-between text-xs text-red-500 italic font-mono tracking-wide leading-tight`}>
+                                                        <span>Denda Periode</span>
+                                                        <span>{formatRupiahCurrency(item.denda)}</span>
+                                                    </div>
+                                                )}
+                                                {item.biaya_lain && item.biaya_lain > 0 && (
+                                                    <div className={`flex justify-between text-xs text-gray-500 italic font-mono tracking-wide leading-tight`}>
+                                                        <span>Biaya Lain Periode</span>
+                                                        <span>{formatRupiahCurrency(item.biaya_lain)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         )}
                         {renderReceiptBillDetails(descData.detail)}
                     </div>
