@@ -335,18 +335,20 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                                                     </span>
                                                 </div>
                                                 {parseFloat(item.admin_fee_per_period) > 0 && (
-                                                   
+
                                                     <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
-                                                    <span>Biaya Admin Periode</span>
-                                                    <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
-                                                        {formatRupiahCurrency(item.admin_fee_per_period)}
-                                                    </span>
-                                                </div>
+                                                        <span>Biaya Admin Periode</span>
+                                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
+                                                            {formatRupiahCurrency(item.admin_fee_per_period)}
+                                                        </span>
+                                                    </div>
                                                 )}
                                                 {parseFloat(item.denda) > 0 && (
-                                                    <div className={`flex justify-between text-xs text-red-500 italic font-mono tracking-wide leading-tight`}>
+                                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                                         <span>Denda Periode</span>
-                                                        <span>{formatRupiahCurrency(item.denda)}</span>
+                                                        <span className={`text-black ${sizeStyle.fontWeight} text-right break-all max-w-[200px]`}>
+                                                            {formatRupiahCurrency(item.denda)}
+                                                        </span>
                                                     </div>
                                                 )}
                                                 {item.biaya_lain && item.biaya_lain > 0 && (

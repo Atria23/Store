@@ -497,7 +497,7 @@ export default function Multifinance({ auth, products }) {
                                                         {parseFloat(item.denda) > 0 && (
                                                             <div className="flex justify-between pl-2">
                                                                 <span className="text-gray-500">Denda Periode</span>
-                                                                <span className="font-medium">{formatRupiah(item.denda)}</span>
+                                                                <span className="font-medium text-gray-900">{formatRupiah(item.denda)}</span> {/* Changed to text-gray-900 */}
                                                             </div>
                                                         )}
                                                     </div>
@@ -514,7 +514,7 @@ export default function Multifinance({ auth, products }) {
                                             {parseFloat(inquiryResult.denda) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Total Denda</span>
-                                                    <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
+                                                    <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.denda)}</span> {/* Changed to text-gray-900 */}
                                                 </div>
                                             )}
 
@@ -586,7 +586,7 @@ export default function Multifinance({ auth, products }) {
                                                                             {parseFloat(detail.denda) > 0 && (
                                                                                 <div className="flex justify-between pl-2">
                                                                                     <span className="text-gray-500">Denda Periode</span>
-                                                                                    <span className="font-medium text-red-600">{formatRupiah(detail.denda)}</span>
+                                                                                    <span className="font-medium text-gray-900">{formatRupiah(detail.denda)}</span> {/* Changed to text-gray-900 */}
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -603,7 +603,7 @@ export default function Multifinance({ auth, products }) {
                                                                 {parseFloat(item.denda) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Total Denda</span>
-                                                                        <span className="font-medium text-red-600">{formatRupiah(item.denda)}</span>
+                                                                        <span className="font-medium text-gray-900">{formatRupiah(item.denda)}</span> {/* Changed to text-gray-900 */}
                                                                     </div>
                                                                 )}
                                                                 <div className="flex justify-between">

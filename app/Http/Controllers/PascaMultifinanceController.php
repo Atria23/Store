@@ -65,7 +65,7 @@ class PascaMultifinanceController extends Controller
         $current_sku = $product->buyer_sku_code;
         $ref_id = 'mf-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
         $username = env('P_U');
-        $apiKey = env('P_AK'); // Assuming P_AK is also used for Multifinance
+        $apiKey = env('P_AKD'); // Assuming P_AKD is also used for Multifinance
         $sign = md5($username . $apiKey . $ref_id);
 
         $responseData = [];
@@ -158,11 +158,11 @@ class PascaMultifinanceController extends Controller
                 $response = Http::post(config('services.api_server') . '/v1/transaction', [
                     'commands' => 'inq-pasca',
                     'username' => $username,
-                    'buyer_sku_code' => $current_sku,
+                    'buyer_sku_code' => $current_sku, // Use generic multifinance code if specific SKU is not accepted by provider
                     'customer_no' => $customerNo,
                     'ref_id' => $ref_id,
                     'sign' => $sign,
-                    'testing' => false,
+                    'testing' => true, // Make sure this is 'false' in production
                 ]);
 
                 $responseData = $response->json();
@@ -195,7 +195,7 @@ class PascaMultifinanceController extends Controller
         $inquiryDataFromApi['desc']['tenor'] = $inquiryDataFromApi['desc']['tenor'] ?? null;
         $inquiryDataFromApi['desc']['lembar_tagihan'] = $inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1; // Default to 1
 
-        $totalBillAmount = 0; // Sum of bill_amount from details
+        $totalBillAmountFromDetails = 0; // Sum of bill_amount from details
         $totalAdminFeePerPeriodAggregated = 0; // Sum of admin_fee_per_period from details
         $totalDendaAggregated = 0; // Sum of denda from details
         $jumlahLembarTagihan = 0; // Number of periods with bills
@@ -215,8 +215,9 @@ class PascaMultifinanceController extends Controller
         $processedDetails = [];
         if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
             foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-                $billAmount = (float) ($detail['bill_amount'] ?? $detail['nilai_tagihan'] ?? 0); // Map nilai_tagihan to bill_amount
-                $adminFeePerPeriod = (float) ($detail['admin_fee_per_period'] ?? $detail['admin'] ?? 0); // Map admin to admin_fee_per_period
+                // Map generic API keys to desired Multifinance keys
+                $billAmount = (float) ($detail['bill_amount'] ?? $detail['nilai_tagihan'] ?? 0);
+                $adminFeePerPeriod = (float) ($detail['admin_fee_per_period'] ?? $detail['admin'] ?? 0);
                 $dendaAmount = (float) ($detail['denda'] ?? 0);
 
                 $processedDetails[] = [
@@ -226,15 +227,16 @@ class PascaMultifinanceController extends Controller
                     "denda" => $dendaAmount,
                 ];
 
-                $totalBillAmount += $billAmount;
+                $totalBillAmountFromDetails += $billAmount;
                 $totalAdminFeePerPeriodAggregated += $adminFeePerPeriod;
                 $totalDendaAggregated += $dendaAmount;
             }
             $inquiryDataFromApi['desc']['detail'] = $processedDetails; // Update with mapped details
         } else {
-            // Fallback if 'detail' is not an array, use top-level 'price', 'total_denda', 'total_admin_per_period' from desc
+            // Fallback if 'detail' is not an array.
             // For Multifinance, 'price' at root often represents total principal bill amount
-            $totalBillAmount = $pureBillPriceFromApiRoot;
+            // If totalBillAmountFromDetails remains 0, this is the first real fallback.
+            $totalBillAmountFromDetails = $pureBillPriceFromApiRoot;
             $totalDendaAggregated = (float) ($inquiryDataFromApi['desc']['total_denda'] ?? $inquiryDataFromApi['denda'] ?? 0); // Use denda from desc or root
             $totalAdminFeePerPeriodAggregated = (float) ($inquiryDataFromApi['desc']['total_admin_per_period'] ?? 0);
         }
@@ -248,14 +250,24 @@ class PascaMultifinanceController extends Controller
         $finalDiskon = ceil($finalDiskon);
 
         // Calculated values for our transaction record
-        $calculatedPureBillPrice = $totalBillAmount; // Just the sum of bill_amount from details (or root price)
+        // Step 1: Default to sum from details or root price
+        $calculatedPureBillPrice = $totalBillAmountFromDetails;
+
+        // Step 2: If calculatedPureBillPrice is still 0, use provider's original selling price as fallback
+        // This addresses the user's request: "price nya jangan sampai 0, pakai selling price dari api saja kalo memang nilai aslinya 0"
+        if ($calculatedPureBillPrice === 0 && $providerOriginalSellingPrice > 0) {
+            $calculatedPureBillPrice = $providerOriginalSellingPrice;
+            Log::warning("Multifinance Inquiry: calculatedPureBillPrice was 0 (from details/root price). Using provider_original_selling_price ({$providerOriginalSellingPrice}) as fallback for pure bill price. Customer: {$customerNo}");
+        }
+
         $totalCombinedAdminFees = $totalAdminFromProvider + $totalAdminFeePerPeriodAggregated; // Root admin + sum of per-period admin
 
-        // Final selling price calculation
+        // Final selling price calculation (what the customer actually pays)
         $finalSellingPrice = $calculatedPureBillPrice + $totalCombinedAdminFees + $totalDendaAggregated - $finalDiskon;
         $finalSellingPrice = ceil($finalSellingPrice);
 
-        // Override logic from original code
+        // Override logic (from previous code): If provider's root price is somehow higher than our calculated final selling price, and provider has a specific selling price, use that specific selling price.
+        // This specifically applies to finalSellingPrice (customer pays), not calculatedPureBillPrice (our internal 'price').
         if ($pureBillPriceFromApiRoot > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
             $finalSellingPrice = $providerOriginalSellingPrice;
             Log::info('Multifinance Inquiry: finalSellingPrice overridden by provider_original_selling_price.', [
@@ -268,7 +280,7 @@ class PascaMultifinanceController extends Controller
 
         // Populate the final successful inquiry data array
         $successfulInquiryData = $inquiryDataFromApi;
-        $successfulInquiryData['price']         = $calculatedPureBillPrice; // Our calculated pure bill price
+        $successfulInquiryData['price']         = $calculatedPureBillPrice; // Our calculated pure bill price (now should not be 0 if selling_price > 0)
         $successfulInquiryData['admin']         = $totalCombinedAdminFees; // Our calculated total admin (root + per period)
         $successfulInquiryData['denda']         = $totalDendaAggregated; // Our calculated total denda
         $successfulInquiryData['diskon']        = $finalDiskon;
@@ -301,8 +313,8 @@ class PascaMultifinanceController extends Controller
     private function _processIndividualMultifinancePayment(array $inquiryData, \App\Models\User $user): array
     {
         $totalPriceToPay     = (float) $inquiryData['selling_price'];
-        $finalAdmin          = (float) $inquiryData['admin'];
-        $pureBillPrice       = (float) $inquiryData['price'];
+        $finalAdmin          = (float) ($inquiryData['admin'] ?? 0); // Ensure fallback for admin
+        $pureBillPrice       = (float) ($inquiryData['price'] ?? 0); // Ensure fallback for price
         $diskon              = (float) ($inquiryData['diskon'] ?? 0);
         $jumlahLembarTagihan = (int) ($inquiryData['jumlah_lembar_tagihan'] ?? 0);
         $denda               = (float) ($inquiryData['denda'] ?? 0);
@@ -369,7 +381,7 @@ class PascaMultifinanceController extends Controller
 
             // --- ORIGINAL API CALL (only if not in local dummy mode) ---
             $username = env('P_U');
-            $apiKey = env('P_AK');
+            $apiKey = env('P_AKD'); // Use P_AKD for real API call
             $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
             try {
@@ -380,7 +392,7 @@ class PascaMultifinanceController extends Controller
                     'customer_no' => $inquiryData['customer_no'],
                     'ref_id' => $inquiryData['ref_id'],
                     'sign' => $sign,
-                    'testing' => false,
+                    'testing' => true, // Make sure this is 'false' in production
                 ]);
                 $apiResponseData = $response->json()['data'];
 
