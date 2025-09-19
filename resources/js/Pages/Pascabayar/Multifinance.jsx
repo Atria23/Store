@@ -1,17 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 
 export default function Multifinance({ auth, products }) {
-    // State untuk alur Multifinance Pascabayar
+    // State untuk alur Multifinance Satuan
     const [customerNo, setCustomerNo] = useState(''); // Untuk Nomor Pelanggan / Nomor Kontrak
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [inquiryResult, setInquiryResult] = useState(null); // Hasil inquiry satuan
+    const [paymentResult, setPaymentResult] = useState(null); // Hasil pembayaran satuan
+
+    // State untuk alur Multifinance Massal
+    const [customerNosInput, setCustomerNosInput] = useState(''); // Input textarea
+    const [bulkInquiryResults, setBulkInquiryResults] = useState(null); // {successful: [], failed: []}
+    const [bulkPaymentResults, setBulkPaymentResults] = useState(null); // {results: [], total_refund_amount, total_paid_amount}
+    const [isBulkMode, setIsBulkMode] = useState(false); // Mode tampilan: false=satuan, true=massal
+
+    // State untuk UI
     const [searchTerm, setSearchTerm] = useState('');
-
-    // State untuk hasil inquiry dan pembayaran
-    const [inquiryResult, setInquiryResult] = useState(null);
-    const [paymentResult, setPaymentResult] = useState(null);
-
-    // State untuk UI & proses pembayaran
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,21 +24,21 @@ export default function Multifinance({ auth, products }) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const userBalance = auth.user.balance;
 
-    const [headerHeight, setHeaderHeight] = useState(0);
     const stickyHeaderRef = useRef(null);
+    const [headerHeight, setHeaderHeight] = useState(0);
 
     useEffect(() => {
         if (stickyHeaderRef.current) {
             setHeaderHeight(stickyHeaderRef.current.offsetHeight);
         }
-    }, [selectedProduct, inquiryResult, paymentResult]);
+    }, [selectedProduct, inquiryResult, paymentResult, bulkInquiryResults]); // Update header height when relevant states change
 
-    // Mengosongkan error saat input berubah untuk UX yang lebih baik
+    // Mengosongkan error saat input/mode berubah untuk UX yang lebih baik
     useEffect(() => {
         if (error) {
             setError('');
         }
-    }, [customerNo, password, selectedProduct, searchTerm]);
+    }, [customerNo, customerNosInput, password, selectedProduct, searchTerm, isBulkMode]);
 
     const formatRupiah = (number) => {
         const num = parseFloat(number);
@@ -44,7 +48,19 @@ export default function Multifinance({ auth, products }) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
     };
 
-    // Langkah 1: Cek Tagihan (Inquiry)
+    // Kalkulasi total yang harus dibayar untuk bulk payment
+    const totalAmountToPayBulk = useMemo(() => {
+        if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
+        return bulkInquiryResults.successful.reduce((sum, item) => sum + item.selling_price, 0);
+    }, [bulkInquiryResults]);
+
+    // Kalkulasi total diskon untuk bulk inquiry
+    const totalBulkDiscount = useMemo(() => {
+        if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
+        return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.diskon || 0), 0);
+    }, [bulkInquiryResults]);
+
+    // Langkah 1A: Cek Tagihan Satuan (Inquiry)
     const handleInquiry = async (e) => {
         e.preventDefault();
         if (!selectedProduct) {
@@ -58,8 +74,10 @@ export default function Multifinance({ auth, products }) {
 
         setIsLoading(true);
         setError('');
-        setInquiryResult(null);
-        setPaymentResult(null);
+        setInquiryResult(null); // Clear single inquiry result
+        setBulkInquiryResults(null); // Clear bulk results if doing single
+        setPaymentResult(null); // Clear payment results
+        setBulkPaymentResults(null); // Clear bulk payment results
 
         try {
             const requestBody = {
@@ -67,13 +85,9 @@ export default function Multifinance({ auth, products }) {
                 buyer_sku_code: selectedProduct.buyer_sku_code,
             };
 
-            const response = await fetch(route('pascamultifinance.inquiry'), { // <<< ROUTE MULTIFINANCE
+            const response = await fetch(route('pascamultifinance.inquiry'), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify(requestBody)
             });
 
@@ -87,9 +101,60 @@ export default function Multifinance({ auth, products }) {
         }
     };
 
-    // Langkah 2: Buka Modal Konfirmasi
+    // Langkah 1B: Cek Tagihan Massal (Bulk Inquiry)
+    const handleBulkInquiry = async (e) => {
+        e.preventDefault();
+        if (!selectedProduct) {
+            setError('Silakan pilih produk Multifinance terlebih dahulu.');
+            return;
+        }
+        if (!selectedProduct.seller_product_status) {
+            setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+        setInquiryResult(null); // Clear single inquiry result
+        setBulkInquiryResults(null); // Clear previous bulk inquiry results
+        setPaymentResult(null); // Clear payment results
+        setBulkPaymentResults(null); // Clear bulk payment results
+
+        const customerNos = customerNosInput.split(/[\n,;\s]+/)
+                                           .map(num => num.trim())
+                                           .filter(num => num.length >= 4); // Min length for Multifinance customer no
+
+        if (customerNos.length === 0) {
+            setError('Masukkan setidaknya satu ID Pelanggan/Nomor Kontrak yang valid.');
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(route('pascamultifinance.bulk-inquiry'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify({
+                    customer_nos: customerNos,
+                    buyer_sku_code: selectedProduct.buyer_sku_code
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Gagal melakukan pengecekan tagihan massal.');
+            }
+            setBulkInquiryResults(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Langkah 2: Buka Modal Konfirmasi (Satuan atau Massal)
     const handleBayarClick = () => {
-        if (userBalance < inquiryResult.selling_price) {
+        const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
+        if (userBalance < amountToCheck) {
             setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
             return;
         }
@@ -98,23 +163,24 @@ export default function Multifinance({ auth, products }) {
         setIsModalOpen(true);
     };
 
-    // Langkah 3: Kirim Transaksi setelah Konfirmasi Password
+    // Langkah 3: Kirim Transaksi setelah Konfirmasi Password (Satuan atau Massal)
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
             setError("Silakan masukkan password untuk melanjutkan.");
             return;
         }
-        if (!inquiryResult) {
-            setError('Data tagihan tidak ditemukan.');
+        // Pastikan ada tagihan yang berhasil di-inquiry sebelum mencoba pembayaran
+        if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
+            setError('Tidak ada tagihan yang siap dibayar.');
             return;
         }
+
         setIsLoading(true);
         setError('');
-        setPaymentResult(null);
 
         try {
-            // Step 1: Verifikasi Password (asumsi route ini global)
+            // Step 1: Verifikasi Password
             const verifyResponse = await fetch('/auth/verify-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -125,31 +191,36 @@ export default function Multifinance({ auth, products }) {
                 throw new Error("Password yang Anda masukkan salah.");
             }
 
-            // Step 2: Lakukan Pembayaran
-            const requestBody = {
-                customer_no: inquiryResult.customer_no,
-            };
-
-            const paymentResponse = await fetch(route('pascamultifinance.payment'), { // <<< ROUTE MULTIFINANCE
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: JSON.stringify(requestBody)
-            });
+            // Step 2: Lakukan Pembayaran (Satuan atau Massal)
+            let paymentResponse;
+            if (isBulkMode) {
+                const customerNosToPay = bulkInquiryResults.successful.map(item => item.customer_no);
+                paymentResponse = await fetch(route('pascamultifinance.bulk-payment'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ customer_nos_to_pay: customerNosToPay }),
+                });
+            } else {
+                paymentResponse = await fetch(route('pascamultifinance.payment'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ customer_no: inquiryResult.customer_no }),
+                });
+            }
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                setPaymentResult(data);
-                throw new Error(data.message || 'Gagal melakukan pembayaran.');
+                setError(data.message || 'Gagal melakukan pembayaran.');
+                isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
+                return;
             }
 
-            setPaymentResult(data);
+            isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
             setInquiryResult(null);
+            setBulkInquiryResults(null);
             setIsModalOpen(false);
             setPassword('');
+            router.reload({ only: ['auth'] }); // Refresh user balance
 
         } catch (err) {
             setError(err.message);
@@ -158,6 +229,14 @@ export default function Multifinance({ auth, products }) {
         }
     };
 
+    // Conditional rendering flags
+    const isViewingPaymentResult = paymentResult || (bulkPaymentResults && bulkPaymentResults.results && bulkPaymentResults.results.length > 0);
+    const isViewingInquiryResult = inquiryResult || (bulkInquiryResults && (bulkInquiryResults.successful.length > 0 || bulkInquiryResults.failed.length > 0));
+    const showProductList = !selectedProduct && !isViewingInquiryResult && !isViewingPaymentResult;
+    const showSingleInquiryForm = selectedProduct && !isBulkMode && !isViewingInquiryResult && !isViewingPaymentResult;
+    const showBulkInquiryForm = selectedProduct && isBulkMode && !isViewingInquiryResult && !isViewingPaymentResult;
+
+    // Filter produk untuk pencarian
     const filteredProducts = products.filter(product =>
         product.product_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -165,37 +244,41 @@ export default function Multifinance({ auth, products }) {
     const resetTransaction = () => {
         setSelectedProduct(null);
         setCustomerNo('');
+        setCustomerNosInput('');
         setInquiryResult(null);
+        setBulkInquiryResults(null);
         setError('');
         setPaymentResult(null);
+        setBulkPaymentResults(null);
         setSearchTerm('');
         setIsModalOpen(false);
         setPassword('');
+        setIsBulkMode(false); // Reset mode
     };
 
     return (
         <>
-            <Head title="Multifinance Pascabayar" /> {/* <<< TITLE CHANGE */}
+            <Head title="Multifinance Pascabayar" />
 
             <div className="mx-auto w-full max-w-[500px] min-h-screen bg-gray-50 flex flex-col">
                 {/* ====== HEADER ====== */}
                 <header ref={stickyHeaderRef} className="fixed top-0 left-1/2 -translate-x-1/2 max-w-[500px] w-full z-10 bg-white shadow-lg">
                     <div className="w-full h-max flex flex-row space-x-4 justify-start items-center px-4 py-3 bg-main">
-                        <button className="shrink-0 w-6 h-6" onClick={() => (inquiryResult || paymentResult || selectedProduct) ? resetTransaction() : window.history.back()}>
+                        <button className="shrink-0 w-6 h-6" onClick={() => (isViewingPaymentResult || isViewingInquiryResult || selectedProduct) ? resetTransaction() : window.history.back()}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
                             </svg>
                         </button>
-                        <div className="font-semibold text-white text-lg">Tagihan Multifinance</div> {/* <<< HEADER TEXT CHANGE */}
+                        <div className="font-semibold text-white text-lg">Tagihan Multifinance</div>
                     </div>
 
-                    {!inquiryResult && !paymentResult && !selectedProduct && (
+                    {showProductList && (
                         <div className="p-4 space-y-3">
                             <div className="w-full h-9 flex flex-row mx-auto items-center justify-center pr-2 py-2 rounded-lg bg-neutral-100 border-2 border-gray-200">
                                 <input
                                     type="text"
                                     className="bg-transparent border-none flex-grow focus:ring-0 focus:outline-none placeholder-gray-400 px-3"
-                                    placeholder="Cari penyedia Multifinance..." // <<< PLACEHOLDER CHANGE
+                                    placeholder="Cari penyedia Multifinance..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -205,50 +288,88 @@ export default function Multifinance({ auth, products }) {
                             </div>
                         </div>
                     )}
-                    {!inquiryResult && !paymentResult && selectedProduct && (
+
+                    {selectedProduct && !isViewingInquiryResult && !isViewingPaymentResult && (
                         <div className="p-4 space-y-3 border-t">
-                            <form onSubmit={handleInquiry} className='space-y-3'>
-                                <div>
-                                    <p className="text-sm text-gray-600">Produk Pilihan:</p>
-                                    <p className="font-bold text-main">{selectedProduct.product_name}</p>
-                                </div>
-                                <div>
-                                    <label htmlFor="customer_no_input" className="block text-sm font-medium text-gray-700 mb-1">Nomor Pelanggan / Nomor Kontrak</label> {/* <<< LABEL CHANGE */}
-                                    <input
-                                        id="customer_no_input"
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        value={customerNo}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            if (/^\d*$/.test(value)) {
-                                                setCustomerNo(value);
-                                            }
-                                        }}
-                                        onWheel={(e) => e.target.blur()}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        disabled={isLoading || !selectedProduct.seller_product_status}
-                                        required
-                                        placeholder="Masukkan Nomor Pelanggan atau Nomor Kontrak" // <<< PLACEHOLDER CHANGE
-                                    />
-                                    {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
-                                    <button type="submit" disabled={isLoading || !customerNo || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
-                                        {isLoading ? 'Mengecek...' : 'Cek Tagihan'}
-                                    </button>
-                                </div>
-                            </form>
+                            <div className="flex justify-between items-center mb-3">
+                                <p className="text-sm text-gray-600">Produk Pilihan:</p>
+                                <p className="font-bold text-main text-right">{selectedProduct.product_name}</p>
+                            </div>
+
+                            <div className="flex space-x-2 mb-4">
+                                <button
+                                    onClick={() => setIsBulkMode(false)}
+                                    className={`w-1/2 py-2 text-sm font-semibold rounded-lg ${!isBulkMode ? 'bg-main text-white' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                    Transaksi Satuan
+                                </button>
+                                <button
+                                    onClick={() => setIsBulkMode(true)}
+                                    className={`w-1/2 py-2 text-sm font-semibold rounded-lg ${isBulkMode ? 'bg-main text-white' : 'bg-gray-200 text-gray-700'}`}
+                                >
+                                    Transaksi Massal
+                                </button>
+                            </div>
+
+                            {/* Form Satuan */}
+                            {showSingleInquiryForm && (
+                                <form onSubmit={handleInquiry} className='space-y-3'>
+                                    <div>
+                                        <label htmlFor="customer_no_input" className="block text-sm font-medium text-gray-700 mb-1">Nomor Pelanggan / Nomor Kontrak</label>
+                                        <input
+                                            id="customer_no_input" type="text" inputMode="numeric" pattern="[0-9]*"
+                                            value={customerNo} onChange={(e) => { const value = e.target.value; if (/^\d*$/.test(value)) { setCustomerNo(value); } }}
+                                            onWheel={(e) => e.target.blur()}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            disabled={isLoading || !selectedProduct.seller_product_status} required placeholder="Masukkan Nomor Pelanggan atau Nomor Kontrak"
+                                        />
+                                    </div>
+                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    <div className="flex space-x-2">
+                                        <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
+                                        <button type="submit" disabled={isLoading || !customerNo || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                                            {isLoading ? 'Mengecek...' : 'Cek Tagihan'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {/* Form Massal */}
+                            {showBulkInquiryForm && (
+                                <form onSubmit={handleBulkInquiry} className='space-y-3'>
+                                    <div>
+                                        <label htmlFor="customer_nos_bulk" className="block text-sm font-medium text-gray-700 mb-1">
+                                            ID Pelanggan / Nomor Kontrak (Pisahkan dengan koma, spasi, atau baris baru)
+                                        </label>
+                                        <textarea
+                                            id="customer_nos_bulk"
+                                            value={customerNosInput}
+                                            onChange={(e) => setCustomerNosInput(e.target.value)}
+                                            rows="5"
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            disabled={isLoading || !selectedProduct.seller_product_status}
+                                            required
+                                            placeholder="Contoh:&#10;123456789012&#10;098765432109, 112233445566"
+                                        />
+                                    </div>
+                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    <div className="flex space-x-2">
+                                        <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
+                                        <button type="submit" disabled={isLoading || !customerNosInput.trim() || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                                            {isLoading ? 'Mengecek Massal...' : 'Cek Tagihan Massal'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     )}
                 </header>
 
                 {/* ====== MAIN CONTENT ====== */}
-                <main style={{ paddingTop: `${headerHeight}px` }} className="w-full pt-20 pb-40 px-4 space-y-4 flex-grow">
+                <main style={{ paddingTop: `${headerHeight}px` }} className="w-full pt-4 pb-40 px-4 space-y-4 flex-grow">
                     <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border">
-                        {paymentResult ? (
+                        {isViewingPaymentResult ? (
+                            // --- TAMPILAN SETELAH PEMBAYARAN (SINGLE / BULK) ---
                             <div className="space-y-4">
                                 <div className="text-center">
                                     <svg
@@ -266,39 +387,43 @@ export default function Multifinance({ auth, products }) {
                                         />
                                     </svg>
                                     <h3 className="text-lg font-bold text-gray-800 mt-2">
-                                        Pembayaran Berhasil
+                                        Pembayaran Selesai
                                     </h3>
                                     <p className="text-sm text-gray-500">
-                                        {paymentResult.message || "Pembayaran Tagihan Multifinance Anda berhasil."} {/* <<< MESSAGE CHANGE */}
+                                        {isBulkMode ? 'Pembayaran Tagihan Multifinance Massal' : 'Pembayaran Tagihan Multifinance Anda berhasil.'}
                                     </p>
                                 </div>
 
                                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                                    <p className="text-sm text-gray-600">Total Pembayaran</p>
+                                    <p className="text-sm text-gray-600">Total Pembayaran Berhasil</p>
                                     <p className="text-3xl font-bold text-main">
-                                        {formatRupiah(paymentResult.selling_price)}
+                                        {formatRupiah(isBulkMode ? bulkPaymentResults.total_paid_amount : paymentResult.selling_price)}
                                     </p>
                                 </div>
 
-                                {paymentResult.diskon > 0 && (
+                                {isBulkMode && bulkPaymentResults.results.filter(r => r.status !== 'Sukses').length > 0 && (
+                                    <div className="text-center text-sm text-red-600 font-semibold bg-red-50 p-2 rounded-lg">
+                                        Ada {bulkPaymentResults.results.filter(r => r.status !== 'Sukses').length} transaksi yang gagal. Saldo akan dikembalikan.
+                                    </div>
+                                )}
+
+                                {paymentResult?.diskon > 0 && (
                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
                                         Anda hemat {formatRupiah(paymentResult.diskon)}!
                                     </div>
                                 )}
+                                {isBulkMode && totalBulkDiscount > 0 && (
+                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
+                                        Total diskon: {formatRupiah(totalBulkDiscount)}!
+                                    </div>
+                                )}
 
-                                <div className="space-y-2 text-sm">
-                                    <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">
-                                        Detail Pelanggan
-                                    </h4>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Nama</span>
-                                        <span className="font-medium text-right">{paymentResult.customer_name}</span>
+
+                                {paymentResult && paymentResult.status !== "Sukses" && (
+                                    <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
+                                        {paymentResult.message || "Terjadi kesalahan saat memproses pembayaran Anda."}
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Nomor Kontrak</span> {/* <<< LABEL CHANGE */}
-                                        <span className="font-medium">{paymentResult.customer_no}</span>
-                                    </div>
-                                </div>
+                                )}
 
                                 <button
                                     onClick={() => router.visit(route("postpaid.history.index"))}
@@ -313,101 +438,222 @@ export default function Multifinance({ auth, products }) {
                                     Lakukan Transaksi Lain
                                 </button>
                             </div>
-                        ) : inquiryResult ? (
-                            // --- TAMPILAN DETAIL TAGIHAN MULTIFINANCE (INQUIRY) ---
+                        ) : isViewingInquiryResult ? (
+                            // --- TAMPILAN DETAIL TAGIHAN (INQUIRY: Satuan atau Massal) ---
                             <div className="space-y-4">
-                                <p className="w-full font-semibold text-md text-center text-gray-800 pb-3 border-b">Detail Tagihan Multifinance</p> {/* <<< TEXT CHANGE */}
-                                <div className="space-y-2 text-sm">
-                                    <h4 className="font-semibold text-gray-800">Detail Pelanggan</h4>
-                                    <div className="flex justify-between"><span className="text-gray-500">Nomor Kontrak</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
-                                    {inquiryResult.desc && inquiryResult.desc.item_name && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Item Kredit</span>
-                                            <span className="font-medium text-right">{inquiryResult.desc.item_name}</span>
-                                        </div>
-                                    )}
-                                    {inquiryResult.desc && inquiryResult.desc.no_rangka && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">No. Rangka</span>
-                                            <span className="font-medium text-right">{inquiryResult.desc.no_rangka}</span>
-                                        </div>
-                                    )}
-                                    {inquiryResult.desc && inquiryResult.desc.no_pol && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">No. Polisi</span>
-                                            <span className="font-medium text-right">{inquiryResult.desc.no_pol}</span>
-                                        </div>
-                                    )}
-                                    {inquiryResult.desc && inquiryResult.desc.tenor && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Tenor</span>
-                                            <span className="font-medium text-right">{inquiryResult.desc.tenor} Bulan</span>
-                                        </div>
-                                    )}
-                                    {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
-                                </div>
+                                <p className="w-full font-semibold text-md text-center text-gray-800 pb-3 border-b">
+                                    {isBulkMode ? 'Ringkasan Pengecekan Tagihan Massal' : 'Detail Tagihan Multifinance'}
+                                </p>
 
-                                {/* Bagian Detail Tagihan per Periode (jika ada) */}
-                                {inquiryResult.desc && inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (
-                                    <div className="space-y-2 text-sm border-t pt-2">
-                                        <h4 className="font-semibold text-gray-800">Tagihan per Periode</h4>
-                                        {inquiryResult.desc.detail.map((item, index) => (
-                                            <div key={index} className="border-b pb-2 mb-2 last:border-b-0 last:pb-0">
-                                                                                                <p className="font-medium text-gray-700">Periode: {item.periode}</p>
-<div className="flex justify-between pl-2">
-                                                    <span className="text-gray-500">Nilai Tagihan</span>
-                                                    <span className="font-medium">{formatRupiah(item.bill_amount)}</span>
+                                {inquiryResult && !isBulkMode && ( // Single inquiry result display
+                                    <>
+                                        <div className="space-y-2 text-sm">
+                                            <h4 className="font-semibold text-gray-800">Detail Pelanggan</h4>
+                                            <div className="flex justify-between"><span className="text-gray-500">Nomor Kontrak</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
+                                            {inquiryResult.desc && inquiryResult.desc.item_name && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Item Kredit</span>
+                                                    <span className="font-medium text-right">{inquiryResult.desc.item_name}</span>
                                                 </div>
-                                                {parseFloat(item.admin_fee_per_period) > 0 && (
-                                                    <div className="flex justify-between pl-2">
-                                                        <span className="text-gray-500">Biaya Admin Periode</span>
-                                                        <span className="font-medium">{formatRupiah(item.admin_fee_per_period)}</span>
+                                            )}
+                                            {inquiryResult.desc && inquiryResult.desc.no_rangka && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">No. Rangka</span>
+                                                    <span className="font-medium text-right">{inquiryResult.desc.no_rangka}</span>
+                                                </div>
+                                            )}
+                                            {inquiryResult.desc && inquiryResult.desc.no_pol && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">No. Polisi</span>
+                                                    <span className="font-medium text-right">{inquiryResult.desc.no_pol}</span>
+                                                </div>
+                                            )}
+                                            {inquiryResult.desc && inquiryResult.desc.tenor && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Tenor</span>
+                                                    <span className="font-medium text-right">{inquiryResult.desc.tenor} Bulan</span>
+                                                </div>
+                                            )}
+                                            {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
+                                        </div>
+
+                                        {inquiryResult.desc && inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (
+                                            <div className="space-y-2 text-sm border-t pt-2">
+                                                <h4 className="font-semibold text-gray-800">Tagihan per Periode</h4>
+                                                {inquiryResult.desc.detail.map((item, index) => (
+                                                    <div key={index} className="border-b pb-2 mb-2 last:border-b-0 last:pb-0">
+                                                                                                        <p className="font-medium text-gray-700">Periode: {item.periode}</p>
+                                                        <div className="flex justify-between pl-2">
+                                                            <span className="text-gray-500">Nilai Tagihan</span>
+                                                            <span className="font-medium">{formatRupiah(item.bill_amount)}</span>
+                                                        </div>
+                                                        {parseFloat(item.admin_fee_per_period) > 0 && (
+                                                            <div className="flex justify-between pl-2">
+                                                                <span className="text-gray-500">Biaya Admin Periode</span>
+                                                                <span className="font-medium">{formatRupiah(item.admin_fee_per_period)}</span>
+                                                            </div>
+                                                        )}
+                                                        {parseFloat(item.denda) > 0 && (
+                                                            <div className="flex justify-between pl-2">
+                                                                <span className="text-gray-500">Denda Periode</span>
+                                                                <span className="font-medium">{formatRupiah(item.denda)}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                                {parseFloat(item.denda) > 0 && (
-                                                    <div className="flex justify-between pl-2">
-                                                        <span className="text-gray-500">Denda Periode</span>
-                                                        <span className="font-medium">{formatRupiah(item.denda)}</span>
-                                                    </div>
-                                                )}
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+
+                                        <div className="space-y-2 text-sm border-t pt-2">
+                                            <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Total Tagihan Pokok</span>
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
+                                            </div>
+                                            {parseFloat(inquiryResult.denda) > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Total Denda</span>
+                                                    <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Total Biaya Admin</span>
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
+                                            </div>
+
+                                            {parseFloat(inquiryResult.diskon) > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Diskon</span>
+                                                    <span className="font-medium text-green-600">- {formatRupiah(inquiryResult.diskon)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="w-full h-px bg-gray-200" />
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-semibold text-gray-800">Total Pembayaran Akhir</span>
+                                            <span className="font-bold text-xl text-blue-600">{formatRupiah(inquiryResult.selling_price)}</span>
+                                        </div>
+                                    </>
                                 )}
 
-                                <div className="space-y-2 text-sm border-t pt-2">
-                                    <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Tagihan Pokok</span>
-                                        <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
-                                    </div>
-                                    {parseFloat(inquiryResult.denda) > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Total Denda</span>
-                                            <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
-                                        </div>
-                                    )}
+                                {bulkInquiryResults && isBulkMode && ( // Bulk inquiry result display
+                                    <div className="space-y-4">
+                                        {bulkInquiryResults.successful.length > 0 && (
+                                            <>
+                                                <p className="font-semibold text-gray-800">Tagihan Berhasil Ditemukan ({bulkInquiryResults.successful.length})</p>
+                                                {bulkInquiryResults.successful.map((item, index) => {
+                                                    // Calculate total admin from details + root admin
+                                                    const totalAdminFeePerPeriod = item.desc && item.desc.detail ? item.desc.detail.reduce((sum, d) => sum + parseFloat(d.admin_fee_per_period || 0), 0) : (item.desc && item.desc.total_admin_per_period || 0);
+                                                    const combinedAdmin = (item.admin || 0) + totalAdminFeePerPeriod;
 
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Total Biaya Admin</span>
-                                        <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
-                                    </div>
+                                                    return (
+                                                        <div key={index} className="border border-blue-200 bg-blue-50 p-3 rounded-lg space-y-1 text-sm">
+                                                            <p className="font-semibold text-main text-base mb-2">{item.product_name}</p>
+                                                            <div className="flex justify-between"><span className="text-gray-500">Nomor Kontrak</span><span className="font-medium text-gray-900">{item.customer_no}</span></div>
+                                                            <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{item.customer_name}</span></div>
+                                                            {item.desc && item.desc.item_name && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Item Kredit</span>
+                                                                    <span className="font-medium text-right">{item.desc.item_name}</span>
+                                                                </div>
+                                                            )}
+                                                            {item.desc && item.desc.no_pol && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">No. Polisi</span>
+                                                                    <span className="font-medium text-right">{item.desc.no_pol}</span>
+                                                                </div>
+                                                            )}
 
-                                    {parseFloat(inquiryResult.diskon) > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Diskon</span>
-                                            <span className="font-medium text-green-600">
-                                                - {formatRupiah(inquiryResult.diskon)}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="w-full h-px bg-gray-200" />
-                                <div className="flex justify-between items-center">
-                                    <span className="font-semibold text-gray-800">Total Pembayaran Akhir</span>
-                                    <span className="font-bold text-xl text-blue-600">{formatRupiah(inquiryResult.selling_price)}</span>
-                                </div>
+
+                                                            {item.desc && item.desc.detail && item.desc.detail.length > 0 && (
+                                                                <div className="space-y-1 text-xs border-t pt-1 mt-1">
+                                                                    <h5 className="font-semibold text-gray-700">Rincian per Periode</h5>
+                                                                    {item.desc.detail.map((detail, detailIndex) => (
+                                                                        <div key={detailIndex} className="pb-1 mb-1 last:border-b-0 last:pb-0">
+                                                                            <p className="font-medium text-gray-600">Periode: {detail.periode}</p>
+                                                                            <div className="flex justify-between pl-2">
+                                                                                <span className="text-gray-500">Nilai Tagihan</span>
+                                                                                <span className="font-medium">{formatRupiah(detail.bill_amount)}</span>
+                                                                            </div>
+                                                                            {parseFloat(detail.admin_fee_per_period) > 0 && (
+                                                                                <div className="flex justify-between pl-2">
+                                                                                    <span className="text-gray-500">Biaya Admin Periode</span>
+                                                                                    <span className="font-medium">{formatRupiah(detail.admin_fee_per_period)}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {parseFloat(detail.denda) > 0 && (
+                                                                                <div className="flex justify-between pl-2">
+                                                                                    <span className="text-gray-500">Denda Periode</span>
+                                                                                    <span className="font-medium text-red-600">{formatRupiah(detail.denda)}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="space-y-1 text-sm border-t pt-1 mt-1">
+                                                                <h5 className="font-semibold text-gray-800">Ringkasan Pembayaran</h5>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Total Tagihan Pokok</span>
+                                                                    <span className="font-medium text-gray-900">{formatRupiah(item.price)}</span>
+                                                                </div>
+                                                                {parseFloat(item.denda) > 0 && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Total Denda</span>
+                                                                        <span className="font-medium text-red-600">{formatRupiah(item.denda)}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Total Biaya Admin</span>
+                                                                    <span className="font-medium text-gray-900">{formatRupiah(combinedAdmin)}</span>
+                                                                </div>
+                                                                {parseFloat(item.diskon) > 0 && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Diskon</span>
+                                                                        <span className="font-medium text-green-600">- {formatRupiah(item.diskon)}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="w-full h-px bg-gray-200 mt-2" />
+                                                                <div className="flex justify-between items-center pt-2">
+                                                                    <span className="font-semibold text-gray-800">Total Bayar</span>
+                                                                    <span className="font-bold text-lg text-main">{formatRupiah(item.selling_price)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
+
+                                        {bulkInquiryResults.failed.length > 0 && (
+                                            <>
+                                                <p className="font-semibold text-red-700 mt-4">Tagihan Gagal Ditemukan ({bulkInquiryResults.failed.length})</p>
+                                                {bulkInquiryResults.failed.map((item, index) => (
+                                                    <div key={index} className="border border-red-300 bg-red-50 p-3 rounded-lg space-y-1 text-sm">
+                                                        <p className="font-semibold text-red-800 text-base mb-2">{item.product_name || 'Produk Tidak Diketahui'}</p>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">ID Pelanggan</span>
+                                                            <span className="font-bold text-red-800">{item.customer_no}</span>
+                                                        </div>
+                                                        <p className="text-xs text-red-600 mt-1">{item.message}</p>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                        {bulkInquiryResults.successful.length > 0 && (
+                                            <>
+                                                <div className="w-full h-px bg-gray-200 mt-4" />
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-semibold text-gray-800">Total Pembayaran Massal</span>
+                                                    <span className="font-bold text-xl text-main">{formatRupiah(totalAmountToPayBulk)}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             // --- TAMPILAN AWAL (LIST PRODUK MULTIFINANCE) ---
@@ -431,22 +677,26 @@ export default function Multifinance({ auth, products }) {
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
+                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
 
                 {/* ====== FOOTER (TOMBOL BAYAR) ====== */}
-                {inquiryResult && !paymentResult && (
+                {((inquiryResult && !isBulkMode) || (bulkInquiryResults && isBulkMode && bulkInquiryResults.successful.length > 0)) && !isViewingPaymentResult && (
                     <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] p-4 bg-white shadow-[0_-2px_5px_rgba(0,0,0,0.1)] rounded-t-xl">
                         <div className="flex items-center justify-between w-full">
                             <div>
                                 <p className="text-sm text-gray-600">Total Pembayaran Akhir</p>
-                                <p className="text-xl font-bold text-main">{formatRupiah(inquiryResult.selling_price)}</p>
+                                <p className="text-xl font-bold text-main">
+                                    {isBulkMode ? formatRupiah(totalAmountToPayBulk) : formatRupiah(inquiryResult.selling_price)}
+                                </p>
                             </div>
                             <button
-                                onClick={handleBayarClick} disabled={userBalance < inquiryResult.selling_price}
+                                onClick={handleBayarClick}
+                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price)}
                                 className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {userBalance < inquiryResult.selling_price ? "Saldo Kurang" : "Bayar Sekarang"}
+                                {userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price) ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
                         </div>
                     </footer>

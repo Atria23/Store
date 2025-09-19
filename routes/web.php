@@ -81,6 +81,10 @@ Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascai
     Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
     Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');
 
+    // Tambahkan rute baru untuk bulk payment PDAM:
+    Route::post('/pdam/bulk-inquiry', [PascaPdamController::class, 'bulkInquiry'])->name('pascapdam.bulk-inquiry');
+    Route::post('/pdam/bulk-payment', [PascaPdamController::class, 'bulkPayment'])->name('pascapdam.bulk-payment');
+
     Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('pascabpjs.index');
     Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('bpjs.kesehatan.inquiry');
     Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('bpjs.kesehatan.payment');
@@ -97,6 +101,9 @@ Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascai
 
     // Endpoint untuk proses Bayar Tagihan (Payment)
     Route::post('/pln/payment', [PascaPlnController::class, 'payment'])->name('pln.pasca.payment');
+    // Tambahkan rute baru untuk bulk payment:
+    Route::post('/pln-pascabayar/bulk-inquiry', [PascaPlnController::class, 'bulkInquiry'])->name('pln.pasca.bulk-inquiry');
+    Route::post('/pln-pascabayar/bulk-payment', [PascaPlnController::class, 'bulkPayment'])->name('pln.pasca.bulk-payment');
 
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])
