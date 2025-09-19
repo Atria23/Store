@@ -65,7 +65,7 @@ class PascaMultifinanceController extends Controller
         $current_sku = $product->buyer_sku_code;
         $ref_id = 'mf-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
         $username = env('P_U');
-        $apiKey = env('P_AKD'); // Assuming P_AKD is also used for Multifinance
+        $apiKey = env('P_AK'); // Assuming P_AK is also used for Multifinance
         $sign = md5($username . $apiKey . $ref_id);
 
         $responseData = [];
@@ -162,7 +162,7 @@ class PascaMultifinanceController extends Controller
                     'customer_no' => $customerNo,
                     'ref_id' => $ref_id,
                     'sign' => $sign,
-                    'testing' => true, // Make sure this is 'false' in production
+                    'testing' => false, // Make sure this is 'false' in production
                 ]);
 
                 $responseData = $response->json();
@@ -381,7 +381,7 @@ class PascaMultifinanceController extends Controller
 
             // --- ORIGINAL API CALL (only if not in local dummy mode) ---
             $username = env('P_U');
-            $apiKey = env('P_AKD'); // Use P_AKD for real API call
+            $apiKey = env('P_AK'); // Use P_AK for real API call
             $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
             try {
@@ -392,7 +392,7 @@ class PascaMultifinanceController extends Controller
                     'customer_no' => $inquiryData['customer_no'],
                     'ref_id' => $inquiryData['ref_id'],
                     'sign' => $sign,
-                    'testing' => true, // Make sure this is 'false' in production
+                    'testing' => false, // Make sure this is 'false' in production
                 ]);
                 $apiResponseData = $response->json()['data'];
 

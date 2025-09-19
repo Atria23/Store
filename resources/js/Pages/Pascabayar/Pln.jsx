@@ -81,8 +81,8 @@ export default function PlnPascaIndex({ auth }) {
         setBulkPaymentResults(null); // Clear bulk payment results
 
         const customerNos = customerNosInput.split(/[\n,;\s]+/) // Split by newline, comma, semicolon, or space
-                                           .map(num => num.trim())
-                                           .filter(num => num.length >= 10); // Filter out empty or too short entries
+            .map(num => num.trim())
+            .filter(num => num.length >= 10); // Filter out empty or too short entries
 
         if (customerNos.length === 0) {
             setError('Masukkan setidaknya satu ID Pelanggan yang valid.');
@@ -423,6 +423,10 @@ export default function PlnPascaIndex({ auth }) {
                                                                             <div className="flex justify-between pl-2">
                                                                                 <span className="text-gray-500">Admin</span>
                                                                                 <span className="font-medium">{formatRupiah(detail.admin)}</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between pl-2">
+                                                                                <span className="text-gray-500">Meter Awal - Akhir</span>
+                                                                                <span className="font-medium">{detail.meter_awal} - {detail.meter_akhir}</span>
                                                                             </div>
                                                                         </div>
                                                                     ))}
