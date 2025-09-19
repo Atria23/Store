@@ -120,8 +120,8 @@ export default function Pdam({ auth, products }) {
         setBulkPaymentResults(null);
 
         const customerNos = customerNosInput.split(/[\n,;\s]+/)
-                                           .map(num => num.trim())
-                                           .filter(num => num.length >= 4); // PDAM min 4 digits
+            .map(num => num.trim())
+            .filter(num => num.length >= 4); // PDAM min 4 digits
 
         if (customerNos.length === 0) {
             setError('Masukkan setidaknya satu ID Pelanggan yang valid.');
@@ -414,7 +414,7 @@ export default function Pdam({ auth, products }) {
                                     </div>
                                 )}
                                 {isBulkMode && totalBulkDiscount > 0 && (
-                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
+                                    <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
                                         Total diskon: {formatRupiah(totalBulkDiscount)}!
                                     </div>
                                 )}
@@ -544,6 +544,12 @@ export default function Pdam({ auth, products }) {
                                                                     {item.desc.detail.map((detail, detailIndex) => (
                                                                         <div key={detailIndex} className="pb-1 mb-1 last:border-b-0 last:pb-0">
                                                                             <p className="font-medium text-gray-600">Periode: {detail.periode}</p>
+                                                                            {detail.meter_awal && detail.meter_akhir && (detail.meter_awal !== '-' || detail.meter_akhir !== '-') && (
+                                                                                <div className="flex justify-between pl-2">
+                                                                                    <span className="text-gray-500">Meter Awal - Akhir</span>
+                                                                                    <span className="font-medium">{detail.meter_awal} - {detail.meter_akhir}</span>
+                                                                                </div>
+                                                                            )}
                                                                             <div className="flex justify-between pl-2">
                                                                                 <span className="text-gray-500">Nilai Tagihan</span>
                                                                                 <span className="font-medium">{formatRupiah(detail.nilai_tagihan)}</span>
