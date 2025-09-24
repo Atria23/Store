@@ -55,7 +55,7 @@ export default function PlnPascaIndex({ auth }) {
         setBulkPaymentResults(null); // Clear bulk payment results
 
         try {
-            const response = await fetch(route('pln.pasca.inquiry'), {
+            const response = await fetch(route('pascapln.inquiry'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ customer_no: customerNo }),
@@ -91,7 +91,7 @@ export default function PlnPascaIndex({ auth }) {
         }
 
         try {
-            const response = await fetch(route('pln.pasca.bulk-inquiry'), {
+            const response = await fetch(route('pascapln.bulk-inquiry'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ customer_nos: customerNos }),
@@ -152,13 +152,13 @@ export default function PlnPascaIndex({ auth }) {
             let paymentResponse;
             if (isBulkMode) {
                 const customerNosToPay = bulkInquiryResults.successful.map(item => item.customer_no);
-                paymentResponse = await fetch(route('pln.pasca.bulk-payment'), {
+                paymentResponse = await fetch(route('pascapln.bulk-payment'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ customer_nos_to_pay: customerNosToPay }), // Send only customer numbers to pay
                 });
             } else {
-                paymentResponse = await fetch(route('pln.pasca.payment'), {
+                paymentResponse = await fetch(route('pascapln.payment'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ customer_no: inquiryResult.customer_no }),
@@ -272,7 +272,6 @@ export default function PlnPascaIndex({ auth }) {
 
                                 {(paymentResult?.diskon > 0 || (bulkPaymentResults && bulkPaymentResults.results && bulkPaymentResults.results.some(r => r.diskon > 0))) && (
                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
-                                        {paymentResult?.diskon > 0 && `Anda hemat ${formatRupiah(paymentResult.diskon)}!`}
                                         {bulkPaymentResults && !paymentResult && `Total diskon: ${formatRupiah(bulkPaymentResults.results.reduce((sum, item) => sum + (item.diskon || 0), 0))}!`}
                                     </div>
                                 )}
@@ -563,7 +562,7 @@ export default function PlnPascaIndex({ auth }) {
                                         </div>
                                         <button
                                             type="submit" disabled={isLoading || !customerNosInput.trim()}
-                                            className="w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+                                            className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
                                         >
                                             {isLoading ? 'Mengecek Massal...' : 'Lanjutkan Massal'}
                                         </button>

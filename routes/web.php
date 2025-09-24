@@ -71,12 +71,23 @@ Route::post('/multifinance/payment', [PascaMultifinanceController::class, 'payme
     Route::get('/postpaid-history', [PostpaidHistoryController::class, 'index'])->name('postpaid.history.index');
     Route::get('/postpaid-history/{ref_id}', [PostpaidHistoryController::class, 'show'])->name('postpaid.history.show');
 // <<<<<<<<<<< ROUTE BARU UNTUK PBB PASCABAYAR >>>>>>>>>>>>>
-    Route::get('/pbb', [PascaPBBController::class, 'index'])->name('pascapbb.index');
-    Route::post('/pbb/inquiry', [PascaPBBController::class, 'inquiry'])->name('pascapbb.inquiry');
-    Route::post('/pbb/payment', [PascaPBBController::class, 'payment'])->name('pascapbb.payment');
+
+    Route::get('/pbb', [PascaPbbController::class, 'index'])->name('pascapbb.index');
+    Route::post('/pbb/inquiry', [PascaPbbController::class, 'inquiry'])->name('pascapbb.inquiry');
+    Route::post('/pbb/payment', [PascaPbbController::class, 'payment'])->name('pascapbb.payment');
+    Route::post('/pbb/bulk-inquiry', [PascaPbbController::class, 'bulkInquiry'])->name('pascapbb.bulk-inquiry');
+    Route::post('/pbb/bulk-payment', [PascaPbbController::class, 'bulkPayment'])->name('pascapbb.bulk-payment');
+    // Route::get('/pbb', [PascaPBBController::class, 'index'])->name('pascapbb.index');
+    // Route::post('/pbb/inquiry', [PascaPBBController::class, 'inquiry'])->name('pascapbb.inquiry');
+    // Route::post('/pbb/payment', [PascaPBBController::class, 'payment'])->name('pascapbb.payment');
+// Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascainternet.index');
+//         Route::post('/internet/inquiry', [PascaInternetController::class, 'inquiry'])->name('pascainternet.inquiry');
+//         Route::post('/internet/payment', [PascaInternetController::class, 'payment'])->name('pascainternet.payment');
 Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascainternet.index');
-        Route::post('/internet/inquiry', [PascaInternetController::class, 'inquiry'])->name('pascainternet.inquiry');
-        Route::post('/internet/payment', [PascaInternetController::class, 'payment'])->name('pascainternet.payment');
+    Route::post('/internet/inquiry', [PascaInternetController::class, 'inquiry'])->name('pascainternet.inquiry');
+    Route::post('/internet/payment', [PascaInternetController::class, 'payment'])->name('pascainternet.payment');
+    Route::post('/internet/bulk-inquiry', [PascaInternetController::class, 'bulkInquiry'])->name('pascainternet.bulk-inquiry');
+    Route::post('/internet/bulk-payment', [PascaInternetController::class, 'bulkPayment'])->name('pascainternet.bulk-payment');
     Route::get('/pdam', [PascaPdamController::class, 'index'])->name('pascapdam.index');
     Route::post('/pdam/inquiry', [PascaPdamController::class, 'inquiry'])->name('pascapdam.inquiry');
     Route::post('/pdam/payment', [PascaPdamController::class, 'payment'])->name('pascapdam.payment');
@@ -84,10 +95,14 @@ Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascai
     // Tambahkan rute baru untuk bulk payment PDAM:
     Route::post('/pdam/bulk-inquiry', [PascaPdamController::class, 'bulkInquiry'])->name('pascapdam.bulk-inquiry');
     Route::post('/pdam/bulk-payment', [PascaPdamController::class, 'bulkPayment'])->name('pascapdam.bulk-payment');
-
-    Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('pascabpjs.index');
-    Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('bpjs.kesehatan.inquiry');
-    Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('bpjs.kesehatan.payment');
+        Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('pascabpjs.index');
+     Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('pascabpjs.inquiry');
+    Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('pascabpjs.payment');
+    Route::post('/bpjs/bulk-inquiry', [PascaBpjsController::class, 'bulkInquiry'])->name('pascabpjs.bulk-inquiry');
+    Route::post('/bpjs/bulk-payment', [PascaBpjsController::class, 'bulkPayment'])->name('pascabpjs.bulk-payment');
+    // Route::get('/bpjs', [PascaBpjsController::class, 'index'])->name('pascabpjs.index');
+    // Route::post('/bpjs/inquiry', [PascaBpjsController::class, 'inquiry'])->name('bpjs.kesehatan.inquiry');
+    // Route::post('/bpjs/payment', [PascaBpjsController::class, 'payment'])->name('bpjs.kesehatan.payment');
     Route::middleware(['auth', 'verified'])->prefix('user')->name('user.')->group(function () {
         Route::resource('redeem-accounts', \App\Http\Controllers\User\RedeemAccountController::class)
             ->only(['index', 'store', 'update', 'destroy']);
@@ -97,13 +112,13 @@ Route::get('/internet', [PascaInternetController::class, 'index'])->name('pascai
     })->name('pascapln.index');
 
     // Endpoint untuk proses Cek Tagihan (Inquiry)
-    Route::post('/pln/inquiry', [PascaPlnController::class, 'inquiry'])->name('pln.pasca.inquiry');
+    Route::post('/pln/inquiry', [PascaPlnController::class, 'inquiry'])->name('pascapln.inquiry');
 
     // Endpoint untuk proses Bayar Tagihan (Payment)
-    Route::post('/pln/payment', [PascaPlnController::class, 'payment'])->name('pln.pasca.payment');
+    Route::post('/pln/payment', [PascaPlnController::class, 'payment'])->name('pascapln.payment');
     // Tambahkan rute baru untuk bulk payment:
-    Route::post('/pln-pascabayar/bulk-inquiry', [PascaPlnController::class, 'bulkInquiry'])->name('pln.pasca.bulk-inquiry');
-    Route::post('/pln-pascabayar/bulk-payment', [PascaPlnController::class, 'bulkPayment'])->name('pln.pasca.bulk-payment');
+    Route::post('/pln/bulk-inquiry', [PascaPlnController::class, 'bulkInquiry'])->name('pascapln.bulk-inquiry');
+    Route::post('/pln/bulk-payment', [PascaPlnController::class, 'bulkPayment'])->name('pascapln.bulk-payment');
 
     // Menampilkan halaman verifikasi email
     Route::get('/email/verify', [EmailVerificationController::class, 'show'])

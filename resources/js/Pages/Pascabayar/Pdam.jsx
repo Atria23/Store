@@ -407,12 +407,7 @@ export default function Pdam({ auth, products }) {
                                         Ada {bulkPaymentResults.results.filter(r => r.status !== 'Sukses').length} transaksi yang gagal. Saldo akan dikembalikan.
                                     </div>
                                 )}
-
-                                {paymentResult?.diskon > 0 && (
-                                    <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
-                                        Anda hemat {formatRupiah(paymentResult.diskon)}!
-                                    </div>
-                                )}
+                                
                                 {isBulkMode && totalBulkDiscount > 0 && (
                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
                                         Total diskon: {formatRupiah(totalBulkDiscount)}!

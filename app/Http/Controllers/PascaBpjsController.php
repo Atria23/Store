@@ -1,7 +1,5 @@
 <?php
 
-// >>>>>>>>>>>>>>>       REAL MODE        <<<<<<<<<<<<<<<<
-
 namespace App\Http\Controllers;
 
 use App\Models\PostpaidTransaction;
@@ -12,306 +10,361 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use App\Http\Traits\TransactionMapper;
+use App\Http\Traits\TransactionMapper; // Pastikan trait ini ada
 
-class PascaBpjsController extends Controller // Renamed controller for clarity
+class PascaBpjsController extends Controller
 {
-    use TransactionMapper;
+    use TransactionMapper; // Gunakan trait TransactionMapper
 
     /**
-     * Display a listing of BPJS Kesehatan postpaid products.
+     * Display a listing of BPJS Health products.
      *
      * @return \Inertia\Response
      */
     public function index()
     {
-        $products = $this->fetchBpjsKesehatanProducts();
-        // Assuming you have an Inertia component for BPJS Kesehatan like 'Pascabayar/BpjsKesehatan.vue'
+        $products = $this->fetchBpjsProducts();
         return Inertia::render('Pascabayar/Bpjs', [
             'products' => $products,
         ]);
     }
 
     /**
-     * Fetches BPJS Kesehatan postpaid products from the database.
+     * Fetch and process BPJS Health products for display.
      *
      * @return array
      */
-    private function fetchBpjsKesehatanProducts()
+    private function fetchBpjsProducts()
     {
-        // Fetch products specifically for BPJS KESEHATAN brand
+        // Fetch products specifically for BPJS KESEHATAN
         $bpjsProducts = PostpaidProduct::where('brand', 'BPJS KESEHATAN')->get();
+
         return $bpjsProducts->map(function ($product) {
             $commission = $product->commission ?? 0;
             $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
             $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-            $adminFromServer = $product->admin ?? 0;
+            $adminFromServer = $product->admin ?? 0; // Admin dari server API (provider)
+
+            // Hitung markup/diskon untuk klien berdasarkan komisi
             $markupForClient = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+
+            // calculated_admin di sini adalah "admin fee" yang kita tampilkan ke pengguna,
+            // yaitu admin dari provider dikurangi markup kita.
             $product->calculated_admin = $adminFromServer - $markupForClient;
             return $product;
         })->values()->all();
     }
 
-    // getDummyBpjsKesehatanInquiryResponse method removed
-
     /**
-     * Handles BPJS Kesehatan inquiry requests by calling a real external API.
+     * Helper method to perform a single BPJS Health inquiry.
+     * Handles API calls and data processing for a given customer number.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $customerNo The customer number (BPJS ID) to inquire.
+     * @return array|null Returns processed inquiry data on success, null on failure.
      */
-    public function inquiry(Request $request)
+    private function _performSingleInquiry(string $customerNo): ?array
     {
-        $request->validate(['customer_no' => 'required|string|min:10']);
-        $customerNo = $request->customer_no;
-
-        // Fetch BPJS KESEHATAN products
         $availableProducts = PostpaidProduct::where('brand', 'BPJS KESEHATAN')
                                             ->where('seller_product_status', true)
                                             ->orderBy('buyer_sku_code', 'asc')
                                             ->get();
 
         if ($availableProducts->isEmpty()) {
-            Log::warning("Inquiry BPJS Kesehatan: Tidak ada produk BPJS Kesehatan yang aktif ditemukan.");
-            return response()->json(['message' => 'Layanan BPJS Kesehatan tidak tersedia saat ini.'], 503);
+            Log::warning("Inquiry BPJS: Tidak ada produk BPJS Kesehatan yang aktif ditemukan untuk {$customerNo}.");
+            return null; // Indicates no active products
         }
 
         $successfulInquiryData = null;
         $lastErrorMessage = 'Gagal melakukan pengecekan tagihan setelah mencoba semua provider.';
 
-        foreach ($availableProducts as $product) {
-            $current_sku = $product->buyer_sku_code;
-            $responseData = [];
+        // Use the first available product for commission calculation
+        $productToUseForCommission = $availableProducts->first();
+        if (!$productToUseForCommission) {
+            Log::warning("Inquiry BPJS: Tidak ada produk BPJS Kesehatan yang aktif ditemukan, tidak bisa menghitung komisi.");
+            return null;
+        }
 
+        $responseData = [];
+
+        // --- START DUMMY DATA FOR TESTING INQUIRY (if APP_ENV is local) ---
+        if (env('APP_ENV') === 'local') {
+            $customerNoLength = strlen($customerNo);
+            $lastDigit = $customerNo[$customerNoLength - 1] ?? '0';
+            $isOverdue = ((int)$lastDigit % 2 === 0); // Simulate overdue for even last digits
+
+            $dummyPriceField = 24700; // Harga pokok per peserta per bulan
+            $dummyAdminField = 2500; // Admin dari provider
+            $dummySellingPriceField = $dummyPriceField + $dummyAdminField; // Initial selling price from provider
+
+            $jumlahPeserta = ((int)$lastDigit % 3 === 0) ? 2 : 1; // Simulate multiple participants
+
+            // Simulate slight variation in price if multiple participants or overdue
+            if ($jumlahPeserta > 1) {
+                $dummyPriceField = 24700 * $jumlahPeserta;
+                $dummySellingPriceField = $dummyPriceField + $dummyAdminField;
+            }
+            if ($isOverdue) {
+                // For BPJS, overdue usually means multiple unpaid months, or just blocked.
+                // For simplicity, let's just make the message overdue, not necessarily add a denda in price
+                // unless provider's actual API includes it in 'price'.
+            }
+
+
+            $responseData = [
+                'data' => [
+                    'ref_id' => 'dummy-bpjs-' . substr(md5($customerNo . time()), 0, 15),
+                    'customer_no' => $customerNo,
+                    'customer_name' => 'DUMMY BPJS ' . substr(preg_replace('/[^0-9]/', '', $customerNo), 0, 5) . ($isOverdue ? ' (OVERDUE)' : ''),
+                    'buyer_sku_code' => 'bpjs', // Generic SKU for BPJS
+                    'admin' => $dummyAdminField, // Admin dari provider
+                    'message' => 'INQ BPJS Sukses (DUMMY).',
+                    'status' => 'Sukses',
+                    'rc' => '00',
+                    'price' => $dummyPriceField, // Ini adalah harga pokok murni dari provider
+                    'selling_price' => $dummySellingPriceField, // Ini adalah (harga pokok + admin) dari provider
+                    'desc' => [
+                        'jumlah_peserta' => (string)$jumlahPeserta,
+                        'lembar_tagihan' => 1, // BPJS usually 1 month at a time for inquiry
+                        'alamat' => 'JAKARTA PUSAT (DUMMY)',
+                        'detail' => [
+                            ['periode' => date('m')],
+                        ],
+                    ],
+                    // We need to set 'original_api_price' and 'original_api_selling_price'
+                    // to accurately reflect provider's total and selling price to us for calculations.
+                    'original_api_price' => $dummyPriceField + $dummyAdminField, // Provider's total (pure bill + their admin)
+                    'original_api_selling_price' => $dummySellingPriceField, // Provider's selling price to us
+                ],
+            ];
+            Log::info("Inquiry BPJS (DUMMY) Sukses untuk Customer No: {$customerNo}", ['customer_no' => $customerNo, 'dummy_response' => $responseData]);
+
+            // Proceed with the dummy response
+            $apiResponseForProcessing = $responseData['data'];
+
+        } else {
+            // --- END DUMMY DATA ---
+
+            // --- ORIGINAL API CALL (only if not in local dummy mode) ---
             $ref_id = 'bpjs-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
-            $username = env('P_U');
-            $apiKey = env('P_AK');
+            $username = env('P_U'); // Your provider username
+            $apiKey = env('P_AK'); // Your provider API key
             $sign = md5($username . $apiKey . $ref_id);
 
             try {
-                // --- MODIFICATION: Call real API here ---
                 $response = Http::post(config('services.api_server') . '/v1/transaction', [
-                    'commands' => 'inq-pasca',
-                    'username' => $username,
-                    'buyer_sku_code' => $current_sku,
-                    'customer_no' => $customerNo,
-                    'ref_id' => $ref_id,
-                    'sign' => $sign,
-                    'testing' => false, // Set to true if you want to test with the provider's test mode
+                    'commands' => 'inq-pasca', 'username' => $username, 'buyer_sku_code' => 'bpjs',
+                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'sign' => $sign, 'testing' => false,
                 ]);
                 $responseData = $response->json();
-                // --- END MODIFICATION ---
-
             } catch (\Exception $e) {
-                $lastErrorMessage = 'Gagal terhubung ke server provider BPJS Kesehatan.';
-                Log::error("Inquiry BPJS Kesehatan Gagal Koneksi API untuk SKU: {$current_sku}. Customer No: {$customerNo}. Error: " . $e->getMessage(), [
-                    'customer_no' => $customerNo,
-                    'sku' => $current_sku,
-                    'ref_id' => $ref_id,
-                    'exception_message' => $e->getMessage(),
-                    'exception_trace' => $e->getTraceAsString(),
+                $lastErrorMessage = 'Gagal terhubung ke server provider.';
+                Log::error("Inquiry BPJS Gagal Koneksi API untuk Customer No: {$customerNo}. Error: " . $e->getMessage(), [
+                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'exception_message' => $e->getMessage(),
                 ]);
-                continue; // Try next provider if available
+                return null;
             }
-            
-            // Logika pemrosesan respons
-            if (isset($responseData['data']) && ($responseData['data']['status'] ?? null) === 'Sukses') {
-                $inquiryDataFromApi = $responseData['data'];
-                
-                if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
-                    $inquiryDataFromApi['desc'] = [];
-                }
 
-                // BPJS typically has total price and admin at the root,
-                // and 'detail' might not contain individual prices/admins like PLN.
-                $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
-                $totalAdminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
-                $totalDenda = (float) ($inquiryDataFromApi['desc']['denda'] ?? 0); // Assuming denda might be in desc
-                $totalBiayaLain = (float) ($inquiryDataFromApi['desc']['biaya_lain'] ?? 0); // Assuming other fees might be in desc
-
-                $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1);
-
-                // Set the 'admin' in inquiryDataFromApi to the total admin from provider
-                $inquiryDataFromApi['admin'] = $totalAdminFromProvider; 
-                
-                // 1. Calculate base discount per bill based on product commission
-                $commission = $product->commission ?? 0;
-                $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
-                $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-                $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
-
-                // 2. Multiply discount per bill by the number of bills
-                $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
-                $finalDiskon = ceil($finalDiskon); // Round up the discount
-
-                // 3. Calculate Final Selling Price (with our platform's discount)
-                                // Hitung Total Pembayaran Akhir (dengan Diskon) sebelum override
-                // selling_price = (pure bill price + other charges) + provider's total admin + total penalty - our platform's total discount
-                $finalSellingPrice = ($totalNilaiTagihan + $totalBiayaLain) + $totalAdminFromProvider + $totalDenda - $finalDiskon;
-                
-                // --- START OF NEW LOGIC FOR OVERRIDE ---
-                // Ambil 'price' dan 'selling_price' asli dari respons API provider root
-                $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
-                $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
-
-                // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
-                // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
-                // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
-                if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
-                    Log::info("Override finalSellingPrice: Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
-                    $finalSellingPrice = $apiOriginalSellingPrice;
-                }
-                // --- END OF NEW LOGIC FOR OVERRIDE ---
-
-                // Pembulatan $finalSellingPrice setelah potensi override
-                $finalSellingPrice = ceil($finalSellingPrice); // Round up the final selling price
-
-                // 4. Reconstruct data for frontend and session storage
-                $inquiryDataFromApi['price']         = $totalNilaiTagihan + $totalBiayaLain;
-                $inquiryDataFromApi['denda']         = $totalDenda;
-                $inquiryDataFromApi['diskon']        = $finalDiskon;
-                $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
-                $inquiryDataFromApi['selling_price'] = $finalSellingPrice;
-                $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
-                $inquiryDataFromApi['ref_id'] = $ref_id;
-
-                // Add BPJS specific details to inquiry data for consistency
-                $inquiryDataFromApi['jumlah_peserta'] = $inquiryDataFromApi['desc']['jumlah_peserta'] ?? null;
-                $inquiryDataFromApi['alamat'] = $inquiryDataFromApi['desc']['alamat'] ?? null;
-
-                $successfulInquiryData = $inquiryDataFromApi;
-
-                Log::info("Inquiry BPJS Kesehatan Sukses untuk SKU: {$current_sku}. Customer No: {$customerNo}", [
-                    'customer_no' => $customerNo,
-                    'sku' => $current_sku,
-                    'ref_id' => $ref_id,
-                    'api_response' => $responseData,
-                    'processed_data' => $successfulInquiryData,
+            if (!isset($responseData['data']) || $responseData['data']['status'] !== 'Sukses') {
+                $lastErrorMessage = $responseData['data']['message'] ?? 'Provider sedang sibuk atau data tidak valid.';
+                Log::warning("Inquiry BPJS Gagal dari Provider. Customer No: {$customerNo}. Pesan: {$lastErrorMessage}", [
+                    'customer_no' => $customerNo, 'ref_id' => $ref_id, 'api_response' => $responseData,
                 ]);
-
-                break; // Stop loop if inquiry is successful
-            } else {
-                $lastErrorMessage = $responseData['data']['message'] ?? 'Provider BPJS Kesehatan sedang sibuk atau data tidak valid.';
-                Log::warning("Inquiry BPJS Kesehatan Gagal dari Provider SKU: {$current_sku}. Customer No: {$customerNo}. Pesan: {$lastErrorMessage}", [
-                    'customer_no' => $customerNo,
-                    'sku' => $current_sku,
-                    'ref_id' => $ref_id,
-                    'api_response' => $responseData,
-                ]);
+                return null;
             }
+            $apiResponseForProcessing = $responseData['data'];
+            // END ORIGINAL API CALL
         }
 
-        if ($successfulInquiryData) {
-            session(['postpaid_inquiry_data' => $successfulInquiryData]);
-            return response()->json($successfulInquiryData);
-        } else {
-            Log::error("Inquiry BPJS Kesehatan Total Gagal untuk Customer No: {$customerNo}. Pesan terakhir: {$lastErrorMessage}");
-            return response()->json(['message' => $lastErrorMessage], 400);
-        }
+        // --- COMMON PROCESSING LOGIC (for both real and dummy data) ---
+        $inquiryDataFromApi = $apiResponseForProcessing;
+
+        // Extract raw data from API response
+        $pureBillPriceFromApi = (float) ($inquiryDataFromApi['price'] ?? 0); // This is the "price" from API (pure bill)
+        $adminFeeFromApi = (float) ($inquiryDataFromApi['admin'] ?? 0);     // This is the "admin" from API (provider's admin)
+        $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // Default to 1 if not specified
+
+        // Calculate our discount based on product commission
+        $commission = $productToUseForCommission->commission ?? 0;
+        $commission_sell_percentage = $productToUseForCommission->commission_sell_percentage ?? 0;
+        $commission_sell_fixed = $productToUseForCommission->commission_sell_fixed ?? 0;
+        $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+
+        $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
+
+        // Total amount before our discount (Pure Bill from API + Admin from API)
+        $totalAmountBeforeOurDiskon = $pureBillPriceFromApi + $adminFeeFromApi;
+
+        // Calculate our final selling price to the user
+        // This directly implements the user's requested formula: (total bill amount + total admin fee) - discount
+        $finalSellingPrice = $totalAmountBeforeOurDiskon - $finalDiskon;
+
+        // --- START: Removed/Adjusted Override Logic ---
+        // The previous override logic could inadvertently remove the calculated discount
+        // if original_api_selling_price was present, leading to the "perhitungan salah" feedback.
+        // If a mechanism to ensure selling price is not below our cost is needed,
+        // it should be implemented carefully to preserve the intended discount.
+        // For now, we prioritize the explicit calculation requested by the user.
+        // If you need to ensure the finalSellingPrice is never below the provider's cost to you
+        // (i.e., $apiOriginalSellingPrice), you might add a line like:
+        // $apiOriginalSellingPrice = (float) ($inquiryDataFromApi['original_api_selling_price'] ?? 0);
+        // if ($apiOriginalSellingPrice > 0) {
+        //     $finalSellingPrice = max($finalSellingPrice, $apiOriginalSellingPrice);
+        // }
+        // This `max` ensures you at least cover your cost, but might reduce your margin if `finalDiskon` is too high.
+        // --- END: Removed/Adjusted Override Logic ---
+
+        // Ensure selling price is an integer (round up for safety/simplicity)
+        $finalSellingPrice = ceil($finalSellingPrice);
+
+        // Populate the final successful inquiry data array
+        $successfulInquiryData = $inquiryDataFromApi;
+        $successfulInquiryData['price'] = $pureBillPriceFromApi;     // This is the pure bill amount for our transaction mapping
+        $successfulInquiryData['admin'] = $adminFeeFromApi;         // This is the provider's admin fee for our transaction mapping
+        $successfulInquiryData['diskon'] = $finalDiskon;
+        $successfulInquiryData['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
+        $successfulInquiryData['selling_price'] = $finalSellingPrice; // This is what the user will pay
+        $successfulInquiryData['buyer_sku_code'] = $productToUseForCommission->buyer_sku_code; // Use actual SKU from product
+        $successfulInquiryData['ref_id'] = $successfulInquiryData['ref_id'] ?? 'generated-' . Str::uuid()->toString(); // Ensure ref_id exists
+
+        Log::info("Inquiry BPJS Sukses (processed). Customer No: {$customerNo}", [
+            'customer_no' => $customerNo,
+            'ref_id' => $successfulInquiryData['ref_id'],
+            'processed_data' => $successfulInquiryData,
+        ]);
+
+        return $successfulInquiryData;
     }
-    
+
     /**
-     * Handles BPJS Kesehatan payment requests by calling a real external API.
+     * Helper method to process a single BPJS Health payment after balance has been debited.
+     * This method creates the transaction record, calls the provider API, and updates the transaction.
+     * It DOES NOT handle user balance debit/credit, that is done by the calling public methods.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param array $inquiryData Processed inquiry data for a single customer.
+     * @param \App\Models\User $user The authenticated user (for logging/context, not balance modification).
+     * @return array Returns an array with transaction status and details.
+     * @throws \Exception If the API call or transaction update fails critically.
      */
-    public function payment(Request $request)
+    private function _processIndividualBpjsPayment(array $inquiryData, \App\Models\User $user): array
     {
-        $user = Auth::user(); 
-        // For testing without login, you can create a dummy user (uncomment if needed for direct testing):
-        // if (!$user) { $user = (object)['id' => 1, 'balance' => 10000000, 'decrement' => function($attr, $val){}, 'increment' => function($attr, $val){}]; }
-
-        $inquiryData = session('postpaid_inquiry_data');
-
-        // Validate session data consistency
-        if (!$inquiryData || ($inquiryData['customer_no'] ?? null) !== $request->customer_no) {
-            return response()->json(['message' => 'Sesi tidak valid atau nomor pelanggan tidak cocok.'], 400);
-        }
-
+        // Extract necessary data for transaction creation and API call
         $totalPriceToPay     = $inquiryData['selling_price'];
-        $finalAdmin          = $inquiryData['admin'];
-        $pureBillPrice       = $inquiryData['price'];
+        $finalAdmin          = $inquiryData['admin'];          // Provider's admin fee
+        $pureBillPrice       = $inquiryData['price'];          // Pure bill amount from provider
         $diskon              = $inquiryData['diskon'] ?? 0;
         $jumlahLembarTagihan = $inquiryData['jumlah_lembar_tagihan'] ?? 0;
-        
-        // Check user balance
-        if ($user->balance < $totalPriceToPay) {
-            return response()->json(['message' => 'Saldo Anda tidak mencukupi.'], 402);
-        }
+        $jumlahPeserta       = $inquiryData['desc']['jumlah_peserta'] ?? null;
+        $alamatPelanggan     = $inquiryData['desc']['alamat'] ?? null;
 
-        // Decrement user balance
-        $user->decrement('balance', $totalPriceToPay);
-
-        // Map inquiry data to initial transaction record
+        // Create initial transaction record with 'Pending' status
+        // Use 'BPJS' as the transaction type
         $initialData = $this->mapToUnifiedTransaction($inquiryData, 'BPJS KESEHATAN', $pureBillPrice, $finalAdmin);
+        $initialData['user_id'] = $user->id; // Ensure user_id is set
         $initialData['selling_price'] = $totalPriceToPay;
         $initialData['status'] = 'Pending';
         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
-        
         $initialData['rc'] = $inquiryData['rc'] ?? null;
-        $initialData['sn'] = null; // SN is expected from payment response
-
-        // Store BPJS specific details in the 'details' JSON column
+        $initialData['sn'] = null;
         $initialData['details'] = [
             'diskon' => $diskon,
             'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
-            'jumlah_peserta' => $inquiryData['jumlah_peserta'] ?? null,
-            'alamat' => $inquiryData['alamat'] ?? null,
+            'jumlah_peserta' => $jumlahPeserta,
+            'alamat' => $alamatPelanggan,
+            // You can add more BPJS-specific details from 'desc' here if needed
+            'bpjs_desc_detail' => $inquiryData['desc']['detail'] ?? [],
         ];
-        
+
         $unifiedTransaction = PostpaidTransaction::create($initialData);
 
         $apiResponseData = [];
-        $username = env('P_U');
-        $apiKey = env('P_AK');
-        $sign = md5($username . $apiKey . $inquiryData['ref_id']);
 
-        try {
-            // --- MODIFICATION: Call real API here ---
-            $response = Http::post(config('services.api_server') . '/v1/transaction', [
-                'commands' => 'pay-pasca',
-                'username' => $username,
-                'buyer_sku_code' => $inquiryData['buyer_sku_code'],
-                'customer_no' => $inquiryData['customer_no'],
-                'ref_id' => $inquiryData['ref_id'],
-                'sign' => $sign,
-                'testing' => false, // Set to true if you want to test with the provider's test mode
-            ]);
-            $apiResponseData = $response->json()['data'];
-            // --- END MODIFICATION ---
+        // --- START DUMMY DATA FOR TESTING PAYMENT (if APP_ENV is local) ---
+        if (env('APP_ENV') === 'local') {
+            $isPaymentSuccess = (substr($inquiryData['customer_no'], -1) % 2 !== 0); // Simulate success for odd last digit
 
-            Log::info('BPJS Kesehatan Payment API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
+            if ($isPaymentSuccess) {
+                $dummyApiResponseData = [
+                    'ref_id' => $inquiryData['ref_id'],
+                    'customer_no' => $inquiryData['customer_no'],
+                    'customer_name' => $inquiryData['customer_name'],
+                    'buyer_sku_code' => $inquiryData['buyer_sku_code'],
+                    'admin' => $inquiryData['admin'],
+                    'message' => 'Payment Sukses (DUMMY).',
+                    'status' => 'Sukses',
+                    'sn' => 'DUMMYBPJS' . substr(md5($inquiryData['customer_no'] . microtime()), 0, 15),
+                    'rc' => '00',
+                    'buyer_last_saldo' => 99999999, // Dummy balance
+                    'price' => $inquiryData['price'], // pure bill price
+                    'selling_price' => $inquiryData['selling_price'], // what client paid
+                    'desc' => $inquiryData['desc'] ?? [],
+                ];
+            } else {
+                $dummyApiResponseData = [
+                    'ref_id' => $inquiryData['ref_id'],
+                    'customer_no' => $inquiryData['customer_no'],
+                    'customer_name' => $inquiryData['customer_name'],
+                    'buyer_sku_code' => $inquiryData['buyer_sku_code'],
+                    'admin' => $inquiryData['admin'],
+                    'message' => 'Payment Gagal (DUMMY). Saldo provider tidak mencukupi.',
+                    'status' => 'Gagal',
+                    'sn' => null,
+                    'rc' => '14', // Example failure code
+                    'buyer_last_saldo' => 99999999,
+                    'price' => $inquiryData['price'],
+                    'selling_price' => $inquiryData['selling_price'],
+                    'desc' => $inquiryData['desc'] ?? [],
+                ];
+            }
 
-        } catch (\Exception $e) {
-            // If API call fails, increment user balance back
-            $user->increment('balance', $totalPriceToPay);
-            $errorMessage = ['status' => 'Gagal', 'message' => 'Gagal terhubung ke server provider BPJS Kesehatan.'];
-            
-            // Update transaction status to failed
-            $unifiedTransaction->update(array_merge($errorMessage, ['rc' => null, 'sn' => null]));
+            $apiResponseData = $dummyApiResponseData;
+            Log::info('BPJS Payment API Response (DUMMY):', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
 
-            Log::error('BPJS Kesehatan Payment Error: ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
-            return response()->json(['message' => 'Terjadi kesalahan pada server provider BPJS Kesehatan.'], 500);
+        } else {
+            // --- END DUMMY DATA ---
+
+            // --- ORIGINAL API CALL (only if not in local dummy mode) ---
+            $username = env('P_U');
+            $apiKey = env('P_AK');
+            $sign = md5($username . $apiKey . $inquiryData['ref_id']);
+
+            try {
+                $response = Http::post(config('services.api_server') . '/v1/transaction', [
+                    'commands' => 'pay-pasca', 'username' => $username, 'buyer_sku_code' => $inquiryData['buyer_sku_code'],
+                    'customer_no' => $inquiryData['customer_no'], 'ref_id' => $inquiryData['ref_id'], 'sign' => $sign, 'testing' => false,
+                ]);
+                $apiResponseData = $response->json()['data'] ?? [];
+                if (!isset($response->json()['data'])) {
+                     Log::error('BPJS Payment API Response did not contain "data" key.', ['full_response' => $response->json(), 'transaction_id' => $unifiedTransaction->id]);
+                     throw new \Exception('Respon API provider tidak lengkap.');
+                }
+                Log::info('BPJS Payment API Response (Individual):', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
+
+            } catch (\Exception $e) {
+                // Update transaction status to Failed and log error
+                $errorMessage = ['status' => 'Gagal', 'message' => 'Gagal terhubung ke server provider atau respon tidak valid.'];
+                $unifiedTransaction->update(array_merge($errorMessage, ['rc' => null, 'sn' => null]));
+                Log::error('BPJS Payment Error (Individual): ' . $e->getMessage(), ['transaction_id' => $unifiedTransaction->id, 'inquiry_data' => $inquiryData]);
+                throw new \Exception('Terjadi kesalahan pada server provider untuk ID Pelanggan: ' . $inquiryData['customer_no'] . '.');
+            }
+            // END ORIGINAL API CALL
         }
-        
-        // Merge inquiry data with actual API payment response data
+
         $fullResponseData = array_merge($inquiryData, $apiResponseData);
 
-        // Prepare payload for updating the transaction based on the real API response
-        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'BPJS KESEHATAN', $pureBillPrice, $finalAdmin);
-        $updatePayload['selling_price'] = $totalPriceToPay; // Ensure selling_price remains consistent
-        
+        // Map and update the transaction with final status from API
+        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'BPJS', $pureBillPrice, $finalAdmin);
+        $updatePayload['selling_price'] = $totalPriceToPay; // Preserve calculated selling price
         $updatePayload['rc'] = $apiResponseData['rc'] ?? null;
         $updatePayload['sn'] = $apiResponseData['sn'] ?? null;
-        $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal'; // Update status from real API response
-        $updatePayload['message'] = $apiResponseData['message'] ?? 'Gagal melakukan pembayaran.'; // Update message from real API response
+        $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal'; // Update status from API response
+        $updatePayload['message'] = $apiResponseData['message'] ?? 'Pembayaran tidak diketahui statusnya.'; // Update message from API response
 
-        // Define keys to exclude from the 'details' array, as they are stored in other columns
+        // Exclude specific keys from 'details' to avoid duplication or unnecessary data
         $keysToExcludeFromDetails = [
             'ref_id', 'customer_no', 'customer_name', 'buyer_sku_code', 'message',
             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
-            'diskon', 'jumlah_lembar_tagihan', 'jumlah_peserta', 'alamat', // Exclude BPJS-specific fields from being duplicated in root details
+            'diskon', 'jumlah_lembar_tagihan', 'original_api_response', 'original_api_price', 'original_api_selling_price',
+            'jumlah_peserta', 'alamat', 'bpjs_desc_detail', // Already in initial details, avoid re-adding directly from apiResponseData
         ];
 
         $detailsFromApiResponse = [];
@@ -320,407 +373,222 @@ class PascaBpjsController extends Controller // Renamed controller for clarity
                 $detailsFromApiResponse[$key] = $value;
             }
         }
-        
-        // Merge original details with any new details from API response
+
         $updatePayload['details'] = array_merge(
+            $unifiedTransaction->details, // Preserve initial details if any
             $detailsFromApiResponse,
-            [
-                'diskon' => $diskon,
-                'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
-                'jumlah_peserta' => $inquiryData['jumlah_peserta'] ?? null,
-                'alamat' => $inquiryData['alamat'] ?? null,
-            ]
+            ['diskon' => $diskon, 'jumlah_lembar_tagihan' => $jumlahLembarTagihan]
         );
 
-        // Unset fields that are not part of the `update` method or are already correctly set
+        // Remove user_id, ref_id, type, price, admin_fee if TransactionMapper sets them explicitly or they are part of initial create
         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
-        
+
         $unifiedTransaction->update($updatePayload);
+        $unifiedTransaction->refresh();
 
-        // Refresh the model to get the very latest data from the database
-        $unifiedTransaction->refresh(); 
+        // Return a structured result for the calling method
+        return [
+            'transaction_id' => $unifiedTransaction->id,
+            'ref_id' => $unifiedTransaction->ref_id,
+            'customer_no' => $unifiedTransaction->customer_no,
+            'customer_name' => $unifiedTransaction->customer_name,
+            'selling_price' => $unifiedTransaction->selling_price,
+            'status' => $unifiedTransaction->status,
+            'message' => $unifiedTransaction->message,
+            'diskon' => $unifiedTransaction->details['diskon'] ?? 0,
+            'jumlah_lembar_tagihan' => $unifiedTransaction->details['jumlah_lembar_tagihan'] ?? 0,
+            'jumlah_peserta' => $unifiedTransaction->details['jumlah_peserta'] ?? null,
+            'alamat' => $unifiedTransaction->details['alamat'] ?? null,
+            'rc' => $unifiedTransaction->rc,
+            'sn' => $unifiedTransaction->sn,
+            'original_inquiry_data' => $inquiryData, // For debugging/context
+            'final_details' => $unifiedTransaction->details, // Full updated details
+        ];
+    }
 
-        // Update the $fullResponseData with the actual values saved in the database
-        // This ensures the frontend displays exactly what's recorded.
-        $fullResponseData['selling_price'] = $unifiedTransaction->selling_price;
-        $fullResponseData['status'] = $unifiedTransaction->status;
-        $fullResponseData['customer_name'] = $unifiedTransaction->customer_name;
-        $fullResponseData['customer_no'] = $unifiedTransaction->customer_no;
-        $fullResponseData['diskon'] = $unifiedTransaction->details['diskon'] ?? 0;
-        $fullResponseData['sn'] = $unifiedTransaction->sn;
-        $fullResponseData['jumlah_peserta'] = $unifiedTransaction->details['jumlah_peserta'] ?? null;
-        $fullResponseData['alamat'] = $unifiedTransaction->details['alamat'] ?? null;
+    /**
+     * Handles single BPJS Health inquiry.
+     *
+     * @param Request $request Contains 'customer_no'.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function inquiry(Request $request)
+    {
+        // BPJS customer numbers are typically 13 digits (e.g., 8801234560001)
+        $request->validate(['customer_no' => 'required|string|min:11|max:16']); // Adjust min/max as per BPJS ID length
+        $customerNo = $request->customer_no;
 
-        // If the transaction status from the API is 'Gagal', refund the balance.
-        // This handles cases where the API responds but indicates failure.
-        if (($apiResponseData['status'] ?? 'Gagal') === 'Gagal') {
-            $user->increment('balance', $totalPriceToPay);
+        $inquiryData = $this->_performSingleInquiry($customerNo);
+
+        if ($inquiryData) {
+            session(['postpaid_bpjs_inquiry_data' => $inquiryData]); // Use a distinct session key
+            return response()->json($inquiryData);
+        } else {
+            return response()->json(['message' => 'Gagal melakukan pengecekan tagihan BPJS. Silakan coba lagi nanti atau periksa nomor pelanggan.'], 400);
+        }
+    }
+
+    /**
+     * Handles single BPJS Health payment.
+     *
+     * @param Request $request Contains 'customer_no'.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function payment(Request $request)
+    {
+        $user = Auth::user();
+        $inquiryData = session('postpaid_bpjs_inquiry_data'); // Use distinct session key
+
+        if (!$inquiryData || $inquiryData['customer_no'] !== $request->customer_no) {
+            return response()->json(['message' => 'Sesi tidak valid atau nomor pelanggan BPJS tidak cocok.'], 400);
         }
 
-        session()->forget('postpaid_inquiry_data'); // Clear session after transaction
-        return response()->json($fullResponseData);
+        $totalPriceToPay = $inquiryData['selling_price'];
+
+        if ($user->balance < $totalPriceToPay) {
+            return response()->json(['message' => 'Saldo Anda tidak mencukupi.'], 402);
+        }
+
+        // Debit balance before attempting payment
+        $user->decrement('balance', $totalPriceToPay);
+        Log::info("BPJS Single Payment: User {$user->id} debited {$totalPriceToPay} for single BPJS payment.");
+
+        try {
+            $paymentResult = $this->_processIndividualBpjsPayment($inquiryData, $user);
+
+            // If the payment API call resulted in a 'Gagal' status, refund the balance
+            if (($paymentResult['status'] ?? 'Gagal') === 'Gagal') {
+                $user->increment('balance', $totalPriceToPay);
+                Log::warning("BPJS Single Payment: Transaction {$paymentResult['transaction_id']} failed according to provider API, balance refunded {$totalPriceToPay}.");
+            }
+            session()->forget('postpaid_bpjs_inquiry_data'); // Clear session
+            return response()->json($paymentResult);
+        } catch (\Exception $e) {
+            // If any exception occurred during the payment process, refund the balance
+            $user->increment('balance', $totalPriceToPay);
+            Log::error('BPJS Single Payment Error (Controller): ' . $e->getMessage(), ['customer_no' => $request->customer_no, 'inquiry_data' => $inquiryData]);
+            return response()->json(['message' => 'Terjadi kesalahan saat memproses pembayaran BPJS: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Handles bulk BPJS Health inquiry for multiple customer numbers.
+     *
+     * @param Request $request Contains 'customer_nos' array.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bulkInquiry(Request $request)
+    {
+        $request->validate(['customer_nos' => 'required|array', 'customer_nos.*' => 'required|string|min:11|max:16']);
+        $customerNos = array_unique($request->customer_nos);
+
+        $results = [
+            'successful' => [],
+            'failed' => [],
+        ];
+
+        foreach ($customerNos as $customerNo) {
+            try {
+                $inquiryData = $this->_performSingleInquiry($customerNo);
+                if ($inquiryData) {
+                    $results['successful'][] = $inquiryData;
+                } else {
+                    $results['failed'][] = [
+                        'customer_no' => $customerNo,
+                        'message' => 'Tidak dapat menemukan tagihan BPJS atau layanan tidak tersedia.',
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::error("Bulk Inquiry BPJS: Unexpected error for customer {$customerNo}. Error: " . $e->getMessage());
+                $results['failed'][] = [
+                    'customer_no' => $customerNo,
+                    'message' => 'Terjadi kesalahan saat pengecekan tagihan BPJS: ' . $e->getMessage(),
+                ];
+            }
+        }
+
+        if (empty($results['successful']) && empty($results['failed'])) {
+            return response()->json(['message' => 'Tidak ada nomor pelanggan BPJS yang diproses.'], 400);
+        }
+
+        if (!empty($results['successful'])) {
+            session(['postpaid_bpjs_bulk_inquiry_data' => $results['successful']]); // Use distinct session key
+        } else {
+            session()->forget('postpaid_bpjs_bulk_inquiry_data');
+        }
+
+        return response()->json($results);
+    }
+
+    /**
+     * Handles bulk BPJS Health payment for multiple previously inquired customer numbers.
+     *
+     * @param Request $request Contains 'customer_nos_to_pay' array (for validation against session).
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function bulkPayment(Request $request)
+    {
+        $user = Auth::user();
+        $inquiryDataForPayment = session('postpaid_bpjs_bulk_inquiry_data'); // Use distinct session key
+
+        if (!$inquiryDataForPayment || empty($inquiryDataForPayment)) {
+            return response()->json(['message' => 'Sesi pembayaran massal BPJS tidak valid atau kosong. Silakan lakukan pengecekan tagihan ulang.'], 400);
+        }
+
+        $requestCustomerNos = collect($request->customer_nos_to_pay)->unique()->sort()->values()->all();
+        $sessionCustomerNos = collect($inquiryDataForPayment)->pluck('customer_no')->unique()->sort()->values()->all();
+
+        if ($requestCustomerNos != $sessionCustomerNos) {
+             Log::warning("Bulk Payment BPJS: Mismatch between requested customer_nos and session data.", [
+                'request_customer_nos' => $requestCustomerNos,
+                'session_customer_nos' => $sessionCustomerNos,
+                'user_id' => $user->id,
+            ]);
+            return response()->json(['message' => 'Data pelanggan untuk pembayaran BPJS tidak cocok dengan sesi. Silakan coba lagi.'], 400);
+        }
+
+        $totalPriceForBulkPayment = collect($inquiryDataForPayment)->sum('selling_price');
+
+        if ($user->balance < $totalPriceForBulkPayment) {
+            return response()->json(['message' => 'Saldo Anda tidak mencukupi untuk semua transaksi BPJS ini.'], 402);
+        }
+
+        // Debit user's balance ONCE for the total sum before processing individual payments
+        $user->decrement('balance', $totalPriceForBulkPayment);
+        Log::info("Bulk Payment BPJS: User {$user->id} debited total {$totalPriceForBulkPayment} for bulk payment.");
+
+        $paymentResults = [];
+        $totalRefundAmount = 0;
+
+        foreach ($inquiryDataForPayment as $inquiryData) {
+            try {
+                $individualPaymentResult = $this->_processIndividualBpjsPayment($inquiryData, $user);
+                $paymentResults[] = $individualPaymentResult;
+
+                if (($individualPaymentResult['status'] ?? 'Gagal') === 'Gagal') {
+                    $totalRefundAmount += $inquiryData['selling_price'];
+                    Log::warning("Bulk Payment BPJS: Individual transaction for {$inquiryData['customer_no']} failed, adding {$inquiryData['selling_price']} to refund amount.");
+                }
+
+            } catch (\Exception $e) {
+                Log::error('BPJS Bulk Payment Error for customer ' . $inquiryData['customer_no'] . ': ' . $e->getMessage(), ['inquiry_data' => $inquiryData, 'user_id' => $user->id]);
+                $paymentResults[] = array_merge($inquiryData, [
+                    'customer_no' => $inquiryData['customer_no'],
+                    'customer_name' => $inquiryData['customer_name'] ?? 'N/A',
+                    'selling_price' => $inquiryData['selling_price'],
+                    'status' => 'Gagal',
+                    'message' => 'Terjadi kesalahan saat memproses tagihan BPJS ini: ' . $e->getMessage(),
+                ]);
+                $totalRefundAmount += $inquiryData['selling_price'];
+            }
+        }
+
+        if ($totalRefundAmount > 0) {
+            $user->increment('balance', $totalRefundAmount);
+            Log::info("Bulk Payment BPJS: Refunded {$totalRefundAmount} to user {$user->id} for failed transactions.");
+        }
+
+        session()->forget('postpaid_bpjs_bulk_inquiry_data'); // Clear session
+        return response()->json(['results' => $paymentResults, 'total_refund_amount' => $totalRefundAmount, 'total_paid_amount' => $totalPriceForBulkPayment - $totalRefundAmount]);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // >>>>>>>>>>>>>>>       TESTING MODE        <<<<<<<<<<<<<<<<
-
-// namespace App\Http\Controllers;
-
-// use App\Models\PostpaidTransaction;
-// use App\Models\PostpaidProduct;
-// use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Auth;
-// use Illuminate\Support\Facades\Http;
-// use Illuminate\Support\Facades\Log;
-// use Illuminate\Support\Str;
-// use Inertia\Inertia;
-// use App\Http\Traits\TransactionMapper;
-
-// class PascaBpjsController extends Controller
-// {
-//     use TransactionMapper;
-
-//     /**
-//      * Display a listing of BPJS postpaid products.
-//      *
-//      * @return \Inertia\Response
-//      */
-//     public function index()
-//     {
-//         $products = $this->fetchBpjsProducts();
-//         // Assuming you have an Inertia component for BPJS like 'Pascabayar/Bpjs.vue'
-//         return Inertia::render('Pascabayar/Bpjs', [
-//             'products' => $products,
-//         ]);
-//     }
-
-//     /**
-//      * Fetches BPJS postpaid products from the database.
-//      *
-//      * @return array
-//      */
-//     private function fetchBpjsProducts()
-//     {
-//         // Fetch products specifically for BPJS KESEHATAN brand
-//         $bpjsProducts = PostpaidProduct::where('brand', 'BPJS KESEHATAN')->get();
-//         return $bpjsProducts->map(function ($product) {
-//             $commission = $product->commission ?? 0;
-//             $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
-//             $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-//             $adminFromServer = $product->admin ?? 0;
-//             $markupForClient = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
-//             $product->calculated_admin = $adminFromServer - $markupForClient;
-//             return $product;
-//         })->values()->all();
-//     }
-
-//     /**
-//      * Generates a dummy BPJS inquiry response for testing purposes.
-//      * This method provides a hardcoded dummy response based on the given example.
-//      *
-//      * @param string $customerNo
-//      * @param string $buyerSkuCode
-//      * @param string $refId
-//      * @return array
-//      */
-//     private function getDummyBpjsInquiryResponse(string $customerNo, string $buyerSkuCode, string $refId): array
-//     {
-//         // Using the provided dummy JSON structure as a base
-//         // Note: 'selling_price' is removed from this dummy response as it will be calculated by our system
-//         // based on 'price', 'admin', and our internal commission/discount logic.
-//         return [
-//             "data" => [
-//                 "ref_id" => $refId, // Dynamically set
-//                 "customer_no" => $customerNo, // Dynamically set
-//                 "customer_name" => "Nama Pelanggan BPJS " . Str::upper(substr(md5($customerNo), 0, 5)), // Dynamic dummy name
-//                 "buyer_sku_code" => $buyerSkuCode, // Dynamically set
-//                 "admin" => 2500, // Admin fee from the dummy example
-//                 "message" => "Transaksi Sukses",
-//                 "status" => "Sukses",
-//                 "rc" => "00",
-//                 "buyer_last_saldo" => 1000000, // Dummy balance
-//                 "price" => 24700, // Base bill amount from the dummy example
-//                 "desc" => [
-//                     "jumlah_peserta" => "2",
-//                     "lembar_tagihan" => 1,
-//                     "alamat" => "JAKARTA PUSAT",
-//                     "detail" => [
-//                         [
-//                             "periode" => date('Ym', strtotime("-0 month")), // Example: current month period
-//                         ]
-//                     ]
-//                 ]
-//             ]
-//         ];
-//     }
-
-//     /**
-//      * Handles BPJS inquiry requests, using a dummy response.
-//      *
-//      * @param \Illuminate\Http\Request $request
-//      * @return \Illuminate\Http\JsonResponse
-//      */
-//     public function inquiry(Request $request)
-//     {
-//         $request->validate(['customer_no' => 'required|string|min:10']);
-//         $customerNo = $request->customer_no;
-
-//         // Fetch BPJS KESEHATAN products
-//         $availableProducts = PostpaidProduct::where('brand', 'BPJS KESEHATAN')
-//                                             ->where('seller_product_status', true)
-//                                             ->orderBy('buyer_sku_code', 'asc')
-//                                             ->get();
-
-//         if ($availableProducts->isEmpty()) {
-//             Log::warning("Inquiry BPJS: Tidak ada produk BPJS Kesehatan yang aktif ditemukan (Dummy Mode).");
-//             return response()->json(['message' => 'Layanan BPJS Kesehatan tidak tersedia saat ini.'], 503);
-//         }
-
-//         $successfulInquiryData = null;
-//         $productForCommission = $availableProducts->first(); // Use the first active product for commission calculation
-//         $current_sku = $productForCommission->buyer_sku_code;
-//         $ref_id = 'bpjs-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
-        
-//         // --- MODIFICATION: Directly use dummy response here ---
-//         $responseData = $this->getDummyBpjsInquiryResponse($customerNo, $current_sku, $ref_id);
-//         // --- END MODIFICATION ---
-
-//         // Process the dummy response as if it came from a real API
-//         if (isset($responseData['data']) && $responseData['data']['status'] === 'Sukses') {
-//             $inquiryDataFromApi = $responseData['data'];
-            
-//             if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
-//                 $inquiryDataFromApi['desc'] = [];
-//             }
-
-//             $totalNilaiTagihan = (float) ($inquiryDataFromApi['price'] ?? 0);
-//             $totalAdminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0);
-//             $totalDenda = 0; // BPJS dummy does not specify denda explicitly at this level
-//             $totalBiayaLain = 0; // BPJS dummy does not specify biaya_lain explicitly
-
-//             $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1);
-
-//             // Set the 'admin' in inquiryDataFromApi to the total admin from provider
-//             $inquiryDataFromApi['admin'] = $totalAdminFromProvider; 
-            
-//             // 1. Calculate base discount per bill based on product commission
-//             $commission = $productForCommission->commission ?? 0;
-//             $commission_sell_percentage = $productForCommission->commission_sell_percentage ?? 0;
-//             $commission_sell_fixed = $productForCommission->commission_sell_fixed ?? 0;
-//             $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
-
-//             // 2. Multiply discount per bill by the number of bills
-//             $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
-//             $finalDiskon = ceil($finalDiskon); // Round up the discount
-
-//             // 3. Calculate Final Selling Price (with our platform's discount)
-//             // selling_price = (pure bill price + other charges) + provider's total admin + total penalty - our platform's total discount
-//             // selling_price = (pure bill price + other charges) + provider's total admin + total penalty - our platform's total discount
-//                 $finalSellingPrice = ($totalNilaiTagihan + $totalBiayaLain) + $totalAdminFromProvider + $totalDenda - $finalDiskon;
-                
-//                 // --- START OF NEW LOGIC FOR OVERRIDE ---
-//                 // Ambil 'price' dan 'selling_price' asli dari respons API provider root
-//                 $apiOriginalPrice = (float) ($responseData['data']['price'] ?? 0);
-//                 $apiOriginalSellingPrice = (float) ($responseData['data']['selling_price'] ?? 0);
-
-//                 // Jika 'price' dari respons API provider lebih besar dari $finalSellingPrice (harga jual yang kita hitung),
-//                 // DAN 'selling_price' dari respons API provider tersedia dan lebih besar dari 0,
-//                 // maka $finalSellingPrice akan di-override menggunakan $apiOriginalSellingPrice.
-//                 if ($apiOriginalPrice > $finalSellingPrice && $apiOriginalSellingPrice > 0) {
-//                     Log::info("Override finalSellingPrice: Original API Price ({$apiOriginalPrice}) > Calculated Selling Price ({$finalSellingPrice}) AND Original API Selling Price ({$apiOriginalSellingPrice}) > 0. Using Original API Selling Price.");
-//                     $finalSellingPrice = $apiOriginalSellingPrice;
-//                 }
-//                 // --- END OF NEW LOGIC FOR OVERRIDE ---
-
-//                 // Pembulatan $finalSellingPrice setelah potensi override
-//                 $finalSellingPrice = ceil($finalSellingPrice); // Round up the final selling price
-
-//             // 4. Reconstruct data for frontend and session storage
-//             $inquiryDataFromApi['price']         = $totalNilaiTagihan + $totalBiayaLain; // Total pure bill price + other charges
-//             $inquiryDataFromApi['denda']         = $totalDenda;
-//             $inquiryDataFromApi['diskon']        = $finalDiskon; // Our platform's calculated discount
-//             $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
-//             $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Total to be paid by the customer
-//             $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
-//             $inquiryDataFromApi['ref_id'] = $ref_id;
-
-//             // Add BPJS specific details to inquiry data for consistency
-//             $inquiryDataFromApi['jumlah_peserta'] = $inquiryDataFromApi['desc']['jumlah_peserta'] ?? null;
-//             $inquiryDataFromApi['alamat'] = $inquiryDataFromApi['desc']['alamat'] ?? null;
-
-//             $successfulInquiryData = $inquiryDataFromApi;
-
-//             Log::info("Inquiry BPJS Sukses (Dummy) untuk SKU: {$current_sku}. Customer No: {$customerNo}", [
-//                 'customer_no' => $customerNo,
-//                 'sku' => $current_sku,
-//                 'ref_id' => $ref_id,
-//                 'api_response' => $responseData,
-//                 'processed_data' => $successfulInquiryData,
-//             ]);
-
-//             session(['postpaid_inquiry_data' => $successfulInquiryData]);
-//             return response()->json($successfulInquiryData);
-//         } else {
-//             $errorMessage = $responseData['data']['message'] ?? 'Gagal melakukan pengecekan tagihan dummy BPJS.';
-//             Log::warning("Inquiry BPJS Gagal (Dummy) untuk SKU: {$current_sku}. Customer No: {$customerNo}. Pesan: {$errorMessage}", [
-//                 'customer_no' => $customerNo,
-//                 'sku' => $current_sku,
-//                 'ref_id' => $ref_id,
-//                 'api_response' => $responseData,
-//             ]);
-//             return response()->json(['message' => $errorMessage], 400);
-//         }
-//     }
-    
-//     /**
-//      * Handles BPJS payment requests, using a dummy response.
-//      *
-//      * @param \Illuminate\Http\Request $request
-//      * @return \Illuminate\Http\JsonResponse
-//      */
-//     public function payment(Request $request)
-//     {
-//         $user = Auth::user(); 
-//         // For testing without login, you can create a dummy user (uncomment if needed for direct testing):
-//         // if (!$user) { $user = (object)['id' => 1, 'balance' => 10000000, 'decrement' => function($attr, $val){}, 'increment' => function($attr, $val){}]; }
-
-//         $inquiryData = session('postpaid_inquiry_data');
-
-//         // Validate session data consistency
-//         if (!$inquiryData || ($inquiryData['customer_no'] ?? null) !== $request->customer_no) {
-//             return response()->json(['message' => 'Sesi tidak valid atau nomor pelanggan tidak cocok.'], 400);
-//         }
-
-//         $totalPriceToPay     = $inquiryData['selling_price'];
-//         $finalAdmin          = $inquiryData['admin'];
-//         $pureBillPrice       = $inquiryData['price'];
-//         $diskon              = $inquiryData['diskon'] ?? 0;
-//         $jumlahLembarTagihan = $inquiryData['jumlah_lembar_tagihan'] ?? 0;
-        
-//         // Check user balance
-//         if ($user->balance < $totalPriceToPay) {
-//             return response()->json(['message' => 'Saldo Anda tidak mencukupi.'], 402);
-//         }
-
-//         // Decrement user balance
-//         $user->decrement('balance', $totalPriceToPay);
-
-//         // Map inquiry data to initial transaction record
-//         $initialData = $this->mapToUnifiedTransaction($inquiryData, 'BPJS', $pureBillPrice, $finalAdmin);
-//         $initialData['selling_price'] = $totalPriceToPay;
-//         $initialData['status'] = 'Pending';
-//         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
-        
-//         $initialData['rc'] = $inquiryData['rc'] ?? null;
-//         $initialData['sn'] = null; // SN is expected from payment response
-
-//         // Store BPJS specific details in the 'details' JSON column
-//         $initialData['details'] = [
-//             'diskon' => $diskon,
-//             'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
-//             'jumlah_peserta' => $inquiryData['desc']['jumlah_peserta'] ?? null,
-//             'alamat' => $inquiryData['desc']['alamat'] ?? null,
-//         ];
-        
-//         $unifiedTransaction = PostpaidTransaction::create($initialData);
-
-//         // --- MODIFICATION: Directly use dummy response for payment ---
-//         $apiResponseData = [
-//             "ref_id" => $inquiryData['ref_id'],
-//             "customer_no" => $inquiryData['customer_no'],
-//             "customer_name" => $inquiryData['customer_name'] ?? "PELANGGAN DUMMY BPJS",
-//             "buyer_sku_code" => $inquiryData['buyer_sku_code'],
-//             "admin" => $inquiryData['admin'],
-//             "message" => "Pembayaran Sukses. BPJS dummy SN: BP" . Str::upper(substr(md5($inquiryData['ref_id']), 0, 10)) . "JS",
-//             "status" => "Sukses",
-//             "rc" => "00",
-//             "sn" => "BP" . Str::upper(substr(md5($inquiryData['ref_id']), 0, 10)) . "JS", // Dummy serial number
-//             "buyer_last_saldo" => $user->balance, // Reflect new balance after decrement
-//             "price" => $inquiryData['price'],
-//             "selling_price" => $inquiryData['selling_price'], // This should be the same as totalPriceToPay
-//             "desc" => $inquiryData['desc'] ?? [], // Use desc from inquiry data
-//         ];
-//         Log::info('BPJS Payment DUMMY API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
-//         // --- END MODIFICATION ---
-        
-//         $fullResponseData = array_merge($inquiryData, $apiResponseData);
-
-//         // Prepare payload for updating the transaction based on the (dummy) API response
-//         $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'BPJS', $pureBillPrice, $finalAdmin);
-//         $updatePayload['selling_price'] = $totalPriceToPay; // Ensure selling_price remains consistent
-        
-//         $updatePayload['rc'] = $apiResponseData['rc'] ?? null;
-//         $updatePayload['sn'] = $apiResponseData['sn'] ?? null;
-//         $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal'; // Update status from dummy response
-//         $updatePayload['message'] = $apiResponseData['message'] ?? 'Gagal melakukan pembayaran dummy.'; // Update message from dummy response
-
-//         // Define keys to exclude from the 'details' array, as they are stored in other columns
-//         $keysToExcludeFromDetails = [
-//             'ref_id', 'customer_no', 'customer_name', 'buyer_sku_code', 'message',
-//             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
-//             'diskon', 'jumlah_lembar_tagihan', 'jumlah_peserta', 'alamat'
-//         ];
-
-//         $detailsFromApiResponse = [];
-//         foreach ($apiResponseData as $key => $value) {
-//             if (!in_array($key, $keysToExcludeFromDetails)) {
-//                 $detailsFromApiResponse[$key] = $value;
-//             }
-//         }
-        
-//         // Merge original details with any new details from API response
-//         $updatePayload['details'] = array_merge(
-//             $detailsFromApiResponse,
-//             [
-//                 'diskon' => $diskon,
-//                 'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
-//                 'jumlah_peserta' => $inquiryData['desc']['jumlah_peserta'] ?? null,
-//                 'alamat' => $inquiryData['desc']['alamat'] ?? null,
-//             ]
-//         );
-
-//         // Unset fields that are not part of the `update` method or are already correctly set
-//         unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
-        
-//         $unifiedTransaction->update($updatePayload);
-
-//         // Refresh the model to get the very latest data from the database
-//         $unifiedTransaction->refresh(); 
-
-//         // Update the $fullResponseData with the actual values saved in the database
-//         // This ensures the frontend displays exactly what's recorded.
-//         $fullResponseData['selling_price'] = $unifiedTransaction->selling_price;
-//         $fullResponseData['status'] = $unifiedTransaction->status;
-//         $fullResponseData['customer_name'] = $unifiedTransaction->customer_name;
-//         $fullResponseData['customer_no'] = $unifiedTransaction->customer_no;
-//         $fullResponseData['diskon'] = $unifiedTransaction->details['diskon'] ?? 0;
-//         $fullResponseData['sn'] = $unifiedTransaction->sn;
-//         $fullResponseData['jumlah_peserta'] = $unifiedTransaction->details['jumlah_peserta'] ?? null;
-//         $fullResponseData['alamat'] = $unifiedTransaction->details['alamat'] ?? null;
-
-
-//         // Logic for refund if the dummy transaction status indicates failure
-//         if (($apiResponseData['status'] ?? 'Gagal') === 'Gagal') {
-//             $user->increment('balance', $totalPriceToPay);
-//         }
-
-//         session()->forget('postpaid_inquiry_data'); // Clear session after transaction
-//         return response()->json($fullResponseData);
-//     }
-// }

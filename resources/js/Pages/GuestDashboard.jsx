@@ -58,14 +58,14 @@ function GuestDashboard({ user, categories }) {
     {
       id: 'pbb', // ID unik
       name: 'PBB',
-      image: 'logo.webp', // Contoh: path ke gambar PNG/JPG untuk promo
+      image: 'categories/pbb.png', // Contoh: path ke gambar PNG/JPG untuk promo
       iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
       link: route('pascapbb.index'), // Rute ke halaman promo
     },
     {
       id: 'multifinance', // ID unik
       name: 'Multifinansial',
-      image: 'logo.webp', // Contoh: path ke gambar PNG/JPG untuk promo
+      image: 'categories/multifinance.png', // Contoh: path ke gambar PNG/JPG untuk promo
       iconSvg: null, // Untuk kategori ini, kita pakai image, jadi iconSvg null
       link: route('pascamultifinance.index'), // Rute ke halaman promo
     },
