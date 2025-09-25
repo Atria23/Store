@@ -270,12 +270,6 @@ export default function PlnPascaIndex({ auth }) {
                                     </div>
                                 )}
 
-                                {(paymentResult?.diskon > 0 || (bulkPaymentResults && bulkPaymentResults.results && bulkPaymentResults.results.some(r => r.diskon > 0))) && (
-                                    <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
-                                        {bulkPaymentResults && !paymentResult && `Total diskon: ${formatRupiah(bulkPaymentResults.results.reduce((sum, item) => sum + (item.diskon || 0), 0))}!`}
-                                    </div>
-                                )}
-
                                 {paymentResult && ( // Customer details only for single payment result
                                     <div className="space-y-2 text-sm">
                                         <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">

@@ -91,8 +91,8 @@ class PascaPbbController extends Controller
             }
 
             $dummyDescDetails = [];
-            $totalPureBillAmount = 0;
-            $totalDendaAmount = 0;
+            $totalPureBillAmountDummy = 0; // Renamed to avoid confusion with sumOfPureBillAmounts
+            $totalDendaAmountDummy = 0;
 
             for ($i = 0; $i < $numBills; $i++) {
                 $tahunPajak = date('Y', strtotime("-{$i} year"));
@@ -105,8 +105,8 @@ class PascaPbbController extends Controller
                     "denda_pbb" => $dendaPbb,
                     "total_tagihan_per_tahun" => $nilaiPbb + $dendaPbb,
                 ];
-                $totalPureBillAmount += $nilaiPbb;
-                $totalDendaAmount += $dendaPbb;
+                $totalPureBillAmountDummy += $nilaiPbb;
+                $totalDendaAmountDummy += $dendaPbb;
             }
 
             $dummyCustomerName = 'Wajib Pajak ' . $product->product_name . ' ' . $customerNameSeed . ($isOverdue ? ' (OVERDUE)' : '');
@@ -114,11 +114,14 @@ class PascaPbbController extends Controller
             $dummyAlamatObjekPajak = 'Jl. Pajak Bumi No.' . $customerNoLength . ', Kec. Dummy, Kab. ' . Str::upper(substr($current_sku, 0, 3));
             $dummyJatuhTempo = date('d-M-Y', strtotime('+5 days'));
 
-            $dummyPriceField = $totalPureBillAmount; // Root price is sum of base PBB amounts
-            $dummyAdminField = $adminFeePerTransaction; // Admin fee per transaction
+            // 'price' field is often (principal + denda) or just principal.
+            // For PBB, let's make it principal + denda for consistency with calculation flow below.
+            $dummyPriceField = $totalPureBillAmountDummy + $totalDendaAmountDummy; // Total PBB Pokok + Denda for this field
+            $dummyAdminField = $adminFeePerTransaction; // Admin fee applied per transaction
 
-            // Original API Total Price (sum of PBB + sum of Denda + admin fee)
-            $dummyOriginalApiTotalPrice = $totalPureBillAmount + $totalDendaAmount + $dummyAdminField;
+            // This is the total charged by the provider to us (PBB Pokok + Denda + Admin)
+            $dummyOriginalApiTotalPrice = $totalPureBillAmountDummy + $totalDendaAmountDummy + $dummyAdminField;
+            // The 'selling_price' from provider might have a slight markup on top of original total
             $dummyProviderOriginalSellingPrice = ceil($dummyOriginalApiTotalPrice * (1 + (int)$lastDigit / 10000));
 
             $responseData = [
@@ -128,7 +131,7 @@ class PascaPbbController extends Controller
                     'customer_name' => $dummyCustomerName,
                     'customer_no' => $customerNo,
                     'buyer_sku_code' => $current_sku,
-                    'price' => $dummyPriceField, // Total nilai PBB pokok
+                    'price' => $dummyPriceField, // Total PBB Pokok + Denda
                     'admin' => $dummyAdminField, // Admin fee per transaksi
                     'rc' => '00',
                     'sn' => 'SN-INQ-' . Str::random(12),
@@ -140,7 +143,7 @@ class PascaPbbController extends Controller
                         "jumlah_lembar_tagihan" => $numBills,
                         "jatuh_tempo" => $dummyJatuhTempo,
                         "detail" => $dummyDescDetails,
-                        "total_denda" => $totalDendaAmount, // Total denda (for info in desc)
+                        "total_denda" => $totalDendaAmountDummy, // Total denda (for info in desc)
                     ],
                     'selling_price' => $dummyProviderOriginalSellingPrice,
                     'original_api_price' => $dummyOriginalApiTotalPrice,
@@ -197,29 +200,46 @@ class PascaPbbController extends Controller
         $inquiryDataFromApi['desc']['alamat_objek_pajak'] = $inquiryDataFromApi['desc']['alamat_objek_pajak'] ?? null;
         $inquiryDataFromApi['desc']['jatuh_tempo'] = $inquiryDataFromApi['desc']['jatuh_tempo'] ?? null;
 
-        $sumOfPureBillAmounts = 0; // Total nilai PBB pokok
-        $sumOfDendaAmounts = 0;    // Total denda PBB
-        $sumOfBiayaLainAmounts = 0; // PBB typically doesn't have 'biaya_lain'
+        $sumOfPureBillAmounts = 0; // Total nilai PBB pokok murni (akan dihitung setelah)
+        $sumOfDendaAmounts = 0;    // Total denda PBB (akumulasi dari detail atau root desc)
+        $sumOfBiayaLainAmounts = 0; // PBB typically doesn't have 'biaya_lain', keep at 0
         $sumOfAdminFees = (float) ($inquiryDataFromApi['admin'] ?? 0); // Total admin dari API (per transaction)
         $jumlahLembarTagihan = 0;
 
-        // Determine jumlahLembarTagihan and aggregate totals from details array
+        // Determine jumlahLembarTagihan and aggregate total denda from details array or root desc
         if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
             $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
             foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-                $sumOfPureBillAmounts += (float) ($detail['nilai_pbb'] ?? 0);
+                // HANYA AKUMULASI DENDA. nilai_pbb tidak diakumulasi langsung ke sumOfPureBillAmounts di sini.
                 $sumOfDendaAmounts += (float) ($detail['denda_pbb'] ?? 0);
             }
         } else {
-            // If 'desc.detail' is not available, try to infer from root 'price' and 'admin'
-            // In PBB, 'price' from API usually means total PBB pokok + denda
-            $apiCombinedPrice = (float) ($inquiryDataFromApi['price'] ?? 0);
-            $apiDenda = (float) ($inquiryDataFromApi['desc']['total_denda'] ?? 0);
-
-            $sumOfPureBillAmounts = $apiCombinedPrice - $apiDenda;
-            $sumOfDendaAmounts = $apiDenda;
+            // Jika 'desc.detail' tidak tersedia, ambil total denda dari root 'desc'
+            $sumOfDendaAmounts = (float) ($inquiryDataFromApi['desc']['total_denda'] ?? 0);
             $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['jumlah_lembar_tagihan'] ?? 1);
         }
+
+        // --- NEW GLOBAL CALCULATION for sumOfPureBillAmounts (PBB Pokok Murni SAJA) ---
+        // Berdasarkan permintaan: sumOfPureBillAmounts = selling_price (dari API) - admin (dari API) - sumOfDendaAmounts
+        $providerSellingPriceFromApi = (float)($inquiryDataFromApi['selling_price'] ?? 0);
+        $providerAdminFromApi = (float)($inquiryDataFromApi['admin'] ?? 0);
+
+        // Ini adalah (PBB Pokok + Total Denda) dari total provider sebelum biaya admin mereka
+        $providerGrossBillAmount = $providerSellingPriceFromApi - $providerAdminFromApi;
+
+        // Kurangkan total denda untuk mendapatkan PBB Pokok Murni
+        $sumOfPureBillAmounts = $providerGrossBillAmount - $sumOfDendaAmounts;
+
+        // Pastikan sumOfPureBillAmounts tidak menjadi negatif jika ada inkonsistensi data
+        if ($sumOfPureBillAmounts < 0) {
+            Log::warning("PBB Inquiry: Calculated sumOfPureBillAmounts went negative for customer {$customerNo}. Adjusting to 0.", [
+                'providerGrossBillAmount' => $providerGrossBillAmount,
+                'sumOfDendaAmounts' => $sumOfDendaAmounts,
+                'inquiryDataFromApi' => $inquiryDataFromApi
+            ]);
+            $sumOfPureBillAmounts = 0;
+        }
+
 
         $commission = $product->commission ?? 0;
         $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
@@ -232,11 +252,14 @@ class PascaPbbController extends Controller
         // Hitung total jumlah yang harus dibayar sebelum diskon kita (Pure PBB + Denda + Admin dari provider)
         $totalAmountBeforeDiskon = $sumOfPureBillAmounts + $sumOfDendaAmounts + $sumOfAdminFees;
 
-        $finalSellingPrice = $totalAmountBeforeDiskon - $finalDiskon;
+        $finalSellingPrice = $totalAmountBeforeDiskon - $finalDiskon; // Total pembayaran akhir = (total PBB + denda + admin provider) - diskon kita
         $finalSellingPrice = ceil($finalSellingPrice);
 
         // Override logic: If total price from API is greater than our calculated price, and API has its own selling price
-        $apiOriginalPrice = (float) ($inquiryDataFromApi['original_api_price'] ?? (($inquiryDataFromApi['price'] ?? 0) + ($inquiryDataFromApi['admin'] ?? 0) + ($inquiryDataFromApi['desc']['total_denda'] ?? 0)));
+        // original_api_price here should ideally be (PBB Pokok + Denda + Admin dari API)
+        // Adjusting original_api_price derivation to be more robust
+        $apiOriginalPrice = (float) ($inquiryDataFromApi['original_api_price'] ?? ($providerSellingPriceFromApi - $providerAdminFromApi + $sumOfAdminFees));
+
 
         if ($apiOriginalPrice > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
             Log::info("PBB Inquiry: finalSellingPrice overridden by provider_original_selling_price.", [
@@ -249,13 +272,13 @@ class PascaPbbController extends Controller
         }
 
         // Update inquiryDataFromApi with processed values
-        $inquiryDataFromApi['price']         = $sumOfPureBillAmounts; // Total PBB pokok (untuk mapping transaksi)
+        $inquiryDataFromApi['price']         = $sumOfPureBillAmounts; // Total PBB pokok murni (untuk mapping transaksi)
         $inquiryDataFromApi['admin']         = $sumOfAdminFees;       // Admin dari provider
         $inquiryDataFromApi['denda']         = $sumOfDendaAmounts;    // Total denda PBB
         $inquiryDataFromApi['biaya_lain']    = $sumOfBiayaLainAmounts; // Will be 0 for PBB
         $inquiryDataFromApi['diskon']        = $finalDiskon;
         $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
-        $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Harga yang harus dibayar user
+        $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Harga yang harus dibayar user (setelah diskon kita)
         $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
         $inquiryDataFromApi['ref_id'] = $ref_id;
         $inquiryDataFromApi['provider_original_selling_price'] = $providerOriginalSellingPrice;
@@ -279,7 +302,7 @@ class PascaPbbController extends Controller
     {
         $totalPriceToPay     = (float) $inquiryData['selling_price'];
         $finalAdmin          = (float) $inquiryData['admin'];
-        $pureBillPrice       = (float) $inquiryData['price']; // Total PBB Pokok
+        $pureBillPrice       = (float) $inquiryData['price']; // Total PBB Pokok murni (dari inquiry data)
         $diskon              = (float) ($inquiryData['diskon'] ?? 0);
         $jumlahLembarTagihan = (int) ($inquiryData['jumlah_lembar_tagihan'] ?? 0);
         $denda               = (float) ($inquiryData['denda'] ?? 0); // Total Denda PBB

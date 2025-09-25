@@ -616,7 +616,6 @@ export default function Internet({ auth, products }) {
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
-                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
                     </div>
                 </main>
 

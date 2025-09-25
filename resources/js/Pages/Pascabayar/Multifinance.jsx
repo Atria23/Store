@@ -51,7 +51,8 @@ export default function Multifinance({ auth, products }) {
     // Kalkulasi total yang harus dibayar untuk bulk payment
     const totalAmountToPayBulk = useMemo(() => {
         if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
-        return bulkInquiryResults.successful.reduce((sum, item) => sum + item.selling_price, 0);
+        // item.selling_price dari backend sudah final setelah diskon kita
+        return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.selling_price ?? 0), 0);
     }, [bulkInquiryResults]);
 
     // Kalkulasi total diskon untuk bulk inquiry
@@ -153,7 +154,7 @@ export default function Multifinance({ auth, products }) {
 
     // Langkah 2: Buka Modal Konfirmasi (Satuan atau Massal)
     const handleBayarClick = () => {
-        const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
+        const amountToCheck = isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0);
         if (userBalance < amountToCheck) {
             setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
             return;
@@ -476,6 +477,7 @@ export default function Multifinance({ auth, products }) {
                                                 </div>
                                             )}
                                             {inquiryResult.jumlah_lembar_tagihan > 0 && <div className="flex justify-between"><span className="text-gray-500">Jumlah Tagihan</span><span className="font-medium">{inquiryResult.jumlah_lembar_tagihan} Lembar</span></div>}
+                                            {inquiryResult.desc?.jatuh_tempo && <div className="flex justify-between"><span className="text-gray-500">Jatuh Tempo</span><span className="font-medium">{inquiryResult.desc.jatuh_tempo}</span></div>}
                                         </div>
 
                                         {inquiryResult.desc && inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (
@@ -483,21 +485,21 @@ export default function Multifinance({ auth, products }) {
                                                 <h4 className="font-semibold text-gray-800">Tagihan per Periode</h4>
                                                 {inquiryResult.desc.detail.map((item, index) => (
                                                     <div key={index} className="border-b pb-2 mb-2 last:border-b-0 last:pb-0">
-                                                                                                        <p className="font-medium text-gray-700">Periode: {item.periode}</p>
+                                                        <p className="font-medium text-gray-700">Periode: {item.periode}</p>
                                                         <div className="flex justify-between pl-2">
-                                                            <span className="text-gray-500">Nilai Tagihan</span>
-                                                            <span className="font-medium">{formatRupiah(item.bill_amount)}</span>
+                                                            <span className="text-gray-500">Nilai Tagihan Pokok</span>
+                                                            <span className="font-medium">{formatRupiah(item.bill_amount ?? 0)}</span>
                                                         </div>
-                                                        {parseFloat(item.admin_fee_per_period) > 0 && (
+                                                        {parseFloat(item.admin_fee_per_period ?? 0) > 0 && (
                                                             <div className="flex justify-between pl-2">
                                                                 <span className="text-gray-500">Biaya Admin Periode</span>
                                                                 <span className="font-medium">{formatRupiah(item.admin_fee_per_period)}</span>
                                                             </div>
                                                         )}
-                                                        {parseFloat(item.denda) > 0 && (
+                                                        {parseFloat(item.denda ?? 0) > 0 && (
                                                             <div className="flex justify-between pl-2">
                                                                 <span className="text-gray-500">Denda Periode</span>
-                                                                <span className="font-medium text-gray-900">{formatRupiah(item.denda)}</span> {/* Changed to text-gray-900 */}
+                                                                <span className="font-medium text-red-600">{formatRupiah(item.denda)}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -509,21 +511,21 @@ export default function Multifinance({ auth, products }) {
                                             <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">Total Tagihan Pokok</span>
-                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price ?? 0)}</span>
                                             </div>
-                                            {parseFloat(inquiryResult.denda) > 0 && (
+                                            {parseFloat(inquiryResult.denda ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Total Denda</span>
-                                                    <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.denda)}</span> {/* Changed to text-gray-900 */}
+                                                    <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
                                                 </div>
                                             )}
 
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">Total Biaya Admin</span>
-                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin ?? 0)}</span>
                                             </div>
 
-                                            {parseFloat(inquiryResult.diskon) > 0 && (
+                                            {parseFloat(inquiryResult.diskon ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Diskon</span>
                                                     <span className="font-medium text-green-600">- {formatRupiah(inquiryResult.diskon)}</span>
@@ -533,7 +535,7 @@ export default function Multifinance({ auth, products }) {
                                         <div className="w-full h-px bg-gray-200" />
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold text-gray-800">Total Pembayaran Akhir</span>
-                                            <span className="font-bold text-xl text-blue-600">{formatRupiah(inquiryResult.selling_price)}</span>
+                                            <span className="font-bold text-xl text-blue-600">{formatRupiah(inquiryResult.selling_price ?? 0)}</span>
                                         </div>
                                     </>
                                 )}
@@ -544,9 +546,8 @@ export default function Multifinance({ auth, products }) {
                                             <>
                                                 <p className="font-semibold text-gray-800">Tagihan Berhasil Ditemukan ({bulkInquiryResults.successful.length})</p>
                                                 {bulkInquiryResults.successful.map((item, index) => {
-                                                    // Calculate total admin from details + root admin
-                                                    const totalAdminFeePerPeriod = item.desc && item.desc.detail ? item.desc.detail.reduce((sum, d) => sum + parseFloat(d.admin_fee_per_period || 0), 0) : (item.desc && item.desc.total_admin_per_period || 0);
-                                                    const combinedAdmin = (item.admin || 0) + totalAdminFeePerPeriod;
+                                                    // Combined admin is OUR calculated admin margin for the transaction
+                                                    const combinedAdmin = item.admin ?? 0;
 
                                                     return (
                                                         <div key={index} className="border border-blue-200 bg-blue-50 p-3 rounded-lg space-y-1 text-sm">
@@ -565,6 +566,7 @@ export default function Multifinance({ auth, products }) {
                                                                     <span className="font-medium text-right">{item.desc.no_pol}</span>
                                                                 </div>
                                                             )}
+                                                            {item.desc && item.desc.jatuh_tempo && <div className="flex justify-between"><span className="text-gray-500">Jatuh Tempo</span><span className="font-medium">{item.desc.jatuh_tempo}</span></div>}
 
 
                                                             {item.desc && item.desc.detail && item.desc.detail.length > 0 && (
@@ -574,19 +576,19 @@ export default function Multifinance({ auth, products }) {
                                                                         <div key={detailIndex} className="pb-1 mb-1 last:border-b-0 last:pb-0">
                                                                             <p className="font-medium text-gray-600">Periode: {detail.periode}</p>
                                                                             <div className="flex justify-between pl-2">
-                                                                                <span className="text-gray-500">Nilai Tagihan</span>
-                                                                                <span className="font-medium">{formatRupiah(detail.bill_amount)}</span>
+                                                                                <span className="text-gray-500">Nilai Tagihan Pokok</span>
+                                                                                <span className="font-medium">{formatRupiah(detail.bill_amount ?? 0)}</span>
                                                                             </div>
-                                                                            {parseFloat(detail.admin_fee_per_period) > 0 && (
+                                                                            {parseFloat(detail.admin_fee_per_period ?? 0) > 0 && (
                                                                                 <div className="flex justify-between pl-2">
                                                                                     <span className="text-gray-500">Biaya Admin Periode</span>
                                                                                     <span className="font-medium">{formatRupiah(detail.admin_fee_per_period)}</span>
                                                                                 </div>
                                                                             )}
-                                                                            {parseFloat(detail.denda) > 0 && (
+                                                                            {parseFloat(detail.denda ?? 0) > 0 && (
                                                                                 <div className="flex justify-between pl-2">
                                                                                     <span className="text-gray-500">Denda Periode</span>
-                                                                                    <span className="font-medium text-gray-900">{formatRupiah(detail.denda)}</span> {/* Changed to text-gray-900 */}
+                                                                                    <span className="font-medium text-red-600">{formatRupiah(detail.denda)}</span>
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -598,19 +600,19 @@ export default function Multifinance({ auth, products }) {
                                                                 <h5 className="font-semibold text-gray-800">Ringkasan Pembayaran</h5>
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-500">Total Tagihan Pokok</span>
-                                                                    <span className="font-medium text-gray-900">{formatRupiah(item.price)}</span>
+                                                                    <span className="font-medium text-gray-900">{formatRupiah(item.price ?? 0)}</span>
                                                                 </div>
-                                                                {parseFloat(item.denda) > 0 && (
+                                                                {parseFloat(item.denda ?? 0) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Total Denda</span>
-                                                                        <span className="font-medium text-gray-900">{formatRupiah(item.denda)}</span> {/* Changed to text-gray-900 */}
-                                                                    </div>
+                                                                        <span className="font-medium text-red-600">{formatRupiah(item.denda)}</span>
+                                                                </div>
                                                                 )}
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-500">Total Biaya Admin</span>
                                                                     <span className="font-medium text-gray-900">{formatRupiah(combinedAdmin)}</span>
                                                                 </div>
-                                                                {parseFloat(item.diskon) > 0 && (
+                                                                {parseFloat(item.diskon ?? 0) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Diskon</span>
                                                                         <span className="font-medium text-green-600">- {formatRupiah(item.diskon)}</span>
@@ -619,7 +621,7 @@ export default function Multifinance({ auth, products }) {
                                                                 <div className="w-full h-px bg-gray-200 mt-2" />
                                                                 <div className="flex justify-between items-center pt-2">
                                                                     <span className="font-semibold text-gray-800">Total Bayar</span>
-                                                                    <span className="font-bold text-lg text-main">{formatRupiah(item.selling_price)}</span>
+                                                                    <span className="font-bold text-lg text-main">{formatRupiah(item.selling_price ?? 0)}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -688,15 +690,15 @@ export default function Multifinance({ auth, products }) {
                             <div>
                                 <p className="text-sm text-gray-600">Total Pembayaran Akhir</p>
                                 <p className="text-xl font-bold text-main">
-                                    {isBulkMode ? formatRupiah(totalAmountToPayBulk) : formatRupiah(inquiryResult.selling_price)}
+                                    {isBulkMode ? formatRupiah(totalAmountToPayBulk) : formatRupiah(inquiryResult.selling_price ?? 0)}
                                 </p>
                             </div>
                             <button
                                 onClick={handleBayarClick}
-                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price)}
+                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0))}
                                 className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price) ? "Saldo Kurang" : "Bayar Sekarang"}
+                                {userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0)) ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
                         </div>
                     </footer>

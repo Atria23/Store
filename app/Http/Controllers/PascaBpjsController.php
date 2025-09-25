@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use App\Http\Traits\TransactionMapper; // Pastikan trait ini ada
+use App\Http\Traits\TransactionMapper;
 
 class PascaBpjsController extends Controller
 {
-    use TransactionMapper; // Gunakan trait TransactionMapper
+    use TransactionMapper;
 
     /**
      * Display a listing of BPJS Health products.
@@ -198,33 +198,26 @@ class PascaBpjsController extends Controller
         // This directly implements the user's requested formula: (total bill amount + total admin fee) - discount
         $finalSellingPrice = $totalAmountBeforeOurDiskon - $finalDiskon;
 
-        // --- START: Removed/Adjusted Override Logic ---
-        // The previous override logic could inadvertently remove the calculated discount
-        // if original_api_selling_price was present, leading to the "perhitungan salah" feedback.
-        // If a mechanism to ensure selling price is not below our cost is needed,
-        // it should be implemented carefully to preserve the intended discount.
-        // For now, we prioritize the explicit calculation requested by the user.
-        // If you need to ensure the finalSellingPrice is never below the provider's cost to you
-        // (i.e., $apiOriginalSellingPrice), you might add a line like:
-        // $apiOriginalSellingPrice = (float) ($inquiryDataFromApi['original_api_selling_price'] ?? 0);
-        // if ($apiOriginalSellingPrice > 0) {
-        //     $finalSellingPrice = max($finalSellingPrice, $apiOriginalSellingPrice);
-        // }
-        // This `max` ensures you at least cover your cost, but might reduce your margin if `finalDiskon` is too high.
-        // --- END: Removed/Adjusted Override Logic ---
-
         // Ensure selling price is an integer (round up for safety/simplicity)
         $finalSellingPrice = ceil($finalSellingPrice);
 
+        // --- NEW CALCULATION FOR bill_amount_for_client_display ---
+        // This will be pure bill price from API minus our discount (finalDiskon)
+        $billAmountForClientDisplay = $pureBillPriceFromApi - $finalDiskon;
+        $billAmountForClientDisplay = ceil($billAmountForClientDisplay); // Round up for display consistency
+
         // Populate the final successful inquiry data array
         $successfulInquiryData = $inquiryDataFromApi;
-        $successfulInquiryData['price'] = $pureBillPriceFromApi;     // This is the pure bill amount for our transaction mapping
+        $successfulInquiryData['price'] = (float) ($inquiryDataFromApi['selling_price'] ?? 0) - (float) ($inquiryDataFromApi['admin'] ?? 0);
         $successfulInquiryData['admin'] = $adminFeeFromApi;         // This is the provider's admin fee for our transaction mapping
         $successfulInquiryData['diskon'] = $finalDiskon;
         $successfulInquiryData['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
         $successfulInquiryData['selling_price'] = $finalSellingPrice; // This is what the user will pay
         $successfulInquiryData['buyer_sku_code'] = $productToUseForCommission->buyer_sku_code; // Use actual SKU from product
         $successfulInquiryData['ref_id'] = $successfulInquiryData['ref_id'] ?? 'generated-' . Str::uuid()->toString(); // Ensure ref_id exists
+        // Add the new field for frontend display
+        $successfulInquiryData['bill_amount_for_client_display'] = $billAmountForClientDisplay;
+
 
         Log::info("Inquiry BPJS Sukses (processed). Customer No: {$customerNo}", [
             'customer_no' => $customerNo,
@@ -365,6 +358,7 @@ class PascaBpjsController extends Controller
             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
             'diskon', 'jumlah_lembar_tagihan', 'original_api_response', 'original_api_price', 'original_api_selling_price',
             'jumlah_peserta', 'alamat', 'bpjs_desc_detail', // Already in initial details, avoid re-adding directly from apiResponseData
+            'bill_amount_for_client_display', // Exclude this from details as it's for frontend display, not core transaction detail
         ];
 
         $detailsFromApiResponse = [];

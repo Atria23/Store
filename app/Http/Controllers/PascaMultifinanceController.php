@@ -32,6 +32,8 @@ class PascaMultifinanceController extends Controller
 
     /**
      * Mengambil daftar produk Multifinance dari database lokal.
+     * Produk dengan status seller_product_status = false juga diambil
+     * agar bisa ditampilkan di frontend dengan indikator gangguan.
      */
     private function fetchMultifinanceProducts()
     {
@@ -77,35 +79,34 @@ class PascaMultifinanceController extends Controller
             $isOverdue = ((int)$lastDigit % 2 === 0); // Simulate overdue for even last digits
             $customerNameSeed = substr(preg_replace('/[^0-9]/', '', $customerNo), 0, 5);
 
-            $baseBillAmount = 500000 + (substr($customerNo, -2, 1) * 10000);
-            $adminFeePerPeriod = 7500;
-            $dendaPerPeriod = $isOverdue ? (25000 + (substr($customerNo, -3, 1) * 1000)) : 0;
+            $baseBillAmount = 500000 + (substr($customerNo, -2, 1) * 10000); // Principal + Interest
+            $adminFeePerPeriodDummy = 7500; // Admin fee per period (part of the bill)
+            $dendaPerPeriodDummy = $isOverdue ? (25000 + (substr($customerNo, -3, 1) * 1000)) : 0; // Denda per period
 
             $numPeriods = 1;
-            if ((int)$lastDigit % 3 === 0) { // Some customers might have 2 periods
+            if ((int)$lastDigit % 3 === 0) {
                 $numPeriods = 2;
             }
 
             $dummyDescDetails = [];
-            $totalBillAmount = 0;
-            $totalAdminFeePerPeriodAggregated = 0; // Renamed to avoid confusion with transaction admin
-            $totalDendaAggregated = 0;
+            $totalBillAmountDummy = 0; // Sum of baseBillAmount from all periods
+            $totalAdminFeePerPeriodAggregatedDummy = 0; // Sum of adminFeePerPeriodDummy from all periods
+            $totalDendaAggregatedDummy = 0; // Sum of dendaPerPeriodDummy from all periods
 
             for ($i = 0; $i < $numPeriods; $i++) {
-                $periodeMonth = date('m', strtotime("-{$i} month"));
-                $periodeYear = date('Y', strtotime("-{$i} month"));
+                $periode = date('Y-m', strtotime("-{$i} month")); // Format YYYY-MM
                 $billAmount = $baseBillAmount + ($i * 5000);
-                $dendaAmount = $isOverdue ? ($dendaPerPeriod / $numPeriods) : 0;
+                $dendaAmount = $isOverdue ? ($dendaPerPeriodDummy / $numPeriods) : 0;
 
                 $dummyDescDetails[] = [
-                    "periode" => "{$periodeYear}{$periodeMonth}",
-                    "bill_amount" => $billAmount,
-                    "admin_fee_per_period" => $adminFeePerPeriod,
+                    "periode" => $periode,
+                    "bill_amount" => $billAmount, // Pokok per periode
+                    "admin_fee_per_period" => $adminFeePerPeriodDummy, // Admin per periode
                     "denda" => ceil($dendaAmount),
                 ];
-                $totalBillAmount += $billAmount;
-                $totalAdminFeePerPeriodAggregated += $adminFeePerPeriod;
-                $totalDendaAggregated += ceil($dendaAmount);
+                $totalBillAmountDummy += $billAmount;
+                $totalAdminFeePerPeriodAggregatedDummy += $adminFeePerPeriodDummy;
+                $totalDendaAggregatedDummy += ceil($dendaAmount);
             }
 
             $dummyCustomerName = 'Pelanggan ' . $product->product_name . ' ' . $customerNameSeed . ($isOverdue ? ' (OVERDUE)' : '');
@@ -114,10 +115,18 @@ class PascaMultifinanceController extends Controller
             $dummyNoPol = 'AB ' . (1000 + (int)$customerNoLength) . ' AZ';
             $dummyTenor = 36; // Example tenor
 
-            $totalAdminFromProvider = 5000; // Example admin fee for the whole transaction
+            // This is the root admin fee from the provider, for informational purposes only.
+            // It is considered part of their total selling_price.
+            $providerInfoAdminDummy = 5000;
 
-            $baseTotalApiPrice = $totalBillAmount + $totalAdminFeePerPeriodAggregated + $totalDendaAggregated + $totalAdminFromProvider;
-            $dummyProviderOriginalSellingPrice = ceil($baseTotalApiPrice * (1 + (int)$lastDigit / 2000)); // Slight variation
+            // This is the actual total charged by the provider (selling_price for them)
+            // It includes all principal, interest, per-period admin, denda, AND their root admin fee.
+            $dummyProviderOriginalSellingPrice = $totalBillAmountDummy + $totalAdminFeePerPeriodAggregatedDummy + $totalDendaAggregatedDummy + $providerInfoAdminDummy;
+
+            // The 'price' field for our internal record will be (provider's total selling price - provider's root admin info)
+            // This is "selling_price from api - admin from api" as per request for internal price.
+            $dummyPriceFieldForOurRecord = $dummyProviderOriginalSellingPrice - $providerInfoAdminDummy;
+
 
             $responseData = [
                 'data' => [
@@ -126,8 +135,8 @@ class PascaMultifinanceController extends Controller
                     'customer_name' => $dummyCustomerName,
                     'customer_no' => $customerNo,
                     'buyer_sku_code' => $current_sku,
-                    'price' => $totalBillAmount, // Total bill amount (pokok) from API perspective
-                    'admin' => $totalAdminFromProvider, // Main admin for the transaction
+                    'price' => $dummyPriceFieldForOurRecord, // This is (provider's selling_price - provider's root admin) for our internal record
+                    'admin' => $providerInfoAdminDummy, // This is the informational root admin from provider
                     'rc' => '00',
                     'sn' => 'SN-INQ-MF-' . Str::random(10),
                     'ref_id' => $ref_id,
@@ -138,10 +147,10 @@ class PascaMultifinanceController extends Controller
                         "tenor" => $dummyTenor,
                         "lembar_tagihan" => $numPeriods, // Total periods with bills
                         "detail" => $dummyDescDetails,
-                        "total_denda" => $totalDendaAggregated, // Total denda from all periods
-                        "total_admin_per_period" => $totalAdminFeePerPeriodAggregated, // Total admin fee from all periods
+                        "total_denda" => $totalDendaAggregatedDummy, // Total denda from all periods
+                        "total_admin_per_period" => $totalAdminFeePerPeriodAggregatedDummy, // Total admin fee from all periods
                     ],
-                    'selling_price' => $dummyProviderOriginalSellingPrice, // ORIGINAL provider selling_price
+                    'selling_price' => $dummyProviderOriginalSellingPrice, // This is the actual total charged by provider for their service
                 ],
             ];
             Log::info('Multifinance Inquiry API Response (DUMMY):', ['response_data' => $responseData, 'customer_no' => $customerNo, 'sku' => $current_sku, 'ref_id' => $ref_id]);
@@ -182,8 +191,8 @@ class PascaMultifinanceController extends Controller
         // --- COMMON PROCESSING LOGIC (for both real and dummy data) ---
         $inquiryDataFromApi = $responseData['data'];
 
-        $providerOriginalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0);
-        $pureBillPriceFromApiRoot = (float) ($inquiryDataFromApi['price'] ?? 0); // This should be total bill_amount without admin/denda from provider
+        $providerOriginalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0); // Total price charged by provider
+        $providerInfoAdmin = (float) ($inquiryDataFromApi['admin'] ?? 0); // Root admin fee reported by provider (info only)
 
         // Ensure 'desc' is an array and initialize common Multifinance specific keys
         if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
@@ -193,54 +202,54 @@ class PascaMultifinanceController extends Controller
         $inquiryDataFromApi['desc']['no_rangka'] = $inquiryDataFromApi['desc']['no_rangka'] ?? null;
         $inquiryDataFromApi['desc']['no_pol'] = $inquiryDataFromApi['desc']['no_pol'] ?? null;
         $inquiryDataFromApi['desc']['tenor'] = $inquiryDataFromApi['desc']['tenor'] ?? null;
-        $inquiryDataFromApi['desc']['lembar_tagihan'] = $inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1; // Default to 1
+        $inquiryDataFromApi['desc']['jatuh_tempo'] = $inquiryDataFromApi['desc']['jatuh_tempo'] ?? null; // Added jatuh_tempo
 
-        $totalBillAmountFromDetails = 0; // Sum of bill_amount from details
-        $totalAdminFeePerPeriodAggregated = 0; // Sum of admin_fee_per_period from details
-        $totalDendaAggregated = 0; // Sum of denda from details
-        $jumlahLembarTagihan = 0; // Number of periods with bills
+        $totalDendaAggregated = 0; // Sum of denda from details/desc
+        $totalAdminFeePerPeriodAggregated = 0; // Sum of admin_fee_per_period from details/desc
+        $jumlahLembarTagihan = (int) ($inquiryDataFromApi['desc']['lembar_tagihan'] ?? 1); // From desc or default
 
-        $totalAdminFromProvider = (float) ($inquiryDataFromApi['admin'] ?? 0); // Main admin fee for the transaction (from root API response)
-
-
-        if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
-            $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
-        } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-            $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
-        } else {
-            $jumlahLembarTagihan = 1; // Default to 1 if no detail/lembar_tagihan
-        }
-
-        // Process details, mapping generic keys from real API response to desired Multifinance keys
+        // Process details to accumulate denda and per-period admin fees
         $processedDetails = [];
         if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
             foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
                 // Map generic API keys to desired Multifinance keys
-                $billAmount = (float) ($detail['bill_amount'] ?? $detail['nilai_tagihan'] ?? 0);
-                $adminFeePerPeriod = (float) ($detail['admin_fee_per_period'] ?? $detail['admin'] ?? 0);
-                $dendaAmount = (float) ($detail['denda'] ?? 0);
+                $billAmountDetail = (float) ($detail['bill_amount'] ?? $detail['nilai_tagihan'] ?? 0); // Base bill per period (principal+interest)
+                $adminFeeDetail = (float) ($detail['admin_fee_per_period'] ?? $detail['admin'] ?? 0); // Admin fee per period
+                $dendaDetail = (float) ($detail['denda'] ?? 0);
 
                 $processedDetails[] = [
                     "periode" => $detail['periode'] ?? null,
-                    "bill_amount" => $billAmount,
-                    "admin_fee_per_period" => $adminFeePerPeriod,
-                    "denda" => $dendaAmount,
+                    "bill_amount" => $billAmountDetail,
+                    "admin_fee_per_period" => $adminFeeDetail,
+                    "denda" => $dendaDetail,
                 ];
 
-                $totalBillAmountFromDetails += $billAmount;
-                $totalAdminFeePerPeriodAggregated += $adminFeePerPeriod;
-                $totalDendaAggregated += $dendaAmount;
+                $totalDendaAggregated += $dendaDetail;
+                $totalAdminFeePerPeriodAggregated += $adminFeeDetail;
             }
             $inquiryDataFromApi['desc']['detail'] = $processedDetails; // Update with mapped details
         } else {
-            // Fallback if 'detail' is not an array.
-            // For Multifinance, 'price' at root often represents total principal bill amount
-            // If totalBillAmountFromDetails remains 0, this is the first real fallback.
-            $totalBillAmountFromDetails = $pureBillPriceFromApiRoot;
-            $totalDendaAggregated = (float) ($inquiryDataFromApi['desc']['total_denda'] ?? $inquiryDataFromApi['denda'] ?? 0); // Use denda from desc or root
+            // Fallback if 'detail' is not an array. Take totals from desc or root
+            $totalDendaAggregated = (float) ($inquiryDataFromApi['desc']['total_denda'] ?? $inquiryDataFromApi['denda'] ?? 0);
             $totalAdminFeePerPeriodAggregated = (float) ($inquiryDataFromApi['desc']['total_admin_per_period'] ?? 0);
         }
 
+        // --- CALCULATE sumOfPureBillAmounts (for our internal record 'price') ---
+        // As per user request: "pure biaya nay itu selling_price from api - admin from api"
+        // This 'price' field for us will be (provider's total selling price - provider's root admin info)
+        $sumOfPureBillAmounts = $providerOriginalSellingPrice - $providerInfoAdmin;
+
+        // Ensure price is not negative (if provider's admin > selling_price, highly unlikely but for safety)
+        if ($sumOfPureBillAmounts < 0) {
+            Log::warning("Multifinance Inquiry: Calculated sumOfPureBillAmounts went negative for customer {$customerNo}. Adjusting to 0.", [
+                'providerOriginalSellingPrice' => $providerOriginalSellingPrice,
+                'providerInfoAdmin' => $providerInfoAdmin,
+                'inquiryDataFromApi' => $inquiryDataFromApi
+            ]);
+            $sumOfPureBillAmounts = 0;
+        }
+
+        // Our commission/markup logic
         $commission = $product->commission ?? 0;
         $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
         $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
@@ -249,46 +258,39 @@ class PascaMultifinanceController extends Controller
         $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan; // Apply discount based on number of billing periods
         $finalDiskon = ceil($finalDiskon);
 
-        // Calculated values for our transaction record
-        // Step 1: Default to sum from details or root price
-        $calculatedPureBillPrice = $totalBillAmountFromDetails;
+        // Our own calculated admin margin for this product (this is what goes into our 'admin' record field)
+        $ourCalculatedAdmin = $product->calculated_admin;
 
-        // Step 2: If calculatedPureBillPrice is still 0, use provider's original selling price as fallback
-        // This addresses the user's request: "price nya jangan sampai 0, pakai selling price dari api saja kalo memang nilai aslinya 0"
-        if ($calculatedPureBillPrice === 0 && $providerOriginalSellingPrice > 0) {
-            $calculatedPureBillPrice = $providerOriginalSellingPrice;
-            Log::warning("Multifinance Inquiry: calculatedPureBillPrice was 0 (from details/root price). Using provider_original_selling_price ({$providerOriginalSellingPrice}) as fallback for pure bill price. Customer: {$customerNo}");
-        }
-
-        $totalCombinedAdminFees = $totalAdminFromProvider + $totalAdminFeePerPeriodAggregated; // Root admin + sum of per-period admin
-
-        // Final selling price calculation (what the customer actually pays)
-        $finalSellingPrice = $calculatedPureBillPrice + $totalCombinedAdminFees + $totalDendaAggregated - $finalDiskon;
+        // --- CALCULATE finalSellingPrice (what the customer actually pays) ---
+        // As per user request: (provider's total selling_price + our admin_margin) - our_discount
+        // "admin dari response itu sebenarnya hanya info saja, karena selling_price sejatihanya sudah termasuk admin dari response"
+        // so providerInfoAdmin is part of providerOriginalSellingPrice and not added again.
+        $finalSellingPrice = ($providerOriginalSellingPrice + $ourCalculatedAdmin) - $finalDiskon;
         $finalSellingPrice = ceil($finalSellingPrice);
 
-        // Override logic (from previous code): If provider's root price is somehow higher than our calculated final selling price, and provider has a specific selling price, use that specific selling price.
-        // This specifically applies to finalSellingPrice (customer pays), not calculatedPureBillPrice (our internal 'price').
-        if ($pureBillPriceFromApiRoot > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
-            $finalSellingPrice = $providerOriginalSellingPrice;
+        // Override logic (simplified to prevent our calculated selling price from being lower than provider's reported total selling price)
+        // Jika providerOriginalSellingPrice (total dari provider) lebih besar dari finalSellingPrice yang kita hitung,
+        // maka gunakan providerOriginalSellingPrice sebagai finalSellingPrice (ini untuk mencegah harga jual kita lebih rendah dari harga provider jika ada anomali).
+        if ($providerOriginalSellingPrice > $finalSellingPrice) {
             Log::info('Multifinance Inquiry: finalSellingPrice overridden by provider_original_selling_price.', [
                 'calculated_finalSellingPrice' => $finalSellingPrice,
-                'pureBillPriceFromApiRoot' => $pureBillPriceFromApiRoot,
                 'providerOriginalSellingPrice' => $providerOriginalSellingPrice,
                 'customer_no' => $customerNo
             ]);
+            $finalSellingPrice = $providerOriginalSellingPrice;
         }
 
         // Populate the final successful inquiry data array
         $successfulInquiryData = $inquiryDataFromApi;
-        $successfulInquiryData['price']         = $calculatedPureBillPrice; // Our calculated pure bill price (now should not be 0 if selling_price > 0)
-        $successfulInquiryData['admin']         = $totalCombinedAdminFees; // Our calculated total admin (root + per period)
+        $successfulInquiryData['price']         = $sumOfPureBillAmounts; // Our calculated pure bill price (for mapping, based on selling_price - admin info)
+        $successfulInquiryData['admin']         = $ourCalculatedAdmin; // This is OUR calculated admin margin (to be recorded and shown in frontend)
         $successfulInquiryData['denda']         = $totalDendaAggregated; // Our calculated total denda
         $successfulInquiryData['diskon']        = $finalDiskon;
         $successfulInquiryData['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
-        $successfulInquiryData['selling_price'] = $finalSellingPrice; // What the user pays
+        $successfulInquiryData['selling_price'] = $finalSellingPrice; // What the user pays (final amount)
         $successfulInquiryData['buyer_sku_code'] = $current_sku;
         $successfulInquiryData['ref_id'] = $ref_id;
-        $successfulInquiryData['provider_original_selling_price'] = $providerOriginalSellingPrice;
+        $successfulInquiryData['provider_original_selling_price'] = $providerOriginalSellingPrice; // For reference
         $successfulInquiryData['product_name'] = $product->product_name; // Add product name for frontend display
 
         unset($successfulInquiryData['buyer_last_saldo']);
@@ -313,8 +315,8 @@ class PascaMultifinanceController extends Controller
     private function _processIndividualMultifinancePayment(array $inquiryData, \App\Models\User $user): array
     {
         $totalPriceToPay     = (float) $inquiryData['selling_price'];
-        $finalAdmin          = (float) ($inquiryData['admin'] ?? 0); // Ensure fallback for admin
-        $pureBillPrice       = (float) ($inquiryData['price'] ?? 0); // Ensure fallback for price
+        $finalAdmin          = (float) ($inquiryData['admin'] ?? 0); // Our calculated admin margin
+        $pureBillPrice       = (float) ($inquiryData['price'] ?? 0); // Our calculated pure bill price
         $diskon              = (float) ($inquiryData['diskon'] ?? 0);
         $jumlahLembarTagihan = (int) ($inquiryData['jumlah_lembar_tagihan'] ?? 0);
         $denda               = (float) ($inquiryData['denda'] ?? 0);
