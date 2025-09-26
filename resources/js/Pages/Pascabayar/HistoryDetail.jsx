@@ -100,7 +100,9 @@ const SpecificDetails = ({ transaction }) => {
                 {bill.nilai_tagihan && (
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Nilai Tagihan</div>
-                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(bill.nilai_tagihan)}</div>
+                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(
+                            (bill.nilai_tagihan ?? 0) - (bill.denda ?? 0)
+                        )}</div>
                     </div>
                 )}
                 {bill.denda > 0 && ( // Perubahan ada di sini: tambahkan kondisi bill.denda > 0
@@ -312,9 +314,9 @@ const SpecificDetails = ({ transaction }) => {
                                     </div>
                                     {parseFloat(item.denda) > 0 && (
                                         <div className="w-full flex flex-row">
-                                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Denda Periode</div>
-                                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.denda)}</div>
-                                    </div>
+                                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Denda Periode</div>
+                                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{formatRupiahCurrency(item.denda)}</div>
+                                        </div>
                                     )}
                                     {item.biaya_lain && item.biaya_lain !== '0' && (
                                         <div className="w-full flex flex-row">
