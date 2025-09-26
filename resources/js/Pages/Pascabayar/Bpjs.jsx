@@ -588,13 +588,15 @@ import { Head, router } from '@inertiajs/react';
 const rcMessages = {
     "00": "Transaksi Sukses",
     "01": "Timeout",
-    "02": "Transaksi Gagal",
+    "02": "Transaksi Gagal", // Akan digunakan juga untuk kegagalan internal generik
     "03": "Transaksi Pending",
+    "10": "Produk Tidak Tersedia",
+    "14": "Saldo Provider Tidak Cukup",
     "40": "Payload Error",
     "50": "Transaksi Tidak Ditemukan",
     "51": "Nomor Tujuan Diblokir",
     "52": "Prefix Tidak Sesuai Operator",
-    "53": "Produk Tidak Tersedia",
+    "53": "Produk Tidak Tersedia", // Digunakan jika tidak ada produk aktif BPJS
     "54": "Nomor Tujuan Salah",
     "55": "Produk Gangguan",
     "57": "Jumlah Digit Tidak Sesuai",
@@ -614,10 +616,10 @@ const rcMessages = {
     "82": "Akun Belum Terverifikasi",
     "84": "Nominal Tidak Valid",
     "85": "Limitasi Transaksi",
-    "86": "Limitasi Pengecekan PLN",
+    "86": "Limitasi Pengecekan PLN", // Ini mungkin tidak relevan untuk BPJS, bisa dihapus jika tidak dipakai
 };
 
-const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
+const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (RC: ${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
 
 export default function BpjsPascaIndex({ auth }) {
     // State untuk alur BPJS Satuan
@@ -632,7 +634,8 @@ export default function BpjsPascaIndex({ auth }) {
 
     // State untuk UI & proses pembayaran
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    // Mengubah error menjadi objek untuk menyimpan message dan rc
+    const [error, setError] = useState({ message: '', rc: '' }); // <-- Diubah menjadi objek
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -649,15 +652,10 @@ export default function BpjsPascaIndex({ auth }) {
         return bulkInquiryResults.successful.reduce((sum, item) => sum + item.selling_price, 0);
     }, [bulkInquiryResults]);
 
-    const totalBulkDiscount = useMemo(() => {
-        if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
-        return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.diskon || 0), 0);
-    }, [bulkInquiryResults]);
-
     // Mengosongkan error saat input/mode berubah untuk UX yang lebih baik
     useEffect(() => {
-        if (error) {
-            setError('');
+        if (error.message) { // <-- Periksa error.message
+            setError({ message: '', rc: '' }); // <-- Reset error object
         }
     }, [customerNo, customerNosInput, password, isBulkMode]);
 
@@ -666,26 +664,32 @@ export default function BpjsPascaIndex({ auth }) {
     const handleInquiry = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear bulk results if doing single
         setPaymentResult(null); // Clear payment results
         setBulkPaymentResults(null); // Clear bulk payment results
 
         try {
-            const response = await fetch(route('pascabpjs.inquiry'), { // <<< ROUTE BPJS
+            const response = await fetch(route('pascabpjs.inquiry'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ customer_no: customerNo }),
             });
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                // Backend tidak selalu mengirimkan RC untuk error generik, jadi kita perlu fallback
+                const errorCode = data.rc || (response.status === 400 ? '02' : '02'); // Gunakan '02' untuk 400
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
+                return;
             }
             setInquiryResult(data);
         } catch (err) {
-            setError(err.message);
+            // Ini menangani kesalahan jaringan atau parsing JSON
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' });
         } finally {
             setIsLoading(false);
         }
@@ -695,36 +699,45 @@ export default function BpjsPascaIndex({ auth }) {
     const handleBulkInquiry = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear previous bulk inquiry results
         setPaymentResult(null); // Clear payment results
         setBulkPaymentResults(null); // Clear bulk payment results
 
-        const customerNos = customerNosInput.split(/[\n,;\s]+/) // Split by newline, comma, semicolon, or space
+        const customerNos = customerNosInput.split(/[\n,;\s]+/)
             .map(num => num.trim())
-            .filter(num => num.length >= 11); // Filter out empty or too short entries. BPJS ID is typically 11-13 digits.
+            .filter(num => num.length >= 11);
 
         if (customerNos.length === 0) {
-            setError('Masukkan setidaknya satu ID Pelanggan BPJS yang valid.');
+            setError({ message: 'Masukkan setidaknya satu ID Pelanggan BPJS yang valid.', rc: '02' }); // <-- Set RC generik
             setIsLoading(false);
             return;
         }
 
         try {
-            const response = await fetch(route('pascabpjs.bulk-inquiry'), { // <<< ROUTE BPJS
+            const response = await fetch(route('pascabpjs.bulk-inquiry'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ customer_nos: customerNos }),
             });
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for bulk inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || (response.status === 400 ? '02' : '02'); // Gunakan '02' untuk 400
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
+                // Untuk bulk inquiry, data.failed mungkin sudah ada di respons bahkan jika !response.ok
+                // Kita perlu menampilkan itu nanti di UI, tapi untuk error utama, ini cukup.
+                if (data.failed && data.failed.length > 0) {
+                    setBulkInquiryResults(data); // Simpan hasil (termasuk yang gagal) untuk ditampilkan
+                }
+                return;
             }
             setBulkInquiryResults(data);
         } catch (err) {
-            setError(err.message);
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' });
         } finally {
             setIsLoading(false);
         }
@@ -734,10 +747,10 @@ export default function BpjsPascaIndex({ auth }) {
     const handleBayarClick = () => {
         const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
         if (userBalance < amountToCheck) {
-            setError("Saldo tidak mencukupi untuk melakukan transaksi.");
+            setError({ message: 'Saldo Anda tidak mencukupi untuk melakukan transaksi.', rc: '02' }); // <-- Set RC generik
             return;
         }
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPassword('');
         setIsModalOpen(true);
     };
@@ -746,17 +759,16 @@ export default function BpjsPascaIndex({ auth }) {
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
-            setError("Silakan masukkan password untuk melanjutkan.");
+            setError({ message: 'Silakan masukkan password untuk melanjutkan.', rc: '02' }); // <-- Set RC generik
             return;
         }
-        // Pastikan ada tagihan yang berhasil di-inquiry sebelum mencoba pembayaran
         if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
-            setError('Tidak ada tagihan BPJS yang siap dibayar.');
+            setError({ message: 'Tidak ada tagihan BPJS yang siap dibayar.', rc: '02' }); // <-- Set RC generik
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
 
         try {
             // Step 1: Verifikasi Password
@@ -767,20 +779,21 @@ export default function BpjsPascaIndex({ auth }) {
             });
             const verifyData = await verifyResponse.json();
             if (!verifyResponse.ok || !verifyData.success) {
-                throw new Error("Password yang Anda masukkan salah.");
+                setError({ message: verifyData.message || 'Password yang Anda masukkan salah.', rc: '02' }); // <-- Set RC generik
+                return;
             }
 
             // Step 2: Lakukan Pembayaran (Satuan atau Massal)
             let paymentResponse;
             if (isBulkMode) {
                 const customerNosToPay = bulkInquiryResults.successful.map(item => item.customer_no);
-                paymentResponse = await fetch(route('pascabpjs.bulk-payment'), { // <<< ROUTE BPJS
+                paymentResponse = await fetch(route('pascabpjs.bulk-payment'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-                    body: JSON.stringify({ customer_nos_to_pay: customerNosToPay }), // Send only customer numbers to pay
+                    body: JSON.stringify({ customer_nos_to_pay: customerNosToPay }),
                 });
             } else {
-                paymentResponse = await fetch(route('pascabpjs.payment'), { // <<< ROUTE BPJS
+                paymentResponse = await fetch(route('pascabpjs.payment'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ customer_no: inquiryResult.customer_no }),
@@ -789,25 +802,29 @@ export default function BpjsPascaIndex({ auth }) {
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                // Use getResponseMessage for payment errors
-                setError(data.message || getResponseMessage(data.rc));
-                // Bahkan jika ada error, set hasil pembayaran untuk potensi partial success (bulk)
+                // Backend tidak selalu mengirimkan RC untuk error generik, jadi kita perlu fallback
+                const errorCode = data.rc || (response.status === 402 ? '02' : (response.status === 400 ? '02' : '02')); // Tetapkan '02' untuk semua HTTP error dari backend
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
                 isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
-                return; // Hentikan eksekusi jika ada error
+                return;
             }
 
             // Jika sukses (atau sukses sebagian untuk bulk)
             isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
             setInquiryResult(null);
             setBulkInquiryResults(null);
-            setCustomerNo(''); // Clear input for single
-            setCustomerNosInput(''); // Clear input for bulk
+            setCustomerNo('');
+            setCustomerNosInput('');
             setIsModalOpen(false);
 
             router.reload({ only: ['auth'] }); // Refresh user balance
 
         } catch (err) {
-            setError(err.message);
+            // Ini menangani kesalahan jaringan atau parsing JSON dari payment API atau verify-password
+            setError({ message: err.message || 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' });
         } finally {
             setIsLoading(false);
         }
@@ -824,7 +841,7 @@ export default function BpjsPascaIndex({ auth }) {
         setBulkInquiryResults(null);
         setPaymentResult(null);
         setBulkPaymentResults(null);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setCustomerNo('');
         setCustomerNosInput('');
         setIsBulkMode(false); // Reset mode
@@ -839,7 +856,7 @@ export default function BpjsPascaIndex({ auth }) {
                     <button className="shrink-0 w-6 h-6" onClick={() => (isViewingPaymentResult || isViewingInquiryResult) ? handleBackFromInquiry() : window.history.back()}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" /></svg>
                     </button>
-                    <div className="font-semibold text-lg">BPJS Kesehatan</div> {/* <<< JUDUL BPJS */}
+                    <div className="font-semibold text-lg">BPJS Kesehatan</div>
                 </header>
 
                 <main className="w-full pt-16 pb-40 px-4 space-y-4">
@@ -864,7 +881,7 @@ export default function BpjsPascaIndex({ auth }) {
                                     </svg>
                                     <h3 className="text-lg font-bold text-gray-800 mt-2">Pembayaran Selesai</h3>
                                     <p className="text-sm text-gray-500">
-                                        {paymentResult ? 'Pembayaran Tagihan BPJS Kesehatan' : 'Pembayaran Tagihan BPJS Kesehatan Massal'} {/* <<< TEXT BPJS */}
+                                        {paymentResult ? 'Pembayaran Tagihan BPJS Kesehatan' : 'Pembayaran Tagihan BPJS Kesehatan Massal'}
                                     </p>
                                 </div>
 
@@ -885,6 +902,11 @@ export default function BpjsPascaIndex({ auth }) {
                                                 {formatRupiah(bulkPaymentResults.results.filter(r => r.status === 'Sukses').reduce((sum, item) => sum + item.selling_price, 0))}
                                             </p>
                                         </div>
+                                        {bulkPaymentResults.results.some(r => r.status !== 'Sukses') && (
+                                            <div className="text-center text-sm text-red-600 font-semibold bg-red-50 p-2 rounded-lg">
+                                                Ada {bulkPaymentResults.results.filter(r => r.status !== 'Sukses').length} transaksi yang gagal. Saldo akan dikembalikan.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -907,10 +929,30 @@ export default function BpjsPascaIndex({ auth }) {
                                 {paymentResult && paymentResult.status !== "Sukses" && (
                                     <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
                                         {/* Menggunakan getResponseMessage untuk pesan error pembayaran satuan */}
-                                        {getResponseMessage(paymentResult.rc || '02')}
-                                        {paymentResult.message && ` (${paymentResult.message})`}
+                                        {getResponseMessage(paymentResult.rc || '02')} {/* <-- Tampilkan RC message */}
+                                        {paymentResult.message && ` (${paymentResult.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
                                     </div>
                                 )}
+
+                                {bulkPaymentResults && bulkPaymentResults.results.length > 0 && (
+                                    <div className="space-y-2 text-sm">
+                                        <h4 className="font-semibold text-md text-gray-800 pb-1 border-b">
+                                            Detail Transaksi Massal
+                                        </h4>
+                                        <ul>
+                                            {bulkPaymentResults.results.map((item, index) => (
+                                                <li key={index} className={`flex justify-between items-center py-1 ${item.status === 'Gagal' ? 'text-red-700' : ''}`}>
+                                                    <span>{item.customer_no} ({item.status})</span>
+                                                    <span className="text-right">
+                                                        {formatRupiah(item.selling_price)}
+                                                        {item.status === 'Gagal' && ` - ${getResponseMessage(item.rc || '02')} ${item.message ? `(${item.message})` : ''}`} {/* <-- Tampilkan RC message untuk item gagal bulk */}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
 
                                 <button
                                     onClick={() => router.visit(route("postpaid.history.index"))}
@@ -929,7 +971,7 @@ export default function BpjsPascaIndex({ auth }) {
                             // --- TAMPILAN SETELAH INQUIRY SUKSES (SINGLE / BULK) ---
                             <div className="space-y-4">
                                 <p className="w-full font-semibold text-md text-center text-gray-800">
-                                    {inquiryResult ? 'Detail Tagihan BPJS' : 'Ringkasan Pengecekan Tagihan BPJS Massal'} {/* <<< TEXT BPJS */}
+                                    {inquiryResult ? 'Detail Tagihan BPJS' : 'Ringkasan Pengecekan Tagihan BPJS Massal'}
                                 </p>
                                 <div className="w-full h-px bg-gray-200" />
 
@@ -938,19 +980,16 @@ export default function BpjsPascaIndex({ auth }) {
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between"><span className="text-gray-500">Nomor Pelanggan</span><span className="font-medium text-gray-900">{inquiryResult.customer_no}</span></div>
                                             <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{inquiryResult.customer_name}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Jumlah Peserta</span><span className="font-medium text-gray-900">{inquiryResult.desc.jumlah_peserta}</span></div> {/* <<< BPJS SPECIFIC */}
-                                            <div className="flex justify-between"><span className="text-gray-500">Alamat</span><span className="font-medium text-gray-900 text-right">{inquiryResult.desc.alamat}</span></div> {/* <<< BPJS SPECIFIC */}
+                                            <div className="flex justify-between"><span className="text-gray-500">Jumlah Peserta</span><span className="font-medium text-gray-900">{inquiryResult.desc.jumlah_peserta}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Alamat</span><span className="font-medium text-gray-900 text-right">{inquiryResult.desc.alamat}</span></div>
                                         </div>
 
                                         {inquiryResult.desc.detail && inquiryResult.desc.detail.length > 0 && (
                                             <div className="space-y-2 text-sm border-t pt-2">
-                                                <h4 className="font-semibold text-md text-gray-800 pb-1">Rincian Periode Tagihan</h4> {/* <<< TEXT BPJS */}
+                                                <h4 className="font-semibold text-md text-gray-800 pb-1">Rincian Periode Tagihan</h4>
                                                 {inquiryResult.desc.detail.map((detail, index) => (
                                                     <div key={index} className="border-b pb-2 mb-2 last:border-b-0 last:pb-0">
                                                         <p className="font-medium text-gray-700">Periode: {detail.periode}</p>
-                                                        {/* BPJS details might not have nilai_tagihan, denda, admin per period, or meter readings directly here */}
-                                                        {/* You can add them if your specific API response includes them in desc.detail */}
-                                                        {/* For now, simplified to just periode as per example response */}
                                                         {parseFloat(detail.nilai_tagihan ?? 0) > 0 && (
                                                             <div className="flex justify-between pl-2">
                                                                 <span className="text-gray-500">Nilai Tagihan</span>
@@ -980,7 +1019,7 @@ export default function BpjsPascaIndex({ auth }) {
                                                 <span className="text-gray-500">Total Nilai Tagihan</span>
                                                 <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
                                             </div>
-                                            {inquiryResult.denda > 0 && (
+                                            {parseFloat(inquiryResult.denda ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Total Denda</span>
                                                     <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
@@ -988,10 +1027,10 @@ export default function BpjsPascaIndex({ auth }) {
                                             )}
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">Total Biaya Admin</span>
-                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span> {/* Use top-level admin */}
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
                                             </div>
 
-                                            {inquiryResult.diskon > 0 && (
+                                            {parseFloat(inquiryResult.diskon ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Diskon</span>
                                                     <span className="font-medium text-green-600">
@@ -1012,16 +1051,15 @@ export default function BpjsPascaIndex({ auth }) {
                                     <div className="space-y-4">
                                         {bulkInquiryResults.successful.length > 0 && (
                                             <>
-                                                <p className="font-semibold text-gray-800">Tagihan BPJS Berhasil Ditemukan ({bulkInquiryResults.successful.length})</p> {/* <<< TEXT BPJS */}
+                                                <p className="font-semibold text-gray-800">Tagihan BPJS Berhasil Ditemukan ({bulkInquiryResults.successful.length})</p>
                                                 {bulkInquiryResults.successful.map((item, index) => {
-                                                    // For BPJS, totalAdminFromDetails might just be item.admin directly if not per detail
                                                     const totalAdmin = item.admin || 0;
                                                     return (
                                                         <div key={index} className="border border-blue-200 bg-blue-50 p-3 rounded-lg space-y-1 text-sm">
                                                             <div className="flex justify-between"><span className="text-gray-500">Nomor Pelanggan</span><span className="font-medium text-gray-900">{item.customer_no}</span></div>
                                                             <div className="flex justify-between"><span className="text-gray-500">Nama Pelanggan</span><span className="font-medium text-gray-900 text-right">{item.customer_name}</span></div>
-                                                            <div className="flex justify-between"><span className="text-gray-500">Jumlah Peserta</span><span className="font-medium text-gray-900">{item.desc.jumlah_peserta}</span></div> {/* <<< BPJS SPECIFIC */}
-                                                            <div className="flex justify-between"><span className="text-gray-500">Alamat</span><span className="font-medium text-gray-900 text-right">{item.desc.alamat}</span></div> {/* <<< BPJS SPECIFIC */}
+                                                            <div className="flex justify-between"><span className="text-gray-500">Jumlah Peserta</span><span className="font-medium text-gray-900">{item.desc.jumlah_peserta}</span></div>
+                                                            <div className="flex justify-between"><span className="text-gray-500">Alamat</span><span className="font-medium text-gray-900 text-right">{item.desc.alamat}</span></div>
 
                                                             {item.desc.detail && item.desc.detail.length > 0 && (
                                                                 <div className="space-y-1 text-xs border-t pt-1 mt-1">
@@ -1058,7 +1096,7 @@ export default function BpjsPascaIndex({ auth }) {
                                                                     <span className="text-gray-500">Total Nilai Tagihan</span>
                                                                     <span className="font-medium text-gray-900">{formatRupiah(item.price)}</span>
                                                                 </div>
-                                                                {item.denda > 0 && (
+                                                                {parseFloat(item.denda ?? 0) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Total Denda</span>
                                                                         <span className="font-medium text-red-600">{formatRupiah(item.denda)}</span>
@@ -1066,9 +1104,9 @@ export default function BpjsPascaIndex({ auth }) {
                                                                 )}
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-500">Total Biaya Admin</span>
-                                                                    <span className="font-medium text-gray-900">{formatRupiah(totalAdmin)}</span> {/* Use aggregated admin */}
+                                                                    <span className="font-medium text-gray-900">{formatRupiah(totalAdmin)}</span>
                                                                 </div>
-                                                                {item.diskon > 0 && (
+                                                                {parseFloat(item.diskon ?? 0) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Diskon</span>
                                                                         <span className="font-medium text-green-600">- {formatRupiah(item.diskon)}</span>
@@ -1088,15 +1126,17 @@ export default function BpjsPascaIndex({ auth }) {
 
                                         {bulkInquiryResults.failed.length > 0 && (
                                             <>
-                                                <p className="font-semibold text-red-700 mt-4">Tagihan BPJS Gagal Ditemukan ({bulkInquiryResults.failed.length})</p> {/* <<< TEXT BPJS */}
+                                                <p className="font-semibold text-red-700 mt-4">Tagihan BPJS Gagal Ditemukan ({bulkInquiryResults.failed.length})</p>
                                                 {bulkInquiryResults.failed.map((item, index) => (
                                                     <div key={index} className="border border-red-300 bg-red-50 p-3 rounded-lg space-y-1 text-sm">
                                                         <div className="flex justify-between">
                                                             <span className="text-gray-600">ID Pelanggan</span>
                                                             <span className="font-bold text-red-800">{item.customer_no}</span>
                                                         </div>
-                                                        {/* Menggunakan getResponseMessage untuk item bulk inquiry yang gagal */}
-                                                        <p className="text-xs text-red-600 mt-1">{getResponseMessage(item.rc || '02')} {item.message && ` (${item.message})`}</p>
+                                                        <p className="text-xs text-red-600 mt-1">
+                                                            {getResponseMessage(item.rc || '02')} {/* <-- Tampilkan RC message untuk item gagal bulk */}
+                                                            {item.message && ` (${item.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </>
@@ -1136,7 +1176,7 @@ export default function BpjsPascaIndex({ auth }) {
                                     <form onSubmit={handleInquiry} className="space-y-4">
                                         <h3 className="font-semibold text-lg text-gray-800">Cek Tagihan Satuan</h3>
                                         <div>
-                                            <label htmlFor="customer_no" className="block text-sm font-medium text-gray-700 mb-1">ID Pelanggan BPJS Kesehatan</label> {/* <<< LABEL BPJS */}
+                                            <label htmlFor="customer_no" className="block text-sm font-medium text-gray-700 mb-1">ID Pelanggan BPJS Kesehatan</label>
                                             <input
                                                 id="customer_no" type="text"
                                                 inputMode="numeric"
@@ -1144,18 +1184,17 @@ export default function BpjsPascaIndex({ auth }) {
                                                 value={customerNo}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
-                                                    // Allow only digits and limit length (e.g., 13 for BPJS)
-                                                    if (/^\d*$/.test(value) && value.length <= 16) { // BPJS ID usually 11-13 digits, up to 16 for safety
+                                                    if (/^\d*$/.test(value) && value.length <= 16) {
                                                         setCustomerNo(value);
                                                     }
                                                 }}
                                                 onWheel={(e) => e.target.blur()}
                                                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                                disabled={isLoading} required placeholder="Contoh: 8801234560001" // <<< PLACEHOLDER BPJS
+                                                disabled={isLoading} required placeholder="Contoh: 8801234560001"
                                             />
                                         </div>
                                         <button
-                                            type="submit" disabled={isLoading || customerNo.length < 11} // Require minimum 11 digits for BPJS
+                                            type="submit" disabled={isLoading || customerNo.length < 11}
                                             className="w-full py-2 px-4 bg-main text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
                                         >
                                             {isLoading ? 'Mengecek...' : 'Lanjutkan'}
@@ -1169,7 +1208,7 @@ export default function BpjsPascaIndex({ auth }) {
                                         <h3 className="font-semibold text-lg text-gray-800">Cek Tagihan Massal</h3>
                                         <div>
                                             <label htmlFor="customer_nos_bulk" className="block text-sm font-medium text-gray-700 mb-1">
-                                                ID Pelanggan BPJS Kesehatan (Pisahkan dengan koma, spasi, atau baris baru) {/* <<< LABEL BPJS */}
+                                                ID Pelanggan BPJS Kesehatan (Pisahkan dengan koma, spasi, atau baris baru)
                                             </label>
                                             <textarea
                                                 id="customer_nos_bulk"
@@ -1179,7 +1218,7 @@ export default function BpjsPascaIndex({ auth }) {
                                                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                                 disabled={isLoading}
                                                 required
-                                                placeholder="Contoh:&#10;8801234560001&#10;8809876540002, 8801122330003" // <<< PLACEHOLDER BPJS
+                                                placeholder="Contoh:&#10;8801234560001&#10;8809876540002, 8801122330003"
                                             />
                                         </div>
                                         <button
@@ -1190,7 +1229,7 @@ export default function BpjsPascaIndex({ auth }) {
                                         </button>
                                     </form>
                                 )}
-                                {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                {error.message && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                             </div>
                         )}
                     </div>
@@ -1231,7 +1270,7 @@ export default function BpjsPascaIndex({ auth }) {
                                         {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" /><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" /></svg>}
                                     </button>
                                 </div>
-                                {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                 <div className="flex justify-end space-x-2 pt-4">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
                                     <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-main hover:bg-blue-700 rounded-lg disabled:bg-gray-400">

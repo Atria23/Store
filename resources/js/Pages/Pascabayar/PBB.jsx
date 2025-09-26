@@ -693,7 +693,7 @@ import { Head, router } from '@inertiajs/react';
 const rcMessages = {
     "00": "Transaksi Sukses",
     "01": "Timeout",
-    "02": "Transaksi Gagal",
+    "02": "Transaksi Gagal", // Akan digunakan juga untuk kegagalan internal generik jika RC tidak ada dari backend
     "03": "Transaksi Pending",
     "40": "Payload Error",
     "50": "Transaksi Tidak Ditemukan",
@@ -719,10 +719,10 @@ const rcMessages = {
     "82": "Akun Belum Terverifikasi",
     "84": "Nominal Tidak Valid",
     "85": "Limitasi Transaksi",
-    "86": "Limitasi Pengecekan PLN",
+    "86": "Limitasi Pengecekan PLN", // Ini mungkin tidak relevan untuk PBB
 };
 
-const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
+const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (RC: ${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
 
 export default function Pbb({ auth, products }) {
     // State untuk alur PBB Satuan
@@ -740,7 +740,7 @@ export default function Pbb({ auth, products }) {
     // State untuk UI
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState({ message: '', rc: '' }); // <-- DIUBAH menjadi objek
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -759,10 +759,10 @@ export default function Pbb({ auth, products }) {
 
     useEffect(() => {
         // Clear error when inputs/modes change
-        if (error) {
-            setError('');
+        if (error.message) { // <-- Periksa error.message
+            setError({ message: '', rc: '' }); // <-- Reset error object
         }
-    }, [customerNo, password, selectedProduct, searchTerm, customerNosInput, isBulkMode]);
+    }, [customerNo, customerNosInput, password, selectedProduct, searchTerm, isBulkMode]);
 
     const formatRupiah = (number) => {
         const num = parseFloat(number);
@@ -775,7 +775,7 @@ export default function Pbb({ auth, products }) {
     // Kalkulasi total yang harus dibayar untuk bulk payment
     const totalAmountToPayBulk = useMemo(() => {
         if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
-        return bulkInquiryResults.successful.reduce((sum, item) => sum + item.selling_price, 0);
+        return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.selling_price ?? 0), 0);
     }, [bulkInquiryResults]);
 
     // Kalkulasi total diskon untuk bulk inquiry
@@ -788,16 +788,16 @@ export default function Pbb({ auth, products }) {
     const handleInquiry = async (e) => {
         e.preventDefault();
         if (!selectedProduct) {
-            setError('Silakan pilih produk terlebih dahulu.');
+            setError({ message: 'Silakan pilih produk terlebih dahulu.', rc: '02' });
             return;
         }
         if (!selectedProduct.seller_product_status) {
-            setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
+            setError({ message: 'Produk ini sedang mengalami gangguan. Silakan pilih produk lain.', rc: '02' });
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null);
         setPaymentResult(null);
         setBulkInquiryResults(null);
@@ -815,12 +815,16 @@ export default function Pbb({ auth, products }) {
 
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || (response.status === 503 ? '02' : (response.status === 400 ? '02' : '02')); // Fallback ke '02'
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
+                return;
             }
             setInquiryResult(data);
         } catch (err) {
-            setError(err.message);
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -830,28 +834,27 @@ export default function Pbb({ auth, products }) {
     const handleBulkInquiry = async (e) => {
         e.preventDefault();
         if (!selectedProduct) {
-            setError('Silakan pilih produk PBB terlebih dahulu.');
+            setError({ message: 'Silakan pilih produk PBB terlebih dahulu.', rc: '02' });
             return;
         }
         if (!selectedProduct.seller_product_status) {
-            setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
+            setError({ message: 'Produk ini sedang mengalami gangguan. Silakan pilih produk lain.', rc: '02' });
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null);
         setPaymentResult(null);
         setBulkInquiryResults(null);
         setBulkPaymentResults(null);
 
-        // PBB NOP (Nomor Objek Pajak) can be long, so min: 4 is a placeholder, adjust as needed.
         const customerNos = customerNosInput.split(/[\n,;\s]+/)
             .map(num => num.trim())
             .filter(num => num.length >= 4);
 
         if (customerNos.length === 0) {
-            setError('Masukkan setidaknya satu ID Pelanggan (NOP) yang valid.');
+            setError({ message: 'Masukkan setidaknya satu ID Pelanggan (NOP) yang valid.', rc: '02' });
             setIsLoading(false);
             return;
         }
@@ -867,12 +870,19 @@ export default function Pbb({ auth, products }) {
             });
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for bulk inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || (response.status === 503 ? '02' : (response.status === 400 ? '02' : '02')); // Fallback ke '02'
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
+                if (data.failed && data.failed.length > 0) {
+                    setBulkInquiryResults(data);
+                }
+                return;
             }
             setBulkInquiryResults(data);
         } catch (err) {
-            setError(err.message);
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -880,12 +890,12 @@ export default function Pbb({ auth, products }) {
 
     // Langkah 2: Buka Modal Konfirmasi (Satuan atau Massal)
     const handleBayarClick = () => {
-        const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
+        const amountToCheck = isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0);
         if (userBalance < amountToCheck) {
-            setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
+            setError({ message: 'Saldo Anda tidak mencukupi untuk melakukan transaksi.', rc: '02' }); // <-- Set RC generik
             return;
         }
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPassword('');
         setIsModalOpen(true);
     };
@@ -894,15 +904,15 @@ export default function Pbb({ auth, products }) {
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
-            setError("Silakan masukkan password untuk melanjutkan.");
+            setError({ message: 'Silakan masukkan password untuk melanjutkan.', rc: '02' });
             return;
         }
         if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
-            setError('Tidak ada tagihan yang siap dibayar.');
+            setError({ message: 'Tidak ada tagihan yang siap dibayar.', rc: '02' });
             return;
         }
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPaymentResult(null);
         setBulkPaymentResults(null);
 
@@ -915,7 +925,8 @@ export default function Pbb({ auth, products }) {
             });
             const verifyData = await verifyResponse.json();
             if (!verifyResponse.ok || !verifyData.success) {
-                throw new Error("Password yang Anda masukkan salah.");
+                setError({ message: verifyData.message || 'Password yang Anda masukkan salah.', rc: '02' }); // <-- Set RC generik
+                return;
             }
 
             // Step 2: Lakukan Pembayaran (Satuan atau Massal)
@@ -937,14 +948,15 @@ export default function Pbb({ auth, products }) {
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                // Use getResponseMessage for payment errors
-                setError(data.message || getResponseMessage(data.rc));
-                // Even on error, set payment results for potential partial success in bulk
+                const errorCode = data.rc || (response.status === 402 ? '02' : (response.status === 400 ? '02' : (response.status === 500 ? '02' : '02'))); // Fallback ke '02'
+                setError({
+                    message: data.message || getResponseMessage(errorCode),
+                    rc: errorCode
+                });
                 isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
-                return; // Stop execution on error
+                return;
             }
 
-            // Jika sukses (atau sukses sebagian untuk bulk)
             isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
             setInquiryResult(null);
             setBulkInquiryResults(null);
@@ -953,7 +965,7 @@ export default function Pbb({ auth, products }) {
             router.reload({ only: ['auth'] }); // Refresh user balance
 
         } catch (err) {
-            setError(err.message);
+            setError({ message: err.message || 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -977,7 +989,7 @@ export default function Pbb({ auth, products }) {
         setCustomerNosInput('');
         setInquiryResult(null);
         setBulkInquiryResults(null);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPaymentResult(null);
         setBulkPaymentResults(null);
         setSearchTerm('');
@@ -1047,14 +1059,14 @@ export default function Pbb({ auth, products }) {
                                     <div>
                                         <label htmlFor="customer_no_input" className="block text-sm font-medium text-gray-700 mb-1">Nomor Objek Pajak (NOP)</label>
                                         <input
-                                            id="customer_no_input" type="text" inputMode="numeric" pattern="[0-9.-]*" // Allow digits and separators for NOP
+                                            id="customer_no_input" type="text" inputMode="numeric" pattern="[0-9.-]*"
                                             value={customerNo} onChange={(e) => { const value = e.target.value; if (/^[0-9.-]*$/.test(value)) { setCustomerNo(value); } }}
                                             onWheel={(e) => e.target.blur()}
                                             className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             disabled={isLoading || !selectedProduct.seller_product_status} required placeholder="Masukkan NOP"
                                         />
                                     </div>
-                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                     <div className="flex space-x-2">
                                         <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
                                         <button type="submit" disabled={isLoading || !customerNo || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
@@ -1082,7 +1094,7 @@ export default function Pbb({ auth, products }) {
                                             placeholder="Contoh:&#10;32.09.010.001.001-0001.0&#10;32.09.010.001.001-0002.0, 32.09.010.001.001-0003.0"
                                         />
                                     </div>
-                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                     <div className="flex space-x-2">
                                         <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
                                         <button type="submit" disabled={isLoading || !customerNosInput.trim() || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
@@ -1137,17 +1149,23 @@ export default function Pbb({ auth, products }) {
                                     </div>
                                 )}
 
-                                {isBulkMode && totalBulkDiscount > 0 && (
+                                {paymentResult?.diskon > 0 && (
                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
+                                        Anda hemat {formatRupiah(paymentResult.diskon)}!
+                                    </div>
+                                )}
+                                {isBulkMode && totalBulkDiscount > 0 && (
+                                     <div className="text-center text-sm text-green-600 font-semibold bg-green-50 p-2 rounded-lg">
                                         Total diskon: {formatRupiah(totalBulkDiscount)}!
                                     </div>
                                 )}
 
+
                                 {paymentResult && paymentResult.status !== "Sukses" && (
                                     <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
                                         {/* Menggunakan getResponseMessage untuk pesan error pembayaran satuan */}
-                                        {getResponseMessage(paymentResult.rc || '02')}
-                                        {paymentResult.message && ` (${paymentResult.message})`}
+                                        {getResponseMessage(paymentResult.rc || '02')} {/* <-- Tampilkan RC message */}
+                                        {paymentResult.message && ` (${paymentResult.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
                                     </div>
                                 )}
 
@@ -1214,7 +1232,7 @@ export default function Pbb({ auth, products }) {
                                                 <span className="text-gray-500">Total PBB Pokok</span>
                                                 <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
                                             </div>
-                                            {parseFloat(inquiryResult.denda ?? 0) > 0 && ( // Ensure denda is parsed as float
+                                            {parseFloat(inquiryResult.denda ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Total Denda PBB</span>
                                                     <span className="font-medium text-red-600">{formatRupiah(inquiryResult.denda)}</span>
@@ -1224,10 +1242,12 @@ export default function Pbb({ auth, products }) {
                                                 <span className="text-gray-500">Biaya Admin</span>
                                                 <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.admin)}</span>
                                             </div>
-                                            {parseFloat(inquiryResult.diskon ?? 0) > 0 && ( // Ensure diskon is parsed as float
+                                            {parseFloat(inquiryResult.diskon ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Diskon</span>
-                                                    <span className="font-medium text-green-600">- {formatRupiah(inquiryResult.diskon)}</span>
+                                                    <span className="font-medium text-green-600">
+                                                        - {formatRupiah(inquiryResult.diskon)}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
@@ -1323,8 +1343,10 @@ export default function Pbb({ auth, products }) {
                                                             <span className="text-gray-600">NOP</span>
                                                             <span className="font-bold text-red-800">{item.customer_no}</span>
                                                         </div>
-                                                        {/* Menggunakan getResponseMessage untuk item bulk inquiry yang gagal */}
-                                                        <p className="text-xs text-red-600 mt-1">{getResponseMessage(item.rc || '02')} {item.message && ` (${item.message})`}</p>
+                                                        <p className="text-xs text-red-600 mt-1">
+                                                            {getResponseMessage(item.rc || '02')} {/* <-- Tampilkan RC message untuk item gagal bulk */}
+                                                            {item.message && ` (${item.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </>
@@ -1363,6 +1385,7 @@ export default function Pbb({ auth, products }) {
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
+                        {error.message && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                     </div>
                 </main>
 
@@ -1373,15 +1396,15 @@ export default function Pbb({ auth, products }) {
                             <div>
                                 <p className="text-sm text-gray-600">Total Pembayaran Akhir</p>
                                 <p className="text-xl font-bold text-main">
-                                    {isBulkMode ? formatRupiah(totalAmountToPayBulk) : formatRupiah(inquiryResult.selling_price)}
+                                    {isBulkMode ? formatRupiah(totalAmountToPayBulk) : formatRupiah(inquiryResult.selling_price ?? 0)}
                                 </p>
                             </div>
                             <button
                                 onClick={handleBayarClick}
-                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price)}
+                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0))}
                                 className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {userBalance < (isBulkMode ? totalAmountToPayBulk : inquiryResult.selling_price) ? "Saldo Kurang" : "Bayar Sekarang"}
+                                {userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0)) ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
                         </div>
                     </footer>
@@ -1402,7 +1425,7 @@ export default function Pbb({ auth, products }) {
                                         {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" /><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" /></svg>}
                                     </button>
                                 </div>
-                                {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                 <div className="flex justify-end space-x-2 pt-4">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
                                     <button type="submit" disabled={isLoading || !password} className="px-4 py-2 text-sm font-medium text-white bg-main hover:bg-blue-700 rounded-lg disabled:bg-gray-400">

@@ -741,8 +741,10 @@ import { Head, router } from '@inertiajs/react';
 const rcMessages = {
     "00": "Transaksi Sukses",
     "01": "Timeout",
-    "02": "Transaksi Gagal",
+    "02": "Transaksi Gagal", // Akan digunakan juga untuk kegagalan internal generik jika RC tidak ada dari backend
     "03": "Transaksi Pending",
+    "10": "Produk Tidak Tersedia",
+    "14": "Saldo Provider Tidak Cukup",
     "40": "Payload Error",
     "50": "Transaksi Tidak Ditemukan",
     "51": "Nomor Tujuan Diblokir",
@@ -770,7 +772,7 @@ const rcMessages = {
     "86": "Limitasi Pengecekan PLN",
 };
 
-const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
+const getResponseMessage = (rc) => rcMessages[rc] || `Transaksi Gagal (RC: ${rc || 'Tidak Diketahui'})`; // Added fallback for unknown RC code
 
 export default function Multifinance({ auth, products }) {
     // State untuk alur Multifinance Satuan
@@ -788,7 +790,7 @@ export default function Multifinance({ auth, products }) {
     // State untuk UI
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState({ message: '', rc: '' }); // <-- DIUBAH menjadi objek
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -806,8 +808,8 @@ export default function Multifinance({ auth, products }) {
 
     // Mengosongkan error saat input/mode berubah untuk UX yang lebih baik
     useEffect(() => {
-        if (error) {
-            setError('');
+        if (error.message) { // <-- Periksa error.message
+            setError({ message: '', rc: '' }); // <-- Reset error object
         }
     }, [customerNo, customerNosInput, password, selectedProduct, searchTerm, isBulkMode]);
 
@@ -836,16 +838,16 @@ export default function Multifinance({ auth, products }) {
     const handleInquiry = async (e) => {
         e.preventDefault();
         if (!selectedProduct) {
-            setError('Silakan pilih produk Multifinance terlebih dahulu.');
+            setError({ message: 'Silakan pilih produk Multifinance terlebih dahulu.', rc: '02' }); // <-- Set RC generik
             return;
         }
         if (!selectedProduct.seller_product_status) {
-            setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
+            setError({ message: 'Produk ini sedang mengalami gangguan. Silakan pilih produk lain.', rc: '02' }); // <-- Set RC generik
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear bulk results if doing single
         setPaymentResult(null); // Clear payment results
@@ -865,12 +867,16 @@ export default function Multifinance({ auth, products }) {
 
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || '02'; // Fallback ke '02' jika RC tidak ada dari backend
+                setError({
+                    message: data.message || getResponseMessage(errorCode), // Ambil pesan dari backend atau getResponseMessage
+                    rc: errorCode
+                });
+                return;
             }
             setInquiryResult(data);
         } catch (err) {
-            setError(err.message);
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -880,16 +886,16 @@ export default function Multifinance({ auth, products }) {
     const handleBulkInquiry = async (e) => {
         e.preventDefault();
         if (!selectedProduct) {
-            setError('Silakan pilih produk Multifinance terlebih dahulu.');
+            setError({ message: 'Silakan pilih produk Multifinance terlebih dahulu.', rc: '02' }); // <-- Set RC generik
             return;
         }
         if (!selectedProduct.seller_product_status) {
-            setError('Produk ini sedang mengalami gangguan. Silakan pilih produk lain.');
+            setError({ message: 'Produk ini sedang mengalami gangguan. Silakan pilih produk lain.', rc: '02' }); // <-- Set RC generik
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear previous bulk inquiry results
         setPaymentResult(null); // Clear payment results
@@ -900,7 +906,7 @@ export default function Multifinance({ auth, products }) {
                                            .filter(num => num.length >= 4); // Min length for Multifinance customer no
 
         if (customerNos.length === 0) {
-            setError('Masukkan setidaknya satu ID Pelanggan/Nomor Kontrak yang valid.');
+            setError({ message: 'Masukkan setidaknya satu ID Pelanggan/Nomor Kontrak yang valid.', rc: '02' }); // <-- Set RC generik
             setIsLoading(false);
             return;
         }
@@ -916,12 +922,21 @@ export default function Multifinance({ auth, products }) {
             });
             const data = await response.json();
             if (!response.ok) {
-                // Use getResponseMessage for bulk inquiry errors if an RC code is available
-                throw new Error(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || '02'; // Fallback ke '02' jika RC tidak ada dari backend
+                setError({
+                    message: data.message || getResponseMessage(errorCode), // Ambil pesan dari backend atau getResponseMessage
+                    rc: errorCode
+                });
+                // Untuk bulk inquiry, data.failed mungkin sudah ada di respons bahkan jika !response.ok
+                // Kita perlu menampilkan itu nanti di UI, tapi untuk error utama, ini cukup.
+                if (data.failed && data.failed.length > 0) {
+                    setBulkInquiryResults(data); // Simpan hasil (termasuk yang gagal) untuk ditampilkan
+                }
+                return;
             }
             setBulkInquiryResults(data);
         } catch (err) {
-            setError(err.message);
+            setError({ message: 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -931,10 +946,10 @@ export default function Multifinance({ auth, products }) {
     const handleBayarClick = () => {
         const amountToCheck = isBulkMode ? totalAmountToPayBulk : (inquiryResult?.selling_price ?? 0);
         if (userBalance < amountToCheck) {
-            setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
+            setError({ message: 'Saldo Anda tidak mencukupi untuk melakukan transaksi.', rc: '02' }); // <-- Set RC generik
             return;
         }
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPassword('');
         setIsModalOpen(true);
     };
@@ -943,17 +958,16 @@ export default function Multifinance({ auth, products }) {
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
-            setError("Silakan masukkan password untuk melanjutkan.");
+            setError({ message: 'Silakan masukkan password untuk melanjutkan.', rc: '02' }); // <-- Set RC generik
             return;
         }
-        // Pastikan ada tagihan yang berhasil di-inquiry sebelum mencoba pembayaran
         if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
-            setError('Tidak ada tagihan yang siap dibayar.');
+            setError({ message: 'Tidak ada tagihan yang siap dibayar.', rc: '02' }); // <-- Set RC generik
             return;
         }
 
         setIsLoading(true);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
 
         try {
             // Step 1: Verifikasi Password
@@ -964,7 +978,9 @@ export default function Multifinance({ auth, products }) {
             });
             const verifyData = await verifyResponse.json();
             if (!verifyResponse.ok || !verifyData.success) {
-                throw new Error("Password yang Anda masukkan salah.");
+                // Di sini kita berasumsi backend verifikasi password mungkin tidak mengirimkan RC spesifik
+                setError({ message: verifyData.message || 'Password yang Anda masukkan salah.', rc: '02' }); // <-- Set RC generik
+                return;
             }
 
             // Step 2: Lakukan Pembayaran (Satuan atau Massal)
@@ -986,8 +1002,11 @@ export default function Multifinance({ auth, products }) {
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                // Use getResponseMessage for payment errors
-                setError(data.message || getResponseMessage(data.rc));
+                const errorCode = data.rc || '02'; // Fallback ke '02' jika RC tidak ada dari backend
+                setError({
+                    message: data.message || getResponseMessage(errorCode), // Ambil pesan dari backend atau getResponseMessage
+                    rc: errorCode
+                });
                 isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
                 return;
             }
@@ -1000,7 +1019,7 @@ export default function Multifinance({ auth, products }) {
             router.reload({ only: ['auth'] }); // Refresh user balance
 
         } catch (err) {
-            setError(err.message);
+            setError({ message: err.message || 'Terjadi kesalahan jaringan atau respons tidak valid.', rc: '02' }); // <-- Set RC generik untuk error jaringan
         } finally {
             setIsLoading(false);
         }
@@ -1024,7 +1043,7 @@ export default function Multifinance({ auth, products }) {
         setCustomerNosInput('');
         setInquiryResult(null);
         setBulkInquiryResults(null);
-        setError('');
+        setError({ message: '', rc: '' }); // <-- Reset error object
         setPaymentResult(null);
         setBulkPaymentResults(null);
         setSearchTerm('');
@@ -1101,7 +1120,7 @@ export default function Multifinance({ auth, products }) {
                                             disabled={isLoading || !selectedProduct.seller_product_status} required placeholder="Masukkan Nomor Pelanggan atau Nomor Kontrak"
                                         />
                                     </div>
-                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                     <div className="flex space-x-2">
                                         <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
                                         <button type="submit" disabled={isLoading || !customerNo || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
@@ -1129,7 +1148,7 @@ export default function Multifinance({ auth, products }) {
                                             placeholder="Contoh:&#10;123456789012&#10;098765432109, 112233445566"
                                         />
                                     </div>
-                                    {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                    {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                     <div className="flex space-x-2">
                                         <button type="button" onClick={resetTransaction} className="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Pilih Ulang</button>
                                         <button type="submit" disabled={isLoading || !customerNosInput.trim() || !selectedProduct.seller_product_status} className="w-full bg-main text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
@@ -1199,8 +1218,8 @@ export default function Multifinance({ auth, products }) {
                                 {paymentResult && paymentResult.status !== "Sukses" && (
                                     <div className="text-sm text-red-700 bg-red-50 p-3 mt-2 rounded-lg">
                                         {/* Menggunakan getResponseMessage untuk pesan error pembayaran satuan */}
-                                        {getResponseMessage(paymentResult.rc || '02')}
-                                        {paymentResult.message && ` (${paymentResult.message})`}
+                                        {getResponseMessage(paymentResult.rc || '02')} {/* <-- Tampilkan RC message */}
+                                        {paymentResult.message && ` (${paymentResult.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
                                     </div>
                                 )}
 
@@ -1418,8 +1437,10 @@ export default function Multifinance({ auth, products }) {
                                                             <span className="text-gray-600">ID Pelanggan</span>
                                                             <span className="font-bold text-red-800">{item.customer_no}</span>
                                                         </div>
-                                                        {/* Menggunakan getResponseMessage untuk item bulk inquiry yang gagal */}
-                                                        <p className="text-xs text-red-600 mt-1">{getResponseMessage(item.rc || '02')} {item.message && ` (${item.message})`}</p>
+                                                        <p className="text-xs text-red-600 mt-1">
+                                                            {getResponseMessage(item.rc || '02')} {/* <-- Tampilkan RC message untuk item gagal bulk */}
+                                                            {item.message && ` (${item.message})`} {/* <-- Opsional tampilkan pesan mentah dari backend */}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </>
@@ -1458,7 +1479,7 @@ export default function Multifinance({ auth, products }) {
                                 }) : <p className="col-span-2 text-center text-gray-500 pt-4">Produk tidak ditemukan.</p>}
                             </div>
                         )}
-                        {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                        {error.message && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                     </div>
                 </main>
 
@@ -1498,7 +1519,7 @@ export default function Multifinance({ auth, products }) {
                                         {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" /><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" /></svg>}
                                     </button>
                                 </div>
-                                {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+                                {error.message && <p className="text-red-500 text-xs text-center pt-2">{error.message} (RC: {error.rc})</p>} {/* <-- Menampilkan error message dan RC */}
                                 <div className="flex justify-end space-x-2 pt-4">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
                                     <button type="submit" disabled={isLoading || !password} className="px-4 py-2 text-sm font-medium text-white bg-main hover:bg-blue-700 rounded-lg disabled:bg-gray-400">
