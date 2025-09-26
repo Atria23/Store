@@ -200,7 +200,7 @@ class PascaPdamController extends Controller
         // Ekstrak nilai-nilai mentah dari respons API
         $apiProviderTotalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0); // Total harga dari provider (termasuk semuanya)
         $apiProviderAdminFee          = (float) ($inquiryDataFromApi['admin'] ?? 0);          // Komponen biaya admin dari provider
-        // $apiProviderPriceComponent    = (float) ($inquiryDataFromApi['price'] ?? 0);         // Field 'price' dari API, biasanya (pure bill + denda + biaya_lain)
+        $apiProviderPriceComponent    = (float) ($inquiryDataFromApi['price'] ?? 0);         // **Tambahan: 'price' dari API (pure bill + denda + biaya_lain, tanpa admin provider)**
 
         // Pastikan array 'desc' ada dan diinisialisasi
         if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
@@ -274,17 +274,25 @@ class PascaPdamController extends Controller
         $finalSellingPrice = $apiProviderTotalSellingPrice - $finalDiscount;
         $finalSellingPrice = ceil($finalSellingPrice); // Bulatkan harga jual akhir ke atas
 
-        // Logika override: jika total harga jual asli provider lebih tinggi dari harga yang kita hitung (setelah diskon)
-        // DAN harga asli provider positif, maka gunakan total asli provider.
-        // Ini mencegah penjualan di bawah harga yang diwajibkan provider jika diskon kita terlalu agresif atau ada kesalahan perhitungan.
-        if ($apiProviderTotalSellingPrice > $finalSellingPrice && $apiProviderTotalSellingPrice > 0) {
-            Log::info("PDAM Inquiry: finalSellingPrice overridden by apiProviderTotalSellingPrice. (Client discount ignored)", [
+        // --- START OF MODIFIED OVERRIDE LOGIC ---
+        // Logika override yang diubah: jika 'price' dari API (tanpa admin provider) lebih tinggi dari
+        // 'finalSellingPrice' yang dihitung (yang sudah termasuk admin provider & diskon),
+        // maka gunakan 'price' dari API sebagai finalSellingPrice.
+        // IMPLIKASI: Ini berarti platform bersedia untuk mengabaikan biaya admin provider
+        // dan sebagian atau seluruh diskon yang diberikan, jika diskon kita membuat
+        // total harga akhir jatuh di bawah harga pokok murni dari provider.
+        // Ini mengubah tujuan dari "mencegah penjualan di bawah total harga provider" menjadi
+        // "mencegah penjualan di bawah harga pokok murni provider (tanpa admin mereka)".
+        if ($apiProviderPriceComponent > $finalSellingPrice && $apiProviderPriceComponent > 0) {
+            Log::info("PDAM Inquiry: finalSellingPrice overridden by apiProviderPriceComponent. (Client discount and provider admin fee partially/fully ignored)", [
                 'calculated_finalSellingPrice_with_discount' => $finalSellingPrice,
-                'apiProviderTotalSellingPrice' => $apiProviderTotalSellingPrice,
+                'apiProviderPriceComponent' => $apiProviderPriceComponent,
+                'apiProviderTotalSellingPrice' => $apiProviderTotalSellingPrice, // Untuk konteks log
                 'customer_no' => $customerNo
             ]);
-            $finalSellingPrice = $apiProviderTotalSellingPrice;
+            $finalSellingPrice = $apiProviderPriceComponent;
         }
+        // --- END OF MODIFIED OVERRIDE LOGIC ---
 
         // Update inquiryDataFromApi dengan nilai-nilai yang sudah diproses untuk penggunaan internal dan tampilan frontend
         $inquiryDataFromApi['price']         = $sumOfPureBillAmounts;       // Harga pokok murni yang kita hitung (untuk mapping transaksi)

@@ -472,7 +472,7 @@ export default function Pdam({ auth, products }) {
                                                         )}
                                                         <div className="flex justify-between pl-2">
                                                             <span className="text-gray-500">Nilai Tagihan</span>
-                                                            <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0))}</span> {/* Nilai tagihan pokok per periode */}
+                                                            <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0) - (detail.nilai_denda ?? 0))}</span> {/* Nilai tagihan pokok per periode */}
                                                         </div>
                                                         {parseFloat(detail.denda ?? 0) > 0 && (
                                                             <div className="flex justify-between pl-2">
@@ -561,7 +561,7 @@ export default function Pdam({ auth, products }) {
                                                                             )}
                                                                             <div className="flex justify-between pl-2">
                                                                                 <span className="text-gray-500">Nilai Tagihan</span>
-                                                                                <span className="font-medium">{formatRupiah(detail.nilai_tagihan ?? 0)}</span> {/* Nilai tagihan pokok per periode */}
+                                                            <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0) - (detail.nilai_denda ?? 0))}</span> {/* Nilai tagihan pokok per periode */}
                                                                             </div>
                                                                             {parseFloat(detail.denda ?? 0) > 0 && (
                                                                                 <div className="flex justify-between pl-2">
