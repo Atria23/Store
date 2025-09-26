@@ -157,10 +157,12 @@ const SpecificDetails = ({ transaction }) => {
         case 'PDAM':
             return (
                 <React.Fragment>
-                    <div className="w-full flex flex-row">
-                        <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tarif</div>
-                        <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tarif || '-'}</div>
-                    </div>
+                    {descData.tarif && descData.tarif !== '-' && (
+                        <div className="w-full flex flex-row">
+                            <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Tarif</div>
+                            <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.tarif || '-'}</div>
+                        </div>
+                    )}
                     {descData.alamat && descData.alamat !== '-' && (
                         <div className="w-full flex flex-row">
                             <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Alamat</div>
@@ -173,11 +175,12 @@ const SpecificDetails = ({ transaction }) => {
                             <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.jatuh_tempo || '-'}</div>
                         </div>
                     )}
-
+                    {descData.lembar_tagihan && descData.lembar_tagihan !== '-' && (
                     <div className="w-full flex flex-row">
                         <div className="w-1/2 text-left font-utama text-sm text-gray-800 font-normal tracking-[0.25px] break-words">Jumlah Lembar Tagihan</div>
                         <div className="w-1/2 text-right font-utama text-sm font-medium tracking-[0.1px] break-words">{descData.lembar_tagihan || '0'}</div>
                     </div>
+                    )}
                     {renderBillDetails(descData.detail)}
                 </React.Fragment>
             );
