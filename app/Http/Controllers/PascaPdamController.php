@@ -45,9 +45,13 @@ class PascaPdamController extends Controller
             $commission = $product->commission ?? 0;
             $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
             $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-            $adminFromServer = $product->admin ?? 0;
+            $adminFromServer = $product->admin ?? 0; // Ini adalah biaya admin yang diatur oleh platform untuk produk ini.
 
+            // Ini menghitung markup (atau 'diskon' efektif terhadap admin nominal platform)
             $markupForClient = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+            
+            // 'calculated_admin' ini kemungkinan adalah biaya admin efektif yang dikenakan kepada pengguna akhir oleh platform
+            // setelah mempertimbangkan komisi internal. Digunakan untuk tampilan, bukan perhitungan transaksi langsung di sini.
             $product->calculated_admin = ceil($adminFromServer - $markupForClient);
 
             return $product;
@@ -67,7 +71,7 @@ class PascaPdamController extends Controller
         $current_sku = $product->buyer_sku_code;
         $ref_id = 'pdam-' . substr(str_replace('-', '', Str::uuid()->toString()), 0, 15);
         $username = env('P_U');
-        $apiKey = env('P_AK'); // Using P_AK from env
+        $apiKey = env('P_AK'); // Menggunakan P_AK dari env
         $sign = md5($username . $apiKey . $ref_id);
 
         $responseData = [];
@@ -75,32 +79,32 @@ class PascaPdamController extends Controller
         // --- START DUMMY DATA FOR TESTING INQUIRY (if APP_ENV is local) ---
         if (env('APP_ENV') === 'local') {
             $customerNoLength = strlen($customerNo);
-            $lastDigit = $customerNo[$customerNoLength - 1] ?? '0'; // Default to '0' if customerNo is empty
-            $isOverdue = ((int)$lastDigit % 2 === 0); // Simulate overdue for even last digits
-            $customerNameSeed = substr(preg_replace('/[^0-9]/', '', $customerNo), 0, 5); // Use digits from customerNo
+            $lastDigit = $customerNo[$customerNoLength - 1] ?? '0'; // Default ke '0' jika customerNo kosong
+            $isOverdue = ((int)$lastDigit % 2 === 0); // Simulasi tunggakan untuk digit terakhir genap
+            $customerNameSeed = substr(preg_replace('/[^0-9]/', '', $customerNo), 0, 5); // Gunakan digit dari customerNo
 
-            $basePricePerBill = 25000 + (substr($customerNo, -2, 1) * 1000); // Vary base price (pure bill)
-            $adminFeePerTransaction = 2500; // Admin fee applied per transaction
+            $basePricePerBill = 25000 + (substr($customerNo, -2, 1) * 1000); // Variasi harga pokok per lembar
+            $providerAdminFeePerTransaction = 2500; // Biaya admin per transaksi oleh provider
             $biayaLainPerBill = 1500;
-            $dendaPerBill = $isOverdue ? (5000 + (substr($customerNo, -3, 1) * 500)) : 0; // Vary denda
+            $dendaPerBill = $isOverdue ? (5000 + (substr($customerNo, -3, 1) * 500)) : 0; // Variasi denda
 
             $numBills = 1;
-            if ((int)$lastDigit % 3 === 0) { // Some customers might have 2 bills
+            if ((int)$lastDigit % 3 === 0) { // Beberapa pelanggan mungkin memiliki 2 lembar tagihan
                 $numBills = 2;
-            } elseif ((int)$lastDigit % 5 === 0) { // Some might have 3 bills
+            } elseif ((int)$lastDigit % 5 === 0) { // Beberapa mungkin memiliki 3 lembar tagihan
                 $numBills = 3;
             }
 
             $dummyDescDetails = [];
-            $totalPureBillAmountDummy = 0; // Renamed for clarity in dummy context
+            $totalPureBillAmountDummy = 0; // Total harga pokok murni (tanpa denda/biaya lain)
             $totalDendaAmountDummy = 0;
             $totalBiayaLainAmountDummy = 0;
 
             for ($i = 0; $i < $numBills; $i++) {
                 $periodeMonth = date('m', strtotime("-{$i} month"));
                 $periodeYear = date('Y', strtotime("-{$i} month"));
-                $billPrice = $basePricePerBill + ($i * 1000); // Pure bill per detail
-                $billDenda = $isOverdue ? ceil($dendaPerBill / $numBills) : 0; // Distribute denda
+                $billPrice = $basePricePerBill + ($i * 1000); // Harga pokok per detail
+                $billDenda = $isOverdue ? ceil($dendaPerBill / $numBills) : 0; // Distribusi denda
                 $billBiayaLain = $biayaLainPerBill;
 
                 $dummyDescDetails[] = [
@@ -120,14 +124,14 @@ class PascaPdamController extends Controller
             $dummyAddress = 'Jl. Dummy No.' . $customerNoLength . ', Kota ' . Str::upper(substr($current_sku, 0, 3));
             $dummyJatuhTempo = date('d-M-Y', strtotime('+5 days'));
 
-            // 'price' field is often (principal + denda + biaya_lain). Let's make it so.
-            $dummyPriceField = $totalPureBillAmountDummy + $totalDendaAmountDummy + $totalBiayaLainAmountDummy;
-            $dummyAdminField = $adminFeePerTransaction; // Admin fee applied per transaction
+            // 'price' field: Ini adalah (harga pokok + denda + biaya_lain) dari sisi provider sebelum biaya admin mereka.
+            $dummyPriceComponent = $totalPureBillAmountDummy + $totalDendaAmountDummy + $totalBiayaLainAmountDummy;
+            
+            // 'selling_price' field: Ini adalah total harga dari provider, sudah termasuk biaya admin mereka.
+            $dummyProviderTotalSellingPrice = $dummyPriceComponent + $providerAdminFeePerTransaction;
+            // Simulasi sedikit variasi dari base jika diperlukan untuk 'selling_price'
+            $dummyProviderTotalSellingPrice = ceil($dummyProviderTotalSellingPrice * (1 + (int)$lastDigit / 100000)); 
 
-            // Original API Total Price (price field + admin field)
-            $dummyOriginalApiTotalPrice = $dummyPriceField + $dummyAdminField;
-            // Original API Selling Price (if available, could differ from total above due to provider markup)
-            $dummyProviderOriginalSellingPrice = ceil($dummyOriginalApiTotalPrice * (1 + (int)$lastDigit / 10000)); // Slight variation from base
 
             $responseData = [
                 'data' => [
@@ -136,8 +140,8 @@ class PascaPdamController extends Controller
                     'customer_name' => $dummyCustomerName,
                     'customer_no' => $customerNo,
                     'buyer_sku_code' => $current_sku,
-                    'price' => $dummyPriceField, // Ini adalah (harga pokok + denda + biaya lain) dari sisi dummy
-                    'admin' => $dummyAdminField, // Admin fee per transaksi
+                    'price' => $dummyPriceComponent, // (Harga pokok + Denda + Biaya Lain) sebelum admin dari sisi provider
+                    'admin' => $providerAdminFeePerTransaction, // Biaya admin per transaksi dari provider
                     'rc' => '00',
                     'sn' => 'SN-INQ-' . Str::random(12),
                     'ref_id' => $ref_id,
@@ -150,9 +154,9 @@ class PascaPdamController extends Controller
                         "denda" => $totalDendaAmountDummy, // Total denda (untuk info di desc)
                         "biaya_lain" => $totalBiayaLainAmountDummy, // Total biaya lain (untuk info di desc)
                     ],
-                    'selling_price' => $dummyProviderOriginalSellingPrice, // ORIGINAL provider selling_price
-                    'original_api_price' => $dummyOriginalApiTotalPrice, // Total murni dari provider (price + admin)
-                    'original_api_selling_price' => $dummyProviderOriginalSellingPrice, // Untuk konsistensi dengan PLN
+                    'selling_price' => $dummyProviderTotalSellingPrice, // ORIGINAL provider selling_price (total termasuk admin)
+                    'original_api_price' => $dummyProviderTotalSellingPrice, // Untuk konsistensi, gunakan ini sebagai total jika tidak didefinisikan secara eksplisit
+                    'original_api_selling_price' => $dummyProviderTotalSellingPrice, // Redundant, tetapi dipertahankan jika provider lain menggunakannya.
                 ],
             ];
             Log::info('PDAM Inquiry API Response (DUMMY):', ['response_data' => $responseData, 'customer_no' => $customerNo, 'sku' => $current_sku, 'ref_id' => $ref_id]);
@@ -162,7 +166,7 @@ class PascaPdamController extends Controller
             // --- ORIGINAL API CALL (only if not in local dummy mode) ---
             if (!$product->seller_product_status) {
                 Log::warning("Inquiry PDAM: Produk tidak aktif untuk SKU: {$current_sku}, Customer No: {$customerNo}.");
-                return null; // Don't even try if product is inactive in real mode
+                return null; // Jangan coba jika produk tidak aktif dalam mode real
             }
 
             try {
@@ -193,59 +197,62 @@ class PascaPdamController extends Controller
         // --- COMMON PROCESSING LOGIC (for both real and dummy data) ---
         $inquiryDataFromApi = $responseData['data'];
 
-        // Simpan 'selling_price' asli dari respons API provider jika tersedia (ini akan jadi original_api_selling_price)
-        $providerOriginalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0);
+        // Ekstrak nilai-nilai mentah dari respons API
+        $apiProviderTotalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0); // Total harga dari provider (termasuk semuanya)
+        $apiProviderAdminFee          = (float) ($inquiryDataFromApi['admin'] ?? 0);          // Komponen biaya admin dari provider
+        // $apiProviderPriceComponent    = (float) ($inquiryDataFromApi['price'] ?? 0);         // Field 'price' dari API, biasanya (pure bill + denda + biaya_lain)
 
+        // Pastikan array 'desc' ada dan diinisialisasi
         if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
             $inquiryDataFromApi['desc'] = [];
         }
 
-        // Pastikan field desc yang penting ada atau disetel null
+        // Pastikan field 'desc' yang penting ada atau disetel null
         $inquiryDataFromApi['desc']['tarif']       = $inquiryDataFromApi['desc']['tarif'] ?? null;
         $inquiryDataFromApi['desc']['alamat']      = $inquiryDataFromApi['desc']['alamat'] ?? null;
         $inquiryDataFromApi['desc']['jatuh_tempo'] = $inquiryDataFromApi['desc']['jatuh_tempo'] ?? null;
 
-        $sumOfPureBillAmounts = 0; // Total harga pokok tagihan murni (akan dihitung setelah)
-        $sumOfDendaAmounts = 0;    // Total denda (akumulasi dari detail atau root desc)
-        $sumOfBiayaLainAmounts = 0; // Total biaya lain (akumulasi dari detail atau root desc)
-        $sumOfAdminFees = (float) ($inquiryDataFromApi['admin'] ?? 0); // Total admin dari API (per transaction)
-        $jumlahLembarTagihan = 0;
+        $sumOfPureBillAmounts  = 0; // Jumlah tagihan pokok murni yang dihitung (tidak termasuk denda, biaya_lain, admin)
+        $sumOfDendaAmounts     = 0; // Total denda, diakumulasikan
+        $sumOfBiayaLainAmounts = 0; // Total biaya lain, diakumulasikan
+        $jumlahLembarTagihan   = 0;
 
-        // Determine jumlahLembarTagihan and aggregate total denda and biaya lain from details array or root desc
+        // Tentukan jumlahLembarTagihan dan akumulasikan total denda dan biaya lain
         if (isset($inquiryDataFromApi['desc']['lembar_tagihan'])) {
             $jumlahLembarTagihan = (int) $inquiryDataFromApi['desc']['lembar_tagihan'];
-        } elseif (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
-            $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
+        }
+
+        if (isset($inquiryDataFromApi['desc']['detail']) && is_array($inquiryDataFromApi['desc']['detail'])) {
+            // Jika detail ada, hitung jumlah tagihan dan jumlahkan denda/biaya_lain dari detail
+            if (!$jumlahLembarTagihan) { // Hanya setel jika belum dari 'lembar_tagihan'
+                $jumlahLembarTagihan = count($inquiryDataFromApi['desc']['detail']);
+            }
             foreach ($inquiryDataFromApi['desc']['detail'] as $detail) {
-                // HANYA AKUMULASI DENDA dan BIAYA LAIN di sini.
-                // sumOfPureBillAmounts akan dihitung secara global dari selling_price API.
-                $sumOfDendaAmounts += (float) ($detail['denda'] ?? 0);
+                $sumOfDendaAmounts     += (float) ($detail['denda'] ?? 0);
                 $sumOfBiayaLainAmounts += (float) ($detail['biaya_lain'] ?? 0);
             }
         } else {
             // Jika 'desc.detail' tidak tersedia, ambil total denda dan biaya_lain dari root 'desc'
-            // sumOfPureBillAmounts akan dihitung secara global.
-            $sumOfDendaAmounts = (float) ($inquiryDataFromApi['desc']['denda'] ?? 0); // Total denda (dari desc, untuk info)
-            $sumOfBiayaLainAmounts = (float) ($inquiryDataFromApi['desc']['biaya_lain'] ?? 0); // Total biaya lain (dari desc, untuk info)
-            $jumlahLembarTagihan = 1; // Default ke 1 jika tidak ada detail
+            $sumOfDendaAmounts     = (float) ($inquiryDataFromApi['desc']['denda'] ?? 0);
+            $sumOfBiayaLainAmounts = (float) ($inquiryDataFromApi['desc']['biaya_lain'] ?? 0);
+            if (!$jumlahLembarTagihan) { // Default ke 1 jika tidak ada detail dan tidak ada lembar_tagihan eksplisit
+                $jumlahLembarTagihan = 1;
+            }
         }
 
-        // --- NEW GLOBAL CALCULATION for sumOfPureBillAmounts (Harga Pokok Murni SAJA) ---
-        // Mengikuti pola PBB: sumOfPureBillAmounts = selling_price (dari API) - admin (dari API) - sumOfDendaAmounts - sumOfBiayaLainAmounts
-        $providerSellingPriceFromApi = (float)($inquiryDataFromApi['selling_price'] ?? 0);
-        $providerAdminFromApi = (float)($inquiryDataFromApi['admin'] ?? 0);
+        // Hitung "gross bill amount" dari perspektif provider, tidak termasuk biaya admin mereka
+        // Ini adalah (Harga Pokok + Denda + Biaya Lain)
+        $providerGrossBillAmountExclAdmin = $apiProviderTotalSellingPrice - $apiProviderAdminFee;
 
-        // Ini adalah (Harga Pokok + Denda + Biaya Lain) dari total provider sebelum biaya admin mereka
-        // Ini setara dengan "nilai tagihan - denda" yang Anda maksudkan di awal (sebelum admin provider) + biaya lain
-        $providerGrossBillAmount = $providerSellingPriceFromApi - $providerAdminFromApi;
+        // Hitung "Jumlah Tagihan Pokok Murni" dengan mengurangi denda dan biaya_lain dari jumlah gross
+        $sumOfPureBillAmounts = $providerGrossBillAmountExclAdmin - $sumOfDendaAmounts - $sumOfBiayaLainAmounts;
 
-        // Kurangkan total denda dan total biaya lain untuk mendapatkan Harga Pokok Murni
-        $sumOfPureBillAmounts = $providerGrossBillAmount - $sumOfDendaAmounts - $sumOfBiayaLainAmounts;
-
-        // Pastikan sumOfPureBillAmounts tidak menjadi negatif jika ada inkonsistensi data
+        // Pastikan sumOfPureBillAmounts tidak menjadi negatif karena inkonsistensi data
         if ($sumOfPureBillAmounts < 0) {
             Log::warning("PDAM Inquiry: Calculated sumOfPureBillAmounts went negative for customer {$customerNo}. Adjusting to 0.", [
-                'providerGrossBillAmount' => $providerGrossBillAmount,
+                'apiProviderTotalSellingPrice' => $apiProviderTotalSellingPrice,
+                'apiProviderAdminFee' => $apiProviderAdminFee,
+                'providerGrossBillAmountExclAdmin' => $providerGrossBillAmountExclAdmin,
                 'sumOfDendaAmounts' => $sumOfDendaAmounts,
                 'sumOfBiayaLainAmounts' => $sumOfBiayaLainAmounts,
                 'inquiryDataFromApi' => $inquiryDataFromApi
@@ -253,51 +260,47 @@ class PascaPdamController extends Controller
             $sumOfPureBillAmounts = 0;
         }
 
-        $commission = $product->commission ?? 0;
+        // Hitung diskon yang diberikan kepada pengguna
         $commission_sell_percentage = $product->commission_sell_percentage ?? 0;
-        $commission_sell_fixed = $product->commission_sell_fixed ?? 0;
-        $diskonPerLembar = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+        $commission_sell_fixed      = $product->commission_sell_fixed ?? 0;
+        $commission                 = $product->commission ?? 0;
 
-        $finalDiskon = $diskonPerLembar * $jumlahLembarTagihan;
-        $finalDiskon = ceil($finalDiskon); // Pembulatan diskon ke atas
+        $discountPerBillUnit = (($commission * $commission_sell_percentage) / 100) + $commission_sell_fixed;
+        $finalDiscount = ceil($discountPerBillUnit * $jumlahLembarTagihan); // Bulatkan total diskon ke atas
 
-        // Mengikuti permintaan: total pembayaran (finalSellingPrice) = (selling_price dari API - admin dari API) + admin dari provider - finalDiskon
-        // Atau lebih tepat: (sumOfPureBillAmounts + sumOfDendaAmounts + sumOfBiayaLainAmounts + sumOfAdminFees) - finalDiskon
-        // Dengan definisi sumOfPureBillAmounts yang baru, maka (sumOfPureBillAmounts + sumOfDendaAmounts + sumOfBiayaLainAmounts) adalah setara dengan (providerGrossBillAmount).
-        // Jadi, totalAmountBeforeDiskon = providerGrossBillAmount + sumOfAdminFees
-        $totalAmountBeforeDiskon = $providerGrossBillAmount + $sumOfAdminFees;
+        // Hitung harga akhir yang harus dibayar pengguna
+        // Berdasarkan komentar pengguna, apiProviderTotalSellingPrice sudah termasuk admin provider.
+        // Jadi, harga akhir untuk pengguna adalah total provider dikurangi diskon kita.
+        $finalSellingPrice = $apiProviderTotalSellingPrice - $finalDiscount;
+        $finalSellingPrice = ceil($finalSellingPrice); // Bulatkan harga jual akhir ke atas
 
-        $finalSellingPrice = $totalAmountBeforeDiskon - $finalDiskon;
-        $finalSellingPrice = ceil($finalSellingPrice); // Pembulatan harga jual akhir ke atas
-
-        // Override logic: Jika total harga dari API lebih besar dari harga kalkulasi kita, dan API punya harga jual sendiri
-        // original_api_price di sini harus mencerminkan total provider (selling_price mereka)
-        $apiOriginalPrice = (float) ($inquiryDataFromApi['original_api_price'] ?? ($providerSellingPriceFromApi));
-
-        if ($apiOriginalPrice > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
-            Log::info("PDAM Inquiry: finalSellingPrice overridden by provider_original_selling_price.", [
-                'calculated_finalSellingPrice' => $finalSellingPrice,
-                'apiOriginalPrice' => $apiOriginalPrice,
-                'providerOriginalSellingPrice' => $providerOriginalSellingPrice,
+        // Logika override: jika total harga jual asli provider lebih tinggi dari harga yang kita hitung (setelah diskon)
+        // DAN harga asli provider positif, maka gunakan total asli provider.
+        // Ini mencegah penjualan di bawah harga yang diwajibkan provider jika diskon kita terlalu agresif atau ada kesalahan perhitungan.
+        if ($apiProviderTotalSellingPrice > $finalSellingPrice && $apiProviderTotalSellingPrice > 0) {
+            Log::info("PDAM Inquiry: finalSellingPrice overridden by apiProviderTotalSellingPrice. (Client discount ignored)", [
+                'calculated_finalSellingPrice_with_discount' => $finalSellingPrice,
+                'apiProviderTotalSellingPrice' => $apiProviderTotalSellingPrice,
                 'customer_no' => $customerNo
             ]);
-            $finalSellingPrice = $providerOriginalSellingPrice;
+            $finalSellingPrice = $apiProviderTotalSellingPrice;
         }
 
-        // Update inquiryDataFromApi dengan nilai-nilai yang sudah diproses
-        $inquiryDataFromApi['price']         = $sumOfPureBillAmounts; // Harga pokok murni (untuk mapping transaksi)
-        $inquiryDataFromApi['admin']         = $sumOfAdminFees; // Admin dari provider
-        $inquiryDataFromApi['denda']         = $sumOfDendaAmounts; // Total denda
-        $inquiryDataFromApi['biaya_lain']    = $sumOfBiayaLainAmounts; // Total biaya lain (NEW)
-        $inquiryDataFromApi['diskon']        = $finalDiskon;
+        // Update inquiryDataFromApi dengan nilai-nilai yang sudah diproses untuk penggunaan internal dan tampilan frontend
+        $inquiryDataFromApi['price']         = $sumOfPureBillAmounts;       // Harga pokok murni yang kita hitung (untuk mapping transaksi)
+        $inquiryDataFromApi['admin']         = $apiProviderAdminFee;        // Biaya admin provider (untuk mapping transaksi)
+        $inquiryDataFromApi['denda']         = $sumOfDendaAmounts;          // Total denda
+        $inquiryDataFromApi['biaya_lain']    = $sumOfBiayaLainAmounts;      // Total biaya lain
+        $inquiryDataFromApi['diskon']        = $finalDiscount;              // Total diskon yang diberikan platform
         $inquiryDataFromApi['jumlah_lembar_tagihan'] = $jumlahLembarTagihan;
-        $inquiryDataFromApi['selling_price'] = $finalSellingPrice; // Harga yang harus dibayar user
+        $inquiryDataFromApi['selling_price'] = $finalSellingPrice;          // Harga akhir yang dibayar pengguna
         $inquiryDataFromApi['buyer_sku_code'] = $current_sku;
         $inquiryDataFromApi['ref_id'] = $ref_id;
-        $inquiryDataFromApi['provider_original_selling_price'] = $providerOriginalSellingPrice; // Untuk referensi
-        $inquiryDataFromApi['product_name'] = $product->product_name; // Add product name for frontend display
+        $inquiryDataFromApi['provider_original_selling_price'] = $apiProviderTotalSellingPrice; // Untuk referensi
+        $inquiryDataFromApi['product_name'] = $product->product_name; // Tambahkan nama produk untuk tampilan frontend
 
-        unset($inquiryDataFromApi['buyer_last_saldo']); // Hapus jika tidak relevan
+        unset($inquiryDataFromApi['buyer_last_saldo']); // Hapus jika tidak relevan untuk konteks saat ini
+        // unset($inquiryDataFromApi['original_api_price']); // Ini sebelumnya digunakan untuk logika override, tetapi kini langsung menggunakan apiProviderTotalSellingPrice.
 
         return $inquiryDataFromApi;
     }
@@ -313,17 +316,19 @@ class PascaPdamController extends Controller
      */
     private function _processIndividualPdamPayment(array $inquiryData, \App\Models\User $user): array
     {
-        $totalPriceToPay     = (float) $inquiryData['selling_price'];
-        $finalAdmin          = (float) $inquiryData['admin']; // Ini adalah sumOfAdminFees
-        $pureBillPrice       = (float) $inquiryData['price']; // Ini adalah sumOfPureBillAmounts
+        $totalPriceToPay     = (float) $inquiryData['selling_price'];         // Harga akhir yang dibayar pengguna
+        $providerAdminFee    = (float) $inquiryData['admin'];                 // Biaya admin provider
+        $pureBillPrice       = (float) $inquiryData['price'];                 // Tagihan pokok murni yang dihitung
         $diskon              = (float) ($inquiryData['diskon'] ?? 0);
         $jumlahLembarTagihan = (int) ($inquiryData['jumlah_lembar_tagihan'] ?? 0);
-        $denda               = (float) ($inquiryData['denda'] ?? 0); // Ini adalah sumOfDendaAmounts
-        $biayaLain           = (float) ($inquiryData['biaya_lain'] ?? 0); // Ini adalah sumOfBiayaLainAmounts (NEW)
+        $denda               = (float) ($inquiryData['denda'] ?? 0);
+        $biayaLain           = (float) ($inquiryData['biaya_lain'] ?? 0);
 
-        $initialData = $this->mapToUnifiedTransaction($inquiryData, 'PDAM', $pureBillPrice, $finalAdmin);
-        $initialData['user_id'] = $user->id; // Set user_id
-        $initialData['selling_price'] = $totalPriceToPay;
+        // Petakan data inquiry awal ke struktur transaksi terpadu untuk pembuatan
+        // 'price' di sini mengacu pada tagihan pokok murni, 'admin_fee' mengacu pada biaya admin provider.
+        $initialData = $this->mapToUnifiedTransaction($inquiryData, 'PDAM', $pureBillPrice, $providerAdminFee);
+        $initialData['user_id'] = $user->id;
+        $initialData['selling_price'] = $totalPriceToPay; // Ini adalah harga akhir yang dibebankan kepada pengguna
         $initialData['status'] = 'Pending';
         $initialData['message'] = 'Menunggu konfirmasi pembayaran dari provider';
 
@@ -334,11 +339,10 @@ class PascaPdamController extends Controller
             'diskon' => $diskon,
             'jumlah_lembar_tagihan' => $jumlahLembarTagihan,
             'denda' => $denda,
-            'biaya_lain' => $biayaLain, // Simpan biaya lain sebagai detail (NEW)
-            'desc' => $inquiryData['desc'] ?? null,
+            'biaya_lain' => $biayaLain,
+            'desc' => $inquiryData['desc'] ?? null, // Simpan deskripsi lengkap dari inquiry
         ];
-        unset($initialData['buyer_last_saldo']);
-        unset($initialData['provider_original_selling_price']);
+        unset($initialData['buyer_last_saldo'], $initialData['provider_original_selling_price']);
 
         $unifiedTransaction = PostpaidTransaction::create($initialData);
 
@@ -346,7 +350,7 @@ class PascaPdamController extends Controller
 
         // --- START DUMMY RESPONSE PAYMENT ---
         if (env('APP_ENV') === 'local') {
-            $isPaymentSuccess = (substr($inquiryData['customer_no'], -1) % 2 !== 0); // Simulate success for odd last digit
+            $isPaymentSuccess = (substr($inquiryData['customer_no'], -1) % 2 !== 0); // Simulasi sukses untuk digit terakhir ganjil
 
             if ($isPaymentSuccess) {
                 $apiResponseData = [
@@ -357,22 +361,22 @@ class PascaPdamController extends Controller
                     'customer_name' => $inquiryData['customer_name'],
                     'customer_no' => $inquiryData['customer_no'],
                     'buyer_sku_code' => $inquiryData['buyer_sku_code'],
-                    'price' => $pureBillPrice, // Pure bill (dari inquiry data)
-                    'admin' => $finalAdmin, // Final admin (dari inquiry data)
+                    'price' => $pureBillPrice, // Tagihan pokok murni (dari data inquiry)
+                    'admin' => $providerAdminFee, // Biaya admin provider (dari data inquiry)
                     'ref_id' => $inquiryData['ref_id'],
-                    'selling_price' => $totalPriceToPay,
+                    'selling_price' => $totalPriceToPay, // Harga jual akhir kita
                 ];
             } else {
                 $apiResponseData = [
                     'status' => 'Gagal',
                     'message' => 'Pembayaran PDAM dummy gagal. Saldo provider tidak cukup (simulasi).',
-                    'rc' => '14', // Example failure code
+                    'rc' => '14', // Contoh kode kegagalan
                     'sn' => null,
                     'customer_name' => $inquiryData['customer_name'],
                     'customer_no' => $inquiryData['customer_no'],
                     'buyer_sku_code' => $inquiryData['buyer_sku_code'],
                     'price' => $pureBillPrice,
-                    'admin' => $finalAdmin,
+                    'admin' => $providerAdminFee,
                     'ref_id' => $inquiryData['ref_id'],
                     'selling_price' => $totalPriceToPay,
                 ];
@@ -397,7 +401,7 @@ class PascaPdamController extends Controller
                     'sign' => $sign,
                     'testing' => false,
                 ]);
-                $apiResponseData = $response->json()['data'];
+                $apiResponseData = $response->json()['data']; // Asumsikan kunci 'data' ada untuk respons yang sukses
 
                 Log::info('PDAM Payment API Response:', ['response_data' => $apiResponseData, 'transaction_id' => $unifiedTransaction->id]);
 
@@ -409,31 +413,38 @@ class PascaPdamController extends Controller
             }
         }
 
+        // Gabungkan data inquiry asli dengan data respons pembayaran API yang sebenarnya
+        // Ini memastikan semua field yang diperlukan tersedia untuk mapping
         $fullResponseData = array_merge($inquiryData, $apiResponseData);
 
-        // Pastikan nilai yang dikirim ke mapToUnifiedTransaction adalah yang sudah diproses
-        $fullResponseData['price'] = $pureBillPrice;
-        $fullResponseData['admin'] = $finalAdmin;
-        $fullResponseData['selling_price'] = $totalPriceToPay;
-        unset($fullResponseData['buyer_last_saldo']);
-        unset($fullResponseData['provider_original_selling_price']);
-        unset($fullResponseData['biaya_lain']); // Hapus dari level root jika sudah masuk ke details atau dihitung sebagai bagian dari price
+        // Secara eksplisit setel nilai inti untuk mapToUnifiedTransaction untuk memastikan konsistensi
+        $fullResponseData['price'] = $pureBillPrice;       // Tagihan pokok murni yang kita hitung
+        $fullResponseData['admin'] = $providerAdminFee;    // Biaya admin provider
+        $fullResponseData['selling_price'] = $totalPriceToPay; // Harga akhir yang dibebankan kepada pengguna
 
-        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PDAM', $pureBillPrice, $finalAdmin);
-        $updatePayload['selling_price'] = $totalPriceToPay;
+        // Hapus kunci-kunci yang seharusnya tidak berada di tingkat root transaksi, atau bersifat redundant untuk mapping
+        unset($fullResponseData['buyer_last_saldo'], $fullResponseData['provider_original_selling_price'], $fullResponseData['biaya_lain']);
+
+        // Siapkan payload untuk memperbarui record transaksi
+        // Kolom 'price' dan 'admin_fee' di DB akan menyimpan tagihan pokok murni dan biaya admin provider masing-masing.
+        $updatePayload = $this->mapToUnifiedTransaction($fullResponseData, 'PDAM', $pureBillPrice, $providerAdminFee);
+        $updatePayload['selling_price'] = $totalPriceToPay; // Disimpan di DB sebagai jumlah aktual yang dibayar pengguna
         $updatePayload['status'] = $apiResponseData['status'] ?? 'Gagal';
         $updatePayload['message'] = $apiResponseData['message'] ?? 'Pembayaran gagal.';
 
         $updatePayload['rc'] = $apiResponseData['rc'] ?? null;
         $updatePayload['sn'] = $apiResponseData['sn'] ?? null;
 
+        // Definisikan kunci-kunci dari respons API yang harus secara eksplisit dikecualikan dari array 'details'
+        // (karena sudah dipetakan ke kolom root atau redundant).
         $keysToExcludeFromDetails = [
             'ref_id', 'customer_no', 'customer_name', 'buyer_sku_code', 'message',
             'rc', 'sn', 'buyer_last_saldo', 'price', 'selling_price', 'admin', 'status',
-            'diskon', 'jumlah_lembar_tagihan', 'denda', 'biaya_lain', 'desc', // 'biaya_lain' ditambahkan
+            'diskon', 'jumlah_lembar_tagihan', 'denda', 'biaya_lain', 'desc',
             'provider_original_selling_price', 'product_name'
         ];
 
+        // Filter detail tambahan dari respons API
         $detailsFromApiResponse = [];
         foreach ($apiResponseData as $key => $value) {
             if (!in_array($key, $keysToExcludeFromDetails)) {
@@ -441,20 +452,24 @@ class PascaPdamController extends Controller
             }
         }
 
+        // Gabungkan detail terhitung spesifik dengan detail respons API yang difilter
         $updatePayload['details'] = array_merge(
             $detailsFromApiResponse,
-            ['diskon' => $diskon, 'jumlah_lembar_tagihan' => $jumlahLembarTagihan, 'denda' => $denda, 'biaya_lain' => $biayaLain], // Sertakan biaya_lain
-            ['desc' => $inquiryData['desc'] ?? null]
+            ['diskon' => $diskon, 'jumlah_lembar_tagihan' => $jumlahLembarTagihan, 'denda' => $denda, 'biaya_lain' => $biayaLain],
+            ['desc' => $inquiryData['desc'] ?? null] // Pertahankan deskripsi inquiry lengkap
         );
 
-        unset($updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'], $updatePayload['price'], $updatePayload['admin_fee']);
-        unset($updatePayload['buyer_last_saldo']);
-        unset($updatePayload['provider_original_selling_price']);
+        // Hapus kunci-kunci dari updatePayload yang ditangani oleh mapToUnifiedTransaction atau redundant
+        unset(
+            $updatePayload['user_id'], $updatePayload['ref_id'], $updatePayload['type'],
+            $updatePayload['price'], $updatePayload['admin_fee'],
+            $updatePayload['buyer_last_saldo'], $updatePayload['provider_original_selling_price']
+        );
 
         $unifiedTransaction->update($updatePayload);
         $unifiedTransaction->refresh();
 
-        // Return a structured result for the calling method
+        // Kembalikan hasil terstruktur untuk metode pemanggil
         return [
             'transaction_id' => $unifiedTransaction->id,
             'ref_id' => $unifiedTransaction->ref_id,
@@ -466,11 +481,11 @@ class PascaPdamController extends Controller
             'diskon' => $unifiedTransaction->details['diskon'] ?? 0,
             'jumlah_lembar_tagihan' => $unifiedTransaction->details['jumlah_lembar_tagihan'] ?? 0,
             'denda' => $unifiedTransaction->details['denda'] ?? 0,
-            'biaya_lain' => $unifiedTransaction->details['biaya_lain'] ?? 0, // Tambahkan biaya_lain di return
-            'admin' => $unifiedTransaction->admin_fee,
-            'price' => $unifiedTransaction->price,
+            'biaya_lain' => $unifiedTransaction->details['biaya_lain'] ?? 0,
+            'admin' => $unifiedTransaction->admin_fee, // Ini adalah biaya admin provider yang tersimpan
+            'price' => $unifiedTransaction->price,     // Ini adalah tagihan pokok murni yang tersimpan
             'sn' => $unifiedTransaction->sn,
-            'product_name' => $inquiryData['product_name'], // Pass product name from inquiry data
+            'product_name' => $inquiryData['product_name'],
             'details' => $unifiedTransaction->details,
         ];
     }
@@ -617,7 +632,7 @@ class PascaPdamController extends Controller
             return response()->json(['message' => 'Sesi pembayaran massal tidak valid atau kosong. Silakan lakukan pengecekan tagihan ulang.'], 400);
         }
 
-        // Filter inquiryDataForPayment to only include those requested in customer_nos_to_pay
+        // Filter inquiryDataForPayment untuk hanya menyertakan yang diminta di customer_nos_to_pay
         $requestedCustomerNos = collect($request->customer_nos_to_pay)->unique();
         $filteredInquiryDataForPayment = collect($inquiryDataForPayment)->filter(function ($item) use ($requestedCustomerNos) {
             return $requestedCustomerNos->contains($item['customer_no']);

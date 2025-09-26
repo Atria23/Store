@@ -49,16 +49,13 @@ export default function Pdam({ auth, products }) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
     };
 
-    // Kalkulasi total yang harus dibayar untuk bulk payment (sesuai selling_price dari backend)
+    // Kalkulasi total yang harus dibayar untuk bulk payment (mengambil selling_price dari backend)
     const totalAmountToPayBulk = useMemo(() => {
         if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
-        return bulkInquiryResults.successful.reduce((sum, item) => {
-            const totalBeforeItemDiscount = (item.price ?? 0) + (item.denda ?? 0) + (item.biaya_lain ?? 0) + (item.admin ?? 0);
-            return sum + (totalBeforeItemDiscount - (item.diskon ?? 0));
-        }, 0);
+        return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.selling_price ?? 0), 0);
     }, [bulkInquiryResults]);
 
-    // Kalkulasi total diskon untuk bulk inquiry
+    // Kalkulasi total diskon untuk bulk inquiry (diskon masih ditampilkan dari item.diskon untuk informasi)
     const totalBulkDiscount = useMemo(() => {
         if (!bulkInquiryResults || !bulkInquiryResults.successful) return 0;
         return bulkInquiryResults.successful.reduce((sum, item) => sum + (item.diskon || 0), 0);
@@ -155,9 +152,10 @@ export default function Pdam({ auth, products }) {
 
     // Langkah 2: Buka Modal Konfirmasi (Satuan atau Massal)
     const handleBayarClick = () => {
+        // Menggunakan selling_price yang sudah dihitung backend
         const amountToCheck = isBulkMode
             ? totalAmountToPayBulk
-            : ((inquiryResult?.price ?? 0) + (inquiryResult?.denda ?? 0) + (inquiryResult?.biaya_lain ?? 0) + (inquiryResult?.admin ?? 0)) - (inquiryResult?.diskon ?? 0);
+            : (inquiryResult?.selling_price ?? 0);
 
         if (userBalance < amountToCheck) {
             setError("Saldo Anda tidak mencukupi untuk melakukan transaksi.");
@@ -404,6 +402,7 @@ export default function Pdam({ auth, products }) {
                                 <div className="bg-gray-50 rounded-lg p-4 text-center">
                                     <p className="text-sm text-gray-600">Total Pembayaran Berhasil</p>
                                     <p className="text-3xl font-bold text-main">
+                                        {/* Menggunakan selling_price dari backend */}
                                         {formatRupiah(isBulkMode ? bulkPaymentResults.total_paid_amount : paymentResult.selling_price)}
                                     </p>
                                 </div>
@@ -473,7 +472,8 @@ export default function Pdam({ auth, products }) {
                                                         )}
                                                         <div className="flex justify-between pl-2">
                                                             <span className="text-gray-500">Nilai Tagihan</span>
-                                                            <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0) - (detail.denda ?? 0))}</span>                                                        </div>
+                                                            <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0))}</span> {/* Nilai tagihan pokok per periode */}
+                                                        </div>
                                                         {parseFloat(detail.denda ?? 0) > 0 && (
                                                             <div className="flex justify-between pl-2">
                                                                 <span className="text-gray-500">Denda</span>
@@ -494,9 +494,15 @@ export default function Pdam({ auth, products }) {
                                         <div className="space-y-2 text-sm border-t pt-2">
                                             <h4 className="font-semibold text-md text-gray-800 pb-1">Ringkasan Pembayaran</h4>
                                             <div className="flex justify-between">
-                                                <span className="text-gray-500">Total Tagihan Pokok (+Biaya Lain)</span>
-                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span>
+                                                <span className="text-gray-500">Total Tagihan Pokok</span> {/* Diganti dari (+Biaya Lain) karena biaya_lain sudah dihitung terpisah */}
+                                                <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.price)}</span> {/* price = sumOfPureBillAmounts */}
                                             </div>
+                                            {parseFloat(inquiryResult.biaya_lain ?? 0) > 0 && ( // Biaya lain dipecah terpisah jika ada
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Total Biaya Lainnya</span>
+                                                    <span className="font-medium text-gray-900">{formatRupiah(inquiryResult.biaya_lain)}</span>
+                                                </div>
+                                            )}
                                             {parseFloat(inquiryResult.denda ?? 0) > 0 && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-500">Total Denda</span>
@@ -515,17 +521,11 @@ export default function Pdam({ auth, products }) {
                                             )}
                                         </div>
                                         <div className="w-full h-px bg-gray-200" />
-                                        {/* Tampilan Total Pembayaran Akhir, dihitung ulang secara eksplisit */}
+                                        {/* Tampilan Total Pembayaran Akhir, MENGGUNAKAN inquiryResult.selling_price dari backend */}
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold text-gray-800">Total Pembayaran Akhir</span>
                                             <span className="font-bold text-xl text-blue-600">
-                                                {formatRupiah(
-                                                    ((inquiryResult.price ?? 0) +
-                                                     (inquiryResult.denda ?? 0) +
-                                                     (inquiryResult.biaya_lain ?? 0) +
-                                                     (inquiryResult.admin ?? 0)) -
-                                                    (inquiryResult.diskon ?? 0)
-                                                )}
+                                                {formatRupiah(inquiryResult.selling_price ?? 0)}
                                             </span>
                                         </div>
                                     </>
@@ -561,7 +561,8 @@ export default function Pdam({ auth, products }) {
                                                                             )}
                                                                             <div className="flex justify-between pl-2">
                                                                                 <span className="text-gray-500">Nilai Tagihan</span>
-                                                                                <span className="font-medium">{formatRupiah((detail.nilai_tagihan ?? 0) - (detail.denda ?? 0))}</span>                                                                            </div>
+                                                                                <span className="font-medium">{formatRupiah(detail.nilai_tagihan ?? 0)}</span> {/* Nilai tagihan pokok per periode */}
+                                                                            </div>
                                                                             {parseFloat(detail.denda ?? 0) > 0 && (
                                                                                 <div className="flex justify-between pl-2">
                                                                                     <span className="text-gray-500">Denda</span>
@@ -582,9 +583,15 @@ export default function Pdam({ auth, products }) {
                                                             <div className="space-y-1 text-sm border-t pt-1 mt-1">
                                                                 <h5 className="font-semibold text-gray-800">Ringkasan Pembayaran</h5>
                                                                 <div className="flex justify-between">
-                                                                    <span className="text-gray-500">Total Tagihan Pokok (+Biaya Lain)</span>
+                                                                    <span className="text-gray-500">Total Tagihan Pokok</span>
                                                                     <span className="font-medium text-gray-900">{formatRupiah(item.price)}</span>
                                                                 </div>
+                                                                {parseFloat(item.biaya_lain ?? 0) > 0 && ( // Biaya lain dipecah terpisah jika ada
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-500">Total Biaya Lainnya</span>
+                                                                        <span className="font-medium text-gray-900">{formatRupiah(item.biaya_lain)}</span>
+                                                                    </div>
+                                                                )}
                                                                 {parseFloat(item.denda ?? 0) > 0 && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-gray-500">Total Denda</span>
@@ -604,14 +611,9 @@ export default function Pdam({ auth, products }) {
                                                                 <div className="w-full h-px bg-gray-200 mt-2" />
                                                                 <div className="flex justify-between items-center pt-2">
                                                                     <span className="font-semibold text-gray-800">Total Bayar</span>
+                                                                    {/* MENGGUNAKAN item.selling_price dari backend */}
                                                                     <span className="font-bold text-lg text-main">
-                                                                        {formatRupiah(
-                                                                            ((item.price ?? 0) +
-                                                                             (item.denda ?? 0) +
-                                                                             (item.biaya_lain ?? 0) +
-                                                                             (item.admin ?? 0)) -
-                                                                            (item.diskon ?? 0)
-                                                                        )}
+                                                                        {formatRupiah(item.selling_price ?? 0)}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -641,13 +643,9 @@ export default function Pdam({ auth, products }) {
                                                 <div className="w-full h-px bg-gray-200 mt-4" />
                                                 <div className="flex justify-between items-center">
                                                     <span className="font-semibold text-gray-800">Total Pembayaran Massal</span>
+                                                    {/* MENGGUNAKAN totalAmountToPayBulk yang sudah dihitung dari item.selling_price */}
                                                     <span className="font-bold text-xl text-main">
-                                                        {formatRupiah(
-                                                            bulkInquiryResults.successful.reduce((sum, item) => {
-                                                                const totalBeforeItemDiscount = (item.price ?? 0) + (item.denda ?? 0) + (item.biaya_lain ?? 0) + (item.admin ?? 0);
-                                                                return sum + (totalBeforeItemDiscount - (item.diskon ?? 0));
-                                                            }, 0)
-                                                        )}
+                                                        {formatRupiah(totalAmountToPayBulk)}
                                                     </span>
                                                 </div>
                                             </>
@@ -687,29 +685,21 @@ export default function Pdam({ auth, products }) {
                             <div>
                                 <p className="text-sm text-gray-600">Total Pembayaran Akhir</p>
                                 <p className="text-xl font-bold text-main">
+                                    {/* MENGGUNAKAN selling_price dari backend atau totalAmountToPayBulk */}
                                     {isBulkMode
-                                        ? formatRupiah(
-                                            bulkInquiryResults.successful.reduce((sum, item) => {
-                                                const totalBeforeItemDiscount = (item.price ?? 0) + (item.denda ?? 0) + (item.biaya_lain ?? 0) + (item.admin ?? 0);
-                                                return sum + (totalBeforeItemDiscount - (item.diskon ?? 0));
-                                            }, 0)
-                                        )
-                                        : formatRupiah(
-                                            ((inquiryResult.price ?? 0) +
-                                             (inquiryResult.denda ?? 0) +
-                                             (inquiryResult.biaya_lain ?? 0) +
-                                             (inquiryResult.admin ?? 0)) -
-                                            (inquiryResult.diskon ?? 0)
-                                        )
+                                        ? formatRupiah(totalAmountToPayBulk)
+                                        : formatRupiah(inquiryResult.selling_price ?? 0)
                                     }
                                 </p>
                             </div>
                             <button
                                 onClick={handleBayarClick}
-                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : ((inquiryResult.price ?? 0) + (inquiryResult.denda ?? 0) + (inquiryResult.biaya_lain ?? 0) + (inquiryResult.admin ?? 0)) - (inquiryResult.diskon ?? 0))}
+                                // MENGGUNAKAN selling_price dari backend atau totalAmountToPayBulk untuk pengecekan saldo
+                                disabled={userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult.selling_price ?? 0))}
                                 className="px-6 py-2 rounded-lg font-semibold text-white bg-main hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {userBalance < (isBulkMode ? totalAmountToPayBulk : ((inquiryResult.price ?? 0) + (inquiryResult.denda ?? 0) + (inquiryResult.biaya_lain ?? 0) + (inquiryResult.admin ?? 0)) - (inquiryResult.diskon ?? 0)) ? "Saldo Kurang" : "Bayar Sekarang"}
+                                {/* MENGGUNAKAN selling_price dari backend atau totalAmountToPayBulk untuk teks tombol */}
+                                {userBalance < (isBulkMode ? totalAmountToPayBulk : (inquiryResult.selling_price ?? 0)) ? "Saldo Kurang" : "Bayar Sekarang"}
                             </button>
                         </div>
                     </footer>
