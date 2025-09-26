@@ -426,15 +426,18 @@ class PascaPlnController extends Controller
         $request->validate(['customer_no' => 'required|string|min:10']);
         $customerNo = $request->customer_no;
 
-        $inquiryData = $this->_performSingleInquiry($customerNo);
+        $inquiryResult = $this->_performSingleInquiry($customerNo);
 
-        if ($inquiryData) {
-            session(['postpaid_inquiry_data' => $inquiryData]);
-            return response()->json($inquiryData);
+        // Cek kunci 'success' dari hasil _performSingleInquiry
+        if ($inquiryResult['success']) {
+            session(['postpaid_inquiry_data' => $inquiryResult]);
+            return response()->json($inquiryResult);
         } else {
-            // Error message from _performSingleInquiry is already logged.
-            // Provide a generic message to the user.
-            return response()->json(['message' => 'Gagal melakukan pengecekan tagihan. Silakan coba lagi nanti.'], 400);
+            // Jika gagal, $inquiryResult sudah memiliki 'message' dan 'rc'
+            return response()->json([
+                'message' => $inquiryResult['message'] ?? 'Gagal melakukan pengecekan tagihan. Silakan coba lagi nanti.',
+                'rc' => $inquiryResult['rc'] ?? 'UNKNOWN_ERROR_CODE' // Beri RC default jika tidak ada
+            ], 400); // Status code 400 untuk Bad Request
         }
     }
 
