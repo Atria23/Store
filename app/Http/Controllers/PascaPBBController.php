@@ -131,7 +131,7 @@ class PascaPbbController extends Controller
                     'customer_name' => $dummyCustomerName,
                     'customer_no' => $customerNo,
                     'buyer_sku_code' => $current_sku,
-                    'price' => $dummyPriceField, // Total PBB Pokok + Denda
+                    'price' => $dummyPriceField, // Total PBB Pokok + Denda (sesuai permintaan user)
                     'admin' => $dummyAdminField, // Admin fee per transaksi
                     'rc' => '00',
                     'sn' => 'SN-INQ-' . Str::random(12),
@@ -189,6 +189,7 @@ class PascaPbbController extends Controller
         $inquiryDataFromApi = $responseData['data'];
 
         $providerOriginalSellingPrice = (float) ($inquiryDataFromApi['selling_price'] ?? 0);
+        $apiPriceComponentFromApi     = (float) ($inquiryDataFromApi['price'] ?? 0); // 'price' dari API (PBB Pokok + Denda)
 
         if (!isset($inquiryDataFromApi['desc']) || !is_array($inquiryDataFromApi['desc'])) {
             $inquiryDataFromApi['desc'] = [];
@@ -255,21 +256,24 @@ class PascaPbbController extends Controller
         $finalSellingPrice = $totalAmountBeforeDiskon - $finalDiskon; // Total pembayaran akhir = (total PBB + denda + admin provider) - diskon kita
         $finalSellingPrice = ceil($finalSellingPrice);
 
-        // Override logic: If total price from API is greater than our calculated price, and API has its own selling price
-        // original_api_price here should ideally be (PBB Pokok + Denda + Admin dari API)
-        // Adjusting original_api_price derivation to be more robust
-        $apiOriginalPrice = (float) ($inquiryDataFromApi['original_api_price'] ?? ($providerSellingPriceFromApi - $providerAdminFromApi + $sumOfAdminFees));
-
-
-        if ($apiOriginalPrice > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
-            Log::info("PBB Inquiry: finalSellingPrice overridden by provider_original_selling_price.", [
+        // --- START OF MODIFIED OVERRIDE LOGIC ---
+        // Logika override yang diubah: Jika 'price' dari API (PBB Pokok + Denda dari provider)
+        // lebih tinggi dari 'finalSellingPrice' yang telah dihitung (yang mencakup admin provider dan diskon),
+        // DAN 'providerOriginalSellingPrice' juga positif, maka override finalSellingPrice
+        // dengan 'providerOriginalSellingPrice'.
+        // Ini memastikan bahwa jika harga dasar PBB dari provider saja sudah melebihi
+        // harga akhir kita (setelah diskon), kita akan membebankan harga total yang
+        // ditentukan oleh provider asli (termasuk admin dan markup mereka).
+        if ($apiPriceComponentFromApi > $finalSellingPrice && $providerOriginalSellingPrice > 0) {
+            Log::info("PBB Inquiry: finalSellingPrice overridden by provider_original_selling_price based on API 'price' component.", [
                 'calculated_finalSellingPrice' => $finalSellingPrice,
-                'apiOriginalPrice' => $apiOriginalPrice,
-                'providerOriginalSellingPrice' => $providerOriginalSellingPrice,
+                'apiPriceComponentFromApi' => $apiPriceComponentFromApi, // Ini adalah PBB Pokok + Denda dari API
+                'providerOriginalSellingPrice' => $providerOriginalSellingPrice, // Ini adalah selling_price total dari API
                 'customer_no' => $customerNo
             ]);
             $finalSellingPrice = $providerOriginalSellingPrice;
         }
+        // --- END OF MODIFIED OVERRIDE LOGIC ---
 
         // Update inquiryDataFromApi with processed values
         $inquiryDataFromApi['price']         = $sumOfPureBillAmounts; // Total PBB pokok murni (untuk mapping transaksi)

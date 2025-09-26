@@ -186,11 +186,12 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                         {type === 'PDAM' && (
                             <>
                                 {/* Baris Tarif */}
-                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
-                                    <span>Tarif:</span> {/* Menggunakan label "Tarif" */}
-                                    <span>{descData.tarif || '-'}</span>
-                                </div>
-
+                                {descData.tarif && descData.tarif !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                        <span>Tarif:</span> {/* Menggunakan label "Tarif" */}
+                                        <span>{descData.tarif || '-'}</span>
+                                    </div>
+                                )}
                                 {/* Baris Alamat dengan kondisi */}
                                 {descData.alamat && descData.alamat !== '-' && (
                                     <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
@@ -201,7 +202,6 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
 
                                 {/* Baris Jatuh Tempo */}
                                 {descData.jatuh_tempo && descData.jatuh_tempo !== '-' && (
-
                                     <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
                                         <span>Jatuh Tempo:</span>
                                         <span>{descData.jatuh_tempo || '-'}</span>
@@ -209,10 +209,12 @@ const ReceiptPostpaid = ({ storeData, transaction, size, editableBillPrice, edit
                                 )}
 
                                 {/* Baris Lembar Tagihan */}
-                                <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
-                                    <span>Lembar Tagihan:</span>
-                                    <span>{descData.lembar_tagihan || '0'}</span>
-                                </div>
+                                {descData.lembar_tagihan && descData.lembar_tagihan !== '-' && (
+                                    <div className={`flex justify-between ${sizeStyle.textSize} font-mono tracking-wide leading-tight pl-2`}>
+                                        <span>Lembar Tagihan:</span>
+                                        <span>{descData.lembar_tagihan || '0'}</span>
+                                    </div>
+                                )}
                             </>
                         )}
                         {type === 'INTERNET PASCABAYAR' && (

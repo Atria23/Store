@@ -36,7 +36,7 @@ const HistoryDetail = () => {
         "50": "Transaksi Tidak Ditemukan",
         "51": "Nomor Tujuan Diblokir",
         "52": "Prefix Tidak Sesuai Operator",
-        "53": "Produk Seller Tidak Tersedia",
+        "53": "Produk Tidak Tersedia",
         "54": "Nomor Tujuan Salah",
         "55": "Produk Gangguan",
         "57": "Jumlah Digit Tidak Sesuai",
