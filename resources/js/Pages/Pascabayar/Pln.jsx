@@ -14,7 +14,7 @@
 
 //     // State untuk UI & proses pembayaran
 //     const [isLoading, setIsLoading] = useState(false);
-//     const [error, setError] = useState('');
+//     const [error, setError] = useState(null); // MODIFIED: error now stores an object { message: string, rc: string | null }
 //     const [isModalOpen, setIsModalOpen] = useState(false);
 //     const [password, setPassword] = useState('');
 //     const [showPassword, setShowPassword] = useState(false);
@@ -38,8 +38,8 @@
 
 //     // Mengosongkan error saat input/mode berubah untuk UX yang lebih baik
 //     useEffect(() => {
-//         if (error) {
-//             setError('');
+//         if (error) { // MODIFIED: Check if error object exists
+//             setError(null); // MODIFIED: Clear error by setting to null
 //         }
 //     }, [customerNo, customerNosInput, password, isBulkMode]);
 
@@ -48,7 +48,7 @@
 //     const handleInquiry = async (e) => {
 //         e.preventDefault();
 //         setIsLoading(true);
-//         setError('');
+//         setError(null); // MODIFIED: Clear error by setting to null
 //         setInquiryResult(null); // Clear single inquiry result
 //         setBulkInquiryResults(null); // Clear bulk results if doing single
 //         setPaymentResult(null); // Clear payment results
@@ -61,11 +61,26 @@
 //                 body: JSON.stringify({ customer_no: customerNo }),
 //             });
 //             const data = await response.json();
-//             if (!response.ok) throw new Error(data.message || 'Gagal melakukan pengecekan tagihan.');
+
+//             if (!response.ok) {
+//                 // MODIFIED: Set error state as an object
+//                 setError({
+//                     message: data.message || 'Gagal melakukan pengecekan tagihan.',
+//                     rc: data.rc || null // Store RC separately
+//                 });
+//                 setIsLoading(false); // MODIFIED: Ensure loading is reset here
+//                 return; // MODIFIED: Stop execution here
+//             }
 //             setInquiryResult(data);
 //         } catch (err) {
-//             setError(err.message);
+//             // MODIFIED: This catch block handles network errors or other unexpected issues
+//             setError({
+//                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga.',
+//                 rc: null
+//             });
 //         } finally {
+//             // MODIFIED: Ensure isLoading is always false at the end of the process.
+//             // If it was already set to false in the !response.ok block, this won't change anything.
 //             setIsLoading(false);
 //         }
 //     };
@@ -74,7 +89,7 @@
 //     const handleBulkInquiry = async (e) => {
 //         e.preventDefault();
 //         setIsLoading(true);
-//         setError('');
+//         setError(null); // MODIFIED: Clear error by setting to null
 //         setInquiryResult(null); // Clear single inquiry result
 //         setBulkInquiryResults(null); // Clear previous bulk inquiry results
 //         setPaymentResult(null); // Clear payment results
@@ -85,7 +100,11 @@
 //             .filter(num => num.length >= 10); // Filter out empty or too short entries
 
 //         if (customerNos.length === 0) {
-//             setError('Masukkan setidaknya satu ID Pelanggan yang valid.');
+//             // MODIFIED: Set error as an object
+//             setError({
+//                 message: 'Masukkan setidaknya satu ID Pelanggan yang valid.',
+//                 rc: null
+//             });
 //             setIsLoading(false);
 //             return;
 //         }
@@ -98,11 +117,21 @@
 //             });
 //             const data = await response.json();
 //             if (!response.ok) {
-//                 throw new Error(data.message || 'Gagal melakukan pengecekan tagihan massal.');
+//                 // MODIFIED: Set error as an object
+//                 setError({
+//                     message: data.message || 'Gagal melakukan pengecekan tagihan massal.',
+//                     rc: data.rc || null
+//                 });
+//                 setIsLoading(false); // MODIFIED: Ensure loading is reset here
+//                 return; // MODIFIED: Stop execution here
 //             }
 //             setBulkInquiryResults(data);
 //         } catch (err) {
-//             setError(err.message);
+//             // MODIFIED: Handle network errors for bulk inquiry
+//             setError({
+//                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga saat cek massal.',
+//                 rc: null
+//             });
 //         } finally {
 //             setIsLoading(false);
 //         }
@@ -112,10 +141,14 @@
 //     const handleBayarClick = () => {
 //         const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
 //         if (userBalance < amountToCheck) {
-//             setError("Saldo tidak mencukupi untuk melakukan transaksi.");
+//             // MODIFIED: Set error as an object
+//             setError({
+//                 message: "Saldo tidak mencukupi untuk melakukan transaksi.",
+//                 rc: null // No specific RC for client-side balance check
+//             });
 //             return;
 //         }
-//         setError('');
+//         setError(null); // MODIFIED: Clear error by setting to null
 //         setPassword('');
 //         setIsModalOpen(true);
 //     };
@@ -124,17 +157,25 @@
 //     const handleSubmitPayment = async (e) => {
 //         e.preventDefault();
 //         if (!password) {
-//             setError("Silakan masukkan password untuk melanjutkan.");
+//             // MODIFIED: Set error as an object
+//             setError({
+//                 message: "Silakan masukkan password untuk melanjutkan.",
+//                 rc: null
+//             });
 //             return;
 //         }
 //         // Pastikan ada tagihan yang berhasil di-inquiry sebelum mencoba pembayaran
 //         if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
-//             setError('Tidak ada tagihan yang siap dibayar.');
+//             // MODIFIED: Set error as an object
+//             setError({
+//                 message: 'Tidak ada tagihan yang siap dibayar.',
+//                 rc: null
+//             });
 //             return;
 //         }
 
 //         setIsLoading(true);
-//         setError('');
+//         setError(null); // MODIFIED: Clear error by setting to null
 
 //         try {
 //             // Step 1: Verifikasi Password
@@ -145,7 +186,13 @@
 //             });
 //             const verifyData = await verifyResponse.json();
 //             if (!verifyResponse.ok || !verifyData.success) {
-//                 throw new Error("Password yang Anda masukkan salah.");
+//                 // MODIFIED: Set error as an object, assuming verifyData might have message/rc
+//                 setError({
+//                     message: verifyData.message || "Password yang Anda masukkan salah.",
+//                     rc: verifyData.rc || null
+//                 });
+//                 setIsLoading(false); // MODIFIED: Reset loading state here
+//                 return;
 //             }
 
 //             // Step 2: Lakukan Pembayaran (Satuan atau Massal)
@@ -167,9 +214,14 @@
 
 //             const data = await paymentResponse.json();
 //             if (!paymentResponse.ok) {
-//                 setError(data.message || 'Gagal melakukan pembayaran.');
+//                 // MODIFIED: Set error as an object
+//                 setError({
+//                     message: data.message || 'Gagal melakukan pembayaran.',
+//                     rc: data.rc || null
+//                 });
 //                 // Bahkan jika ada error, set hasil pembayaran untuk potensi partial success (bulk)
 //                 isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
+//                 setIsLoading(false); // MODIFIED: Reset loading state here
 //                 return; // Hentikan eksekusi jika ada error
 //             }
 
@@ -184,7 +236,11 @@
 //             router.reload({ only: ['auth'] }); // Refresh user balance
 
 //         } catch (err) {
-//             setError(err.message);
+//             // MODIFIED: Handle network errors for payment
+//             setError({
+//                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga saat pembayaran.',
+//                 rc: null
+//             });
 //         } finally {
 //             setIsLoading(false);
 //         }
@@ -201,7 +257,7 @@
 //         setBulkInquiryResults(null);
 //         setPaymentResult(null);
 //         setBulkPaymentResults(null);
-//         setError('');
+//         setError(null); // MODIFIED: Clear error by setting to null
 //         setCustomerNo('');
 //         setCustomerNosInput('');
 //         setIsBulkMode(false); // Reset mode
@@ -469,7 +525,10 @@
 //                                                             <span className="text-gray-600">ID Pelanggan</span>
 //                                                             <span className="font-bold text-red-800">{item.customer_no}</span>
 //                                                         </div>
-//                                                         <p className="text-xs text-red-600 mt-1">{item.message}</p>
+//                                                         <p className="text-xs text-red-600 mt-1">
+//                                                             {item.message}
+//                                                             {item.rc && ` (RC: ${item.rc})`} {/* NEW: Display RC for failed bulk items */}
+//                                                         </p>
 //                                                     </div>
 //                                                 ))}
 //                                             </>
@@ -562,7 +621,13 @@
 //                                         </button>
 //                                     </form>
 //                                 )}
-//                                 {error && !isModalOpen && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+//                                 {/* MODIFIED: Conditional rendering for error message */}
+//                                 {error && error.message && !isModalOpen && (
+//                                     <p className="text-red-500 text-xs text-center pt-2">
+//                                         {error.message}
+//                                         {error.rc && ` (RC: ${error.rc})`}
+//                                     </p>
+//                                 )}
 //                             </div>
 //                         )}
 //                     </div>
@@ -603,7 +668,13 @@
 //                                         {showPassword ? <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z" /><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" /><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7" /></svg>}
 //                                     </button>
 //                                 </div>
-//                                 {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+//                                 {/* MODIFIED: Conditional rendering for error message inside modal */}
+//                                 {error && error.message && (
+//                                     <p className="text-red-500 text-xs text-center pt-2">
+//                                         {error.message}
+//                                         {error.rc && ` (RC: ${error.rc})`}
+//                                     </p>
+//                                 )}
 //                                 <div className="flex justify-end space-x-2 pt-4">
 //                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Batal</button>
 //                                     <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-main hover:bg-blue-700 rounded-lg disabled:bg-gray-400">
@@ -634,16 +705,59 @@ export default function PlnPascaIndex({ auth }) {
 
     // State untuk UI & proses pembayaran
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null); // MODIFIED: error now stores an object { message: string, rc: string | null }
+    const [error, setError] = useState(null); // error now stores an object { message: string, rc: string | null }
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [isBulkMode, setIsBulkMode] = useState(false); // NEW: State untuk mode transaksi (satuan/massal)
+    const [isBulkMode, setIsBulkMode] = useState(false); // State untuk mode transaksi (satuan/massal)
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const userBalance = auth.user.balance;
 
     const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
+
+    // MODIFIED: RC to message mapping
+    const rcMessages = useMemo(() => ({
+        "00": "Transaksi Sukses",
+        "01": "Timeout",
+        "02": "Transaksi Gagal", // Umumnya untuk gagal, bisa lebih spesifik seperti 'Tagihan sudah lunas' jika dari provider.
+        "03": "Transaksi Pending",
+        "40": "Payload Error",
+        "50": "Transaksi Tidak Ditemukan",
+        "51": "Nomor Tujuan Diblokir",
+        "52": "Prefix Tidak Sesuai Operator",
+        "53": "Produk Tidak Tersedia",
+        "54": "Nomor Tujuan Salah",
+        "55": "Produk Gangguan",
+        "57": "Jumlah Digit Tidak Sesuai",
+        "58": "Sedang Perbaikan",
+        "59": "Tujuan di Luar Wilayah",
+        "60": "Tagihan Belum Tersedia",
+        "62": "Produk Mengalami Gangguan", // Atau ID Pelanggan tidak ditemukan, tergantung konteks provider
+        "63": "Tidak Support Transaksi Multi",
+        "65": "Limit Transaksi Multi",
+        "66": "Sedang Perbaikan Sistem",
+        "68": "Stok Habis",
+        "71": "Produk Tidak Stabil",
+        "72": "Unreg Paket Dulu",
+        "73": "Kwh Melebihi Batas",
+        "74": "Transaksi Refund",
+        "80": "Akun Diblokir Penyedia Layanan",
+        "82": "Akun Belum Terverifikasi",
+        "84": "Nominal Tidak Valid",
+        "85": "Limitasi Transaksi",
+        "86": "Limitasi Pengecekan PLN",
+        // Anda bisa menambahkan kode RC kustom dari backend Anda juga, contoh:
+        "NO_PRODUCT_ACTIVE": "Tidak ada produk PLN Pascabayar yang aktif.",
+        "NO_PRODUCT_FOR_COMMISSION": "Tidak ada produk aktif untuk perhitungan komisi.",
+        "API_CONNECTION_FAILED": "Gagal terhubung ke server penyedia layanan."
+    }), []);
+
+    // Helper function to get RC message
+    const getRcDescription = (rcCode) => {
+        return rcMessages[rcCode] || null; // Return null if RC code is not found
+    };
+
 
     // Calculate total amount for bulk payment based on successful inquiries
     const totalAmountToPayBulk = useMemo(() => {
@@ -658,8 +772,8 @@ export default function PlnPascaIndex({ auth }) {
 
     // Mengosongkan error saat input/mode berubah untuk UX yang lebih baik
     useEffect(() => {
-        if (error) { // MODIFIED: Check if error object exists
-            setError(null); // MODIFIED: Clear error by setting to null
+        if (error) {
+            setError(null); // Clear error by setting to null
         }
     }, [customerNo, customerNosInput, password, isBulkMode]);
 
@@ -668,7 +782,7 @@ export default function PlnPascaIndex({ auth }) {
     const handleInquiry = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError(null); // MODIFIED: Clear error by setting to null
+        setError(null); // Clear error by setting to null
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear bulk results if doing single
         setPaymentResult(null); // Clear payment results
@@ -683,24 +797,20 @@ export default function PlnPascaIndex({ auth }) {
             const data = await response.json();
 
             if (!response.ok) {
-                // MODIFIED: Set error state as an object
                 setError({
                     message: data.message || 'Gagal melakukan pengecekan tagihan.',
                     rc: data.rc || null // Store RC separately
                 });
-                setIsLoading(false); // MODIFIED: Ensure loading is reset here
-                return; // MODIFIED: Stop execution here
+                setIsLoading(false);
+                return;
             }
             setInquiryResult(data);
         } catch (err) {
-            // MODIFIED: This catch block handles network errors or other unexpected issues
             setError({
                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga.',
                 rc: null
             });
         } finally {
-            // MODIFIED: Ensure isLoading is always false at the end of the process.
-            // If it was already set to false in the !response.ok block, this won't change anything.
             setIsLoading(false);
         }
     };
@@ -709,7 +819,7 @@ export default function PlnPascaIndex({ auth }) {
     const handleBulkInquiry = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError(null); // MODIFIED: Clear error by setting to null
+        setError(null); // Clear error by setting to null
         setInquiryResult(null); // Clear single inquiry result
         setBulkInquiryResults(null); // Clear previous bulk inquiry results
         setPaymentResult(null); // Clear payment results
@@ -720,7 +830,6 @@ export default function PlnPascaIndex({ auth }) {
             .filter(num => num.length >= 10); // Filter out empty or too short entries
 
         if (customerNos.length === 0) {
-            // MODIFIED: Set error as an object
             setError({
                 message: 'Masukkan setidaknya satu ID Pelanggan yang valid.',
                 rc: null
@@ -737,17 +846,15 @@ export default function PlnPascaIndex({ auth }) {
             });
             const data = await response.json();
             if (!response.ok) {
-                // MODIFIED: Set error as an object
                 setError({
                     message: data.message || 'Gagal melakukan pengecekan tagihan massal.',
                     rc: data.rc || null
                 });
-                setIsLoading(false); // MODIFIED: Ensure loading is reset here
-                return; // MODIFIED: Stop execution here
+                setIsLoading(false);
+                return;
             }
             setBulkInquiryResults(data);
         } catch (err) {
-            // MODIFIED: Handle network errors for bulk inquiry
             setError({
                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga saat cek massal.',
                 rc: null
@@ -761,14 +868,13 @@ export default function PlnPascaIndex({ auth }) {
     const handleBayarClick = () => {
         const amountToCheck = isBulkMode ? totalAmountToPayBulk : inquiryResult?.selling_price;
         if (userBalance < amountToCheck) {
-            // MODIFIED: Set error as an object
             setError({
                 message: "Saldo tidak mencukupi untuk melakukan transaksi.",
                 rc: null // No specific RC for client-side balance check
             });
             return;
         }
-        setError(null); // MODIFIED: Clear error by setting to null
+        setError(null); // Clear error by setting to null
         setPassword('');
         setIsModalOpen(true);
     };
@@ -777,7 +883,6 @@ export default function PlnPascaIndex({ auth }) {
     const handleSubmitPayment = async (e) => {
         e.preventDefault();
         if (!password) {
-            // MODIFIED: Set error as an object
             setError({
                 message: "Silakan masukkan password untuk melanjutkan.",
                 rc: null
@@ -786,7 +891,6 @@ export default function PlnPascaIndex({ auth }) {
         }
         // Pastikan ada tagihan yang berhasil di-inquiry sebelum mencoba pembayaran
         if ((!inquiryResult && !isBulkMode) || (isBulkMode && (!bulkInquiryResults || bulkInquiryResults.successful.length === 0))) {
-            // MODIFIED: Set error as an object
             setError({
                 message: 'Tidak ada tagihan yang siap dibayar.',
                 rc: null
@@ -795,7 +899,7 @@ export default function PlnPascaIndex({ auth }) {
         }
 
         setIsLoading(true);
-        setError(null); // MODIFIED: Clear error by setting to null
+        setError(null); // Clear error by setting to null
 
         try {
             // Step 1: Verifikasi Password
@@ -806,12 +910,11 @@ export default function PlnPascaIndex({ auth }) {
             });
             const verifyData = await verifyResponse.json();
             if (!verifyResponse.ok || !verifyData.success) {
-                // MODIFIED: Set error as an object, assuming verifyData might have message/rc
                 setError({
                     message: verifyData.message || "Password yang Anda masukkan salah.",
                     rc: verifyData.rc || null
                 });
-                setIsLoading(false); // MODIFIED: Reset loading state here
+                setIsLoading(false);
                 return;
             }
 
@@ -834,15 +937,13 @@ export default function PlnPascaIndex({ auth }) {
 
             const data = await paymentResponse.json();
             if (!paymentResponse.ok) {
-                // MODIFIED: Set error as an object
                 setError({
                     message: data.message || 'Gagal melakukan pembayaran.',
                     rc: data.rc || null
                 });
-                // Bahkan jika ada error, set hasil pembayaran untuk potensi partial success (bulk)
                 isBulkMode ? setBulkPaymentResults(data) : setPaymentResult(data);
-                setIsLoading(false); // MODIFIED: Reset loading state here
-                return; // Hentikan eksekusi jika ada error
+                setIsLoading(false);
+                return;
             }
 
             // Jika sukses (atau sukses sebagian untuk bulk)
@@ -856,7 +957,6 @@ export default function PlnPascaIndex({ auth }) {
             router.reload({ only: ['auth'] }); // Refresh user balance
 
         } catch (err) {
-            // MODIFIED: Handle network errors for payment
             setError({
                 message: err.message || 'Terjadi kesalahan jaringan atau tak terduga saat pembayaran.',
                 rc: null
@@ -877,7 +977,7 @@ export default function PlnPascaIndex({ auth }) {
         setBulkInquiryResults(null);
         setPaymentResult(null);
         setBulkPaymentResults(null);
-        setError(null); // MODIFIED: Clear error by setting to null
+        setError(null); // Clear error by setting to null
         setCustomerNo('');
         setCustomerNosInput('');
         setIsBulkMode(false); // Reset mode
@@ -1146,8 +1246,10 @@ export default function PlnPascaIndex({ auth }) {
                                                             <span className="font-bold text-red-800">{item.customer_no}</span>
                                                         </div>
                                                         <p className="text-xs text-red-600 mt-1">
-                                                            {item.message}
-                                                            {item.rc && ` (RC: ${item.rc})`} {/* NEW: Display RC for failed bulk items */}
+                                                            {/* MODIFIED: Display specific RC message if available, otherwise just original message */}
+                                                            {getRcDescription(item.rc) || item.message}
+                                                            {/* Optionally, you can still show the RC code itself if getRcDescription is null */}
+                                                            {!getRcDescription(item.rc) && item.rc && ` (RC: ${item.rc})`}
                                                         </p>
                                                     </div>
                                                 ))}
@@ -1244,8 +1346,10 @@ export default function PlnPascaIndex({ auth }) {
                                 {/* MODIFIED: Conditional rendering for error message */}
                                 {error && error.message && !isModalOpen && (
                                     <p className="text-red-500 text-xs text-center pt-2">
-                                        {error.message}
-                                        {error.rc && ` (RC: ${error.rc})`}
+                                        {/* Display specific RC message if available, otherwise just original message */}
+                                        {getRcDescription(error.rc) || error.message}
+                                        {/* Optionally, you can still show the RC code itself if getRcDescription is null */}
+                                        {!getRcDescription(error.rc) && error.rc && ` (RC: ${error.rc})`}
                                     </p>
                                 )}
                             </div>
@@ -1291,8 +1395,8 @@ export default function PlnPascaIndex({ auth }) {
                                 {/* MODIFIED: Conditional rendering for error message inside modal */}
                                 {error && error.message && (
                                     <p className="text-red-500 text-xs text-center pt-2">
-                                        {error.message}
-                                        {error.rc && ` (RC: ${error.rc})`}
+                                        {getRcDescription(error.rc) || error.message}
+                                        {!getRcDescription(error.rc) && error.rc && ` (RC: ${error.rc})`}
                                     </p>
                                 )}
                                 <div className="flex justify-end space-x-2 pt-4">
